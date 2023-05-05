@@ -1,3 +1,13 @@
+# Download
+
+To install, download the latest version of GryperLink here:
+
+https://github.com/zwettemaan/InDesignBrot/tree/main/build
+
+Click the file name, then click the _Raw_ button.
+
+Follow the instructions in the read me file.
+
 # InDesignBrot
 
 This is the source structure for the InDesignBrot script. It was generated
