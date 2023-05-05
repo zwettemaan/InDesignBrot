@@ -1,0 +1,96 @@
+//
+// This code is exclusively UXPScript. It provides UXPScript-specific 
+// implementations of the pathutils API.
+//
+// pathutils.js depends on these functions being implemented
+// When adding new functionality here, make sure to also 
+// add corresponding tests to the utils_verifyDependencies()
+//
+(function() {
+
+if (! UXES.path) {
+    UXES.path = {};
+}
+
+var URL_FILE_PREFIX = "file:///";
+
+UXES.path.exists = function exists(filePath) {
+
+    var retVal = false;
+
+    UXES.logEntry(arguments);
+
+    try {
+        var lstat = UXES.g_fs.lstatSync(URL_FILE_PREFIX + filePath);
+        retVal = true;
+    }
+    catch (err) {    
+    }
+
+    UXES.logExit(arguments);
+
+    return retVal;
+}
+
+UXES.path.isDir = function isDir(folderPath) {
+
+    var retVal = false;
+
+    UXES.logEntry(arguments);
+
+    try {
+        var lstat = UXES.g_fs.lstatSync(URL_FILE_PREFIX + folderPath);
+        retVal = lstat.isDirectory()
+    }
+    catch (err) {    
+    }
+
+    UXES.logExit(arguments);
+
+    return retVal;
+}
+
+UXES.path.mkdir = function mkdir(folderPath, separator) {
+
+    var success = false;
+    UXES.logEntry(arguments);
+
+    do {
+        try {
+            if (! folderPath) {
+                UXES.logError(arguments, "no folderPath");
+                break;
+            }
+
+            if (UXES.path.exists(folderPath)) {
+                success = true;
+                break;
+            }
+
+            var parentFolderPath = UXES.path.dirname(folderPath, separator);
+            success = UXES.path.mkdir(parentFolderPath, separator);
+            if (! success) {
+                UXES.logError(arguments, "cannot create parent folder");
+                break;
+            }
+
+            try {
+                UXES.g_fs.mkdir(URL_FILE_PREFIX + folderPath);
+            }
+            catch (err) {                
+            }
+
+            success = UXES.path.isDir(folderPath);
+        }
+        catch (err) {
+            UXES.logError(arguments, "throws" + err);       
+        }
+    }
+    while (false);
+
+    UXES.logExit(arguments);
+
+    return success;
+}
+
+})();
