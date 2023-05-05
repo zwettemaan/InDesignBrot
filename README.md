@@ -1,5 +1,7 @@
 # Download
 
+![screenshot_2023-05-04_at_8 41 22_am_360](https://user-images.githubusercontent.com/3396477/236360673-ed908a8e-4892-4a6e-a184-d77d6b739d45.png)
+
 To install, download the latest version of GryperLink here:
 
 https://github.com/zwettemaan/InDesignBrot/tree/main/build
