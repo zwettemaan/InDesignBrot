@@ -17,7 +17,7 @@ using UXPScriptSparker:
 
 https://github.com/zwettemaan/UXPScriptSparker
 
-Run the Mac/build.command or Windows/build.bat scripts to build a
+Run the `Mac/build.command` or `Windows/build.bat` scripts to build a
 redistributable .zip file in the `build` folder.
 
 Read the `ReadMe for InDesignBrot.md` for more info.
