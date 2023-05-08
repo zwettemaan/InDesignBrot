@@ -10,6 +10,14 @@ Click the file name, then click the _Raw_ button.
 
 Follow the instructions in the read me file.
 
+Precalculated sample .indd files (need InDesign 2023 to open them):
+
+![Pre-calculated 100x100 indd file](https://github.com/zwettemaan/InDesignBrot/raw/main/Sample_kNumSteps_100.indd.zip)
+
+![Pre-calculated 150x150 indd file](https://github.com/zwettemaan/InDesignBrot/raw/main/Sample_kNumSteps_150.indd.zip)
+
+![Pre-calculated 200x200 indd file](https://github.com/zwettemaan/InDesignBrot/raw/main/Sample_kNumSteps_200.indd.zip)
+
 # InDesignBrot
 
 This is the source structure for the InDesignBrot script. It was generated
