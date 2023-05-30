@@ -2,35 +2,240 @@
 // This is the utils API. It is available in ExtendScript, CEP/JavaScript and UXPScript 
 //
 
-(function(){
+UXES.alert        = UXES.IMPLEMENTATION_MISSING;
+UXES.checkMac     = UXES.IMPLEMENTATION_MISSING;
+UXES.checkWindows = UXES.IMPLEMENTATION_MISSING;
+UXES.checkLinux   = UXES.IMPLEMENTATION_MISSING;
 
-function declareAPI() {
+/**
+* Make a copy of an object or array so it is equivalent, but does not share any references.
+* Do this recursively on all nested objects 
+* 
+* @function UXES.deepClone
+* 
+* @param {any} obj - What we want to clone
+* @return a deep clone of the object
+*/
 
-    UXES.alert        = UXES.IMPLEMENTATION_MISSING;
-    UXES.checkMac     = UXES.IMPLEMENTATION_MISSING;
-    UXES.checkWindows = UXES.IMPLEMENTATION_MISSING;
-    UXES.deepClone    = UXES.IMPLEMENTATION_MISSING;
-    UXES.dQ           = UXES.IMPLEMENTATION_MISSING;
-    UXES.logError     = UXES.IMPLEMENTATION_MISSING;
-    UXES.logExit      = UXES.IMPLEMENTATION_MISSING;
-    UXES.logMessage   = UXES.IMPLEMENTATION_MISSING;
-    UXES.logNote      = UXES.IMPLEMENTATION_MISSING;
-    UXES.logTrace     = UXES.IMPLEMENTATION_MISSING;
-    UXES.logWarning   = UXES.IMPLEMENTATION_MISSING;
-    UXES.popLogLevel  = UXES.IMPLEMENTATION_MISSING;
-    UXES.pushLogLevel = UXES.IMPLEMENTATION_MISSING;
-    UXES.randomGUID   = UXES.IMPLEMENTATION_MISSING;
-    UXES.shallowClone = UXES.IMPLEMENTATION_MISSING;
-    UXES.sQ           = UXES.IMPLEMENTATION_MISSING;
-    UXES.toHex        = UXES.IMPLEMENTATION_MISSING;
+UXES.deepClone = function(obj) { return UXES.IMPLEMENTATION_MISSING; };
 
-}
+/**
+* Wrap a string in double quotes, so that eval(UXES.dQ(x)) == x 
+* 
+* @function UXES.dQ
+* 
+* @param {string} s - string to be quoted
+* @return a copy of s wrapped in quotes
+*/
+
+UXES.dQ = function(s) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Pad a string with padChar by adding characters to the left
+* until the desired length is reached. If the string is longer than
+* the desired length, then the string is truncated on the left.
+* 
+* @function UXES.leftPad
+* 
+* @param {string} s - string to be quoted
+* @param {string} padChar - single character used for padding
+* @param {number} len - desired length
+* @return {string} string of length len
+*/
+
+UXES.leftPad = function(s, padChar, len) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Call this function when entering any function. A typical usage is 
+*   function myFunction()
+*   {
+*    var retVal = defaultValue;
+*    UXES.logEntry(arguments);
+* ...
+*    UXES.logExit(arguments);
+*    return retVal;
+*   }
+* 
+* @function UXES.logEntry
+* 
+* @param {array} args - pass in the arguments of the calling function
+*/
+UXES.logEntry = function(args) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Call this function when reporting an error condition 
+* ...
+*    if (somethingBad) {
+*      UXES.logError(arguments,"Something bad happened");
+*    }
+* 
+* @function UXES.logError
+* 
+* @param {array} args - pass in the arguments of the calling function
+* @param {string} msg - an error message
+*/
+
+UXES.logError = function(args, msg) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Call this function when exiting any function. A typical usage is 
+*   function myFunction()
+*   {
+*    var retVal = defaultValue;
+*    UXES.logEntry(arguments);
+* ...
+*    UXES.logExit(arguments);
+*    return retVal;
+*   }
+* 
+* @function UXES.logExit
+* 
+* @param {array} arguments - pass in the arguments of the calling function
+*/
+
+UXES.logExit      = function(args){};
+
+UXES.logMessage   = UXES.IMPLEMENTATION_MISSING;
+
+/**
+* Call this function when reporting some interesting condition 
+* ...
+*    if (somethingNoteworthy) {
+*      UXES.logNote(arguments,"Something bad happened");
+*    }
+* 
+* @function UXES.logNote
+* 
+* @param {array} args - pass in the arguments of the calling function
+* @param {string} msg - an note
+*/
+
+UXES.logNote      = function(args, msg) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Call this function when reporting some verbose, tracing info
+*    
+* ...
+*    UXES.logTrace(arguments,"About to call some doodad");
+* ...
+* 
+* @function UXES.logTrace
+* 
+* @param {array} args - pass in the arguments of the calling function
+* @param {string} msg - an trace message
+*/
+
+UXES.logTrace     = function(args, msg) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Call this function when reporting an unexpected, non-lethal condition
+*    
+*    if (someStringIsUnexpectedlyEmpty) {
+*      UXES.logWarning(arguments,"Did not expect to get an empty string");
+*    }
+* 
+* @function UXES.logWarning
+* 
+* @param {array} args - pass in the arguments of the calling function
+* @param {string} msg - an trace message
+*/
+
+UXES.logWarning   = function(args, msg) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Change the log level and restore what it was set to before the preceding call to pushLogLevel()
+*
+* @function UXES.popLogLevel
+* 
+* @return the previous log level before the popLogLevel()
+*          
+*/
+
+UXES.popLogLevel  = function() { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Change the log level and save the previous log level on a
+* stack.
+*
+* @function UXES.pushLogLevel
+* 
+* @param {number} newLogLevel  - new log level
+* @return the previous log level
+*          
+*/
+
+UXES.pushLogLevel = function(newLogLevel) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Generate some GUID. This is not really a 'proper' GUID generator, as Math.random() is not
+* a very good generator, but in many cases it'll do.
+*
+* @function UXES.randomGUID
+* 
+* @return a random GUID in XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
+* XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+*           111 1111 1222 222222333333
+* 01234567 9012 4567 9012 456789012345
+*          
+*/
+
+UXES.randomGUID   = function() { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Pad a string with padChar by adding characters to the right
+* until the desired length is reached. If the string is longer than
+* the desired length, then the string is truncated on the right.
+* 
+* @function UXES.rightPad
+* 
+* @param {string} s - string to be quoted
+* @param {string} padChar - single character used for padding
+* @param {number} len - desired length
+* @return {string} string of length len
+*/
+
+UXES.rightPad = function(s, padChar, len) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Make a copy of an object so it is equivalent, but does not share any references. 
+* Do not apply this on any nested objects
+* 
+* @function UXES.shallowClone
+* 
+* @param {any} obj - What we want to clone
+* @return a shallow clone of the object
+*/
+
+UXES.shallowClone = function(obj) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Wrap a string in single quotes, so that eval(UXES.sQ(x)) == x 
+* 
+* @function UXES.sQ
+* 
+* @param {string} s - string to be quoted
+* @return a copy of s wrapped in quotes
+*/
+
+UXES.sQ           = function(s) { return UXES.IMPLEMENTATION_MISSING; };
+
+/**
+* Convert a positive integer to a fixed-length hexadecimal number
+* 
+* @function UXES.toHex
+* 
+* @param {number} value - value to be converted
+* @param {number} numDigits - how many digits
+* @return a hexadecimal string or undefined
+*/
+
+UXES.toHex        = function(value, numDigits) { return UXES.IMPLEMENTATION_MISSING; };
 
 //--------- Tests
 
 var GUID_REGEX = /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
 
-UXES.tests.checkMacWindows = function checkMacWindows() {
+UXES.tests.checkMacWindowsLinux = function tests_checkMacWindowsLinux() {
 
     var retVal = false;
 
@@ -40,28 +245,45 @@ UXES.tests.checkMacWindows = function checkMacWindows() {
         
         try {
 
-            if (UXES.isMac && UXES.isWindows) {
-                UXES.logError(arguments, "both isMac and isWindows are true");
+            var platformCount = 0;
+
+            if (UXES.checkMac()) {
+                platformCount++;
+            }
+
+            if (UXES.checkWindows()) {
+                platformCount++;
+            }
+
+            if (UXES.checkLinux()) {
+                platformCount++;
+            }
+
+            if (platformCount != 1) {
+                UXES.logError(arguments, "check... methods result in indeterminate platform");
                 break;
             }
 
-            if (! UXES.isMac && ! UXES.isWindows) {
-                UXES.logError(arguments, "both isMac and isWindows are false");
-                break;
+            platformCount = 0;
+
+            if (UXES.isMac) {
+                platformCount++;
             }
 
-            if (UXES.checkMac() && UXES.checkWindows()) {
-                UXES.logError(arguments, "both checkMac and checkWindows return true");
-                break;
+            if (UXES.isWindows) {
+                platformCount++;
             }
 
-            if (! UXES.checkMac() && ! UXES.checkWindows()) {
-                UXES.logError(arguments, "neither checkMac nor checkWindows return true");
+            if (UXES.isLinux) {
+                platformCount++;
+            }
+
+            if (platformCount != 1) {
+                UXES.logError(arguments, "status attributes cause indeterminate platform");
                 break;
-            }  
+            }
 
             retVal = true;      
-            UXES.logNote(arguments, "test passed");
         }
         catch (err) {
             UXES.logError(arguments, "throws " + err);
@@ -75,7 +297,7 @@ UXES.tests.checkMacWindows = function checkMacWindows() {
     return retVal;
 }
 
-UXES.tests.deepClone = function deepClone() {
+UXES.tests.deepClone = function tests_deepClone() {
 
     var retVal = false;
 
@@ -263,7 +485,6 @@ UXES.tests.deepClone = function deepClone() {
             }
 
             retVal = true;      
-            UXES.logNote(arguments, "test passed");
 
         }
         catch (err) {
@@ -278,7 +499,7 @@ UXES.tests.deepClone = function deepClone() {
     return retVal;
 }
 
-UXES.tests.randomGUID = function randomGUID() {
+UXES.tests.randomGUID = function tests_randomGUID() {
 
     var retVal = false;
 
@@ -291,22 +512,21 @@ UXES.tests.randomGUID = function randomGUID() {
             var guid1 = UXES.randomGUID();
             var guid2 = UXES.randomGUID();
             if (guid1 == guid2) {
-                UXES.logError(arguments, "guids should be different")
+                UXES.logError(arguments, "guids should be different");
                 break;                
             }
 
             if (! guid1.match(GUID_REGEX)) {
-                UXES.logError(arguments, "guid1 wrong format")
+                UXES.logError(arguments, "guid1 wrong format");
                 break;                
             }
 
             if (! guid2.match(GUID_REGEX)) {
-                UXES.logError(arguments, "guid2 wrong format")
+                UXES.logError(arguments, "guid2 wrong format");
                 break;                
             }
 
             retVal = true;      
-            UXES.logNote(arguments, "test passed");
         }
         catch (err) {
             UXES.logError(arguments, "throws " + err);
@@ -320,7 +540,7 @@ UXES.tests.randomGUID = function randomGUID() {
     return retVal;
 }
 
-UXES.tests.toHex = function toHex() {
+UXES.tests.toHex = function tests_toHex() {
 
     var retVal = false;
 
@@ -447,9 +667,6 @@ UXES.tests.toHex = function toHex() {
                     retVal = false;
                 }
             }
-
-
-            UXES.logNote(arguments, "test passed");
         }
         catch (err) {
             UXES.logError(arguments, "throws " + err);
@@ -462,8 +679,3 @@ UXES.tests.toHex = function toHex() {
 
     return retVal;
 }
-//------------
-
-declareAPI();
-
-})();

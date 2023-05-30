@@ -1,5 +1,3 @@
-(function() {
-
 if (! UXES.fileio) {
     UXES.fileio = {};
 }
@@ -50,7 +48,7 @@ UXES.fileio.appendUTF8TextFile = async function appendUTF8TextFile(filePath, tex
                 UXES.dQ("a") + "," +
                 (handleNewLine == UXES.fileio.FILEIO_APPEND_NEWLINE ? "true" : "false") +
             ")";
-        await app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
+        await UXES.G.app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
     }
     catch (err) {       
     }
@@ -65,7 +63,7 @@ UXES.fileio.readUTF8TextFile = async function readUTF8TextFile(filePath) {
             ES_SCRIPT_readUTF8TextFile + "(" +
                 UXES.dQ(filePath) + 
             ")";
-        retVal = await eval(app.doScript(extendScript, ScriptLanguage.JAVASCRIPT));
+        retVal = await eval(UXES.G.app.doScript(extendScript, ScriptLanguage.JAVASCRIPT));
     }
     catch (err) {        
     }
@@ -83,10 +81,8 @@ UXES.fileio.writeUTF8TextFile = async function writeUTF8TextFile(filePath, text,
                 UXES.dQ("w") + "," +
                 (handleNewLine == UXES.fileio.FILEIO_APPEND_NEWLINE ? "true" : "false") +
             ")";
-        await app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
+        await UXES.G.app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
     }
     catch (err) {        
     }
 }
-
-})();

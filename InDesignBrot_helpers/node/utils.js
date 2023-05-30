@@ -1,5 +1,5 @@
 //
-// This code is exclusively ExtendScript. It provides ExtendScript-specific 
+// This code is exclusively Node.js. It provides Node-specific 
 // implementations of the utils API.
 //
 // utils.js depends on these functions being implemented
@@ -7,37 +7,41 @@
 // add corresponding tests to the utils_verifyDependencies()
 //
 
-UXES.alert = function _alert(msg) {  // Use `_alert`, instead of `alert` to avoid infinite recursion
+UXES.alert = function alert(msg) {    
 
     UXES.logEntry(arguments);
 
-    alert(msg); // Built-in should not match function name of this function - that's why we use `_alert`
-    
+    process.stderr.write(msg + "\n")
+
     UXES.logExit(arguments);
 
 }
 
 UXES.checkLinux = function checkLinux() {    
-    var retVal = false;
+
+    var retVal = undefined;
 
     UXES.logEntry(arguments);
+
+    retVal = UXES.os.platform() === 'linux';
+
     UXES.logExit(arguments);
 
     return retVal;
-};
+}
 
 UXES.checkMac = function checkMac() {    
 
-    var retVal;
+    var retVal = undefined;
 
     UXES.logEntry(arguments);
 
-    retVal = $.os.substr(0,3) == "Mac";
+    retVal = UXES.os.platform() === 'darwin';
 
     UXES.logExit(arguments);
 
     return retVal;
-};
+}
 
 UXES.checkWindows = function checkWindows() {    
 
@@ -45,7 +49,7 @@ UXES.checkWindows = function checkWindows() {
 
     UXES.logEntry(arguments);
 
-    retVal = $.os.substr(0,3) == "Win";
+    retVal = UXES.os.platform() === 'win32';
 
     UXES.logExit(arguments);
 
@@ -54,9 +58,12 @@ UXES.checkWindows = function checkWindows() {
 
 UXES.checkLinux = function checkLinux() {    
 
-    var retVal = false;
+    var retVal = undefined;
 
     UXES.logEntry(arguments);
+
+    retVal = UXES.os.platform() === 'linux';
+
     UXES.logExit(arguments);
 
     return retVal;
@@ -119,21 +126,20 @@ UXES.logMessage = function(reportingFunctionArguments, levelPrefix, message) {
                 UXES.leftPad(now.getUTCSeconds(), "0", 2) + 
                 "+00 ";
 
-            var platformPrefix = "E ";
-
+            var platformPrefix = "U ";
+            
             var logLine = platformPrefix + timePrefix + "- " + levelPrefix + ": " + functionPrefix + message;
-
+                    
             if (UXES.S.LOG_TO_FILEPATH) {
                 UXES.fileio.appendUTF8TextFile(
                     UXES.S.LOG_TO_FILEPATH, 
                     logLine, 
                     UXES.fileio.FILEIO_APPEND_NEWLINE);
             }
-                    
-            if (UXES.S.LOG_TO_ESTK_CONSOLE) {
-                $.writeln(logLine); 
-            }
 
+            if (UXES.S.LOG_TO_NODE_CONSOLE) {
+                console.log(logLine); 
+            }
         }
         catch (err) {
         }

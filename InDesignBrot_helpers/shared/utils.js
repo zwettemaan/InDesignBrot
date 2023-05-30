@@ -2,18 +2,6 @@
 // This code can be shared between CEP/JavaScript, ExtendScript and UXPScript
 //
 
-(function(){
-
-/**
-* Make a copy of an object or array so it is equivalent, but does not share any references.
-* Do this recursively on all nested objects 
-* 
-* @function UXES.deepClone
-* 
-* @param {any} obj - What we want to clone
-* @return a deep clone of the object
-*/
-
 var logLevelStack = [];
 
 UXES.deepClone = function deepClone(obj) {
@@ -69,19 +57,9 @@ UXES.deepClone = function deepClone(obj) {
     return retVal;
 }
 
-/**
-* Wrap a string in double quotes, so that eval(UXES.dQ(x)) == x 
-* 
-* @function UXES.dQ
-* 
-* @param {string} s - string to be quoted
-* @return a copy of s wrapped in quotes
-*/
-
 UXES.dQ = function(s) {
     return '"' + s.toString().replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n").replace(/\r/g,"\\r") + '"';
 }
-
 
 UXES.leftPad = function leftPad(s, padChar, len) {
 
@@ -115,40 +93,11 @@ UXES.leftPad = function leftPad(s, padChar, len) {
     return retVal;
 }
 
-/**
-* Call this function when entering any function. A typical usage is 
-*   function myFunction()
-*   {
-*    var retVal = defaultValue;
-*    UXES.logEntry(arguments);
-* ...
-*    UXES.logExit(arguments);
-*    return retVal;
-*   }
-* 
-* @function UXES.logEntry
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-*/
-
 UXES.logEntry = function(reportingFunctionArguments) {
     if (UXES.S.LOG_ENTRY_EXIT) {
         UXES.logTrace(reportingFunctionArguments, "Entry");
     }
 }
-
-/**
-* Call this function when reporting an error condition 
-* ...
-*    if (somethingBad) {
-*      UXES.logError(arguments,"Something bad happened");
-*    }
-* 
-* @function UXES.logError
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-* @param {string} message - an error message
-*/
 
 UXES.logError = function(reportingFunctionArguments, s) {
     if (UXES.S.LOG_LEVEL >= UXES.C.LOG_ERROR) {
@@ -160,40 +109,11 @@ UXES.logError = function(reportingFunctionArguments, s) {
     }
 }
 
-/**
-* Call this function when exiting any function. A typical usage is 
-*   function myFunction()
-*   {
-*    var retVal = defaultValue;
-*    UXES.logEntry(arguments);
-* ...
-*    UXES.logExit(arguments);
-*    return retVal;
-*   }
-* 
-* @function UXES.logExit
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-*/
-
 UXES.logExit = function(reportingFunctionArguments) {
     if (UXES.S.LOG_ENTRY_EXIT) {
         UXES.logTrace(reportingFunctionArguments, "Exit");
     }
 }
-
-/**
-* Call this function when reporting some interesting condition 
-* ...
-*    if (somethingNoteworthy) {
-*      UXES.logNote(arguments,"Something bad happened");
-*    }
-* 
-* @function UXES.logNote
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-* @param {string} message - an note
-*/
 
 UXES.logNote = function(reportingFunctionArguments, s) {
     if (UXES.S.LOG_LEVEL >= UXES.C.LOG_NOTE) {
@@ -205,19 +125,6 @@ UXES.logNote = function(reportingFunctionArguments, s) {
     }
 }
 
-/**
-* Call this function when reporting some verbose, tracing info
-*    
-* ...
-*    UXES.logTrace(arguments,"About to call some doodad");
-* ...
-* 
-* @function UXES.logTrace
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-* @param {string} message - an trace message
-*/
-
 UXES.logTrace = function(reportingFunctionArguments, s) {
     if (UXES.S.LOG_LEVEL >= UXES.C.LOG_TRACE) {
         if (! s) {
@@ -228,19 +135,6 @@ UXES.logTrace = function(reportingFunctionArguments, s) {
     }
 }
 
-/**
-* Call this function when reporting an unexpected condition
-*    
-*    if (someStringIsUnexpectedlyEmpty) {
-*      UXES.logWarning(arguments,"Did not expect to get an empty string");
-*    }
-* 
-* @function UXES.logWarning
-* 
-* @param {array} arguments - pass in the arguments of the calling function
-* @param {string} message - an trace message
-*/
-
 UXES.logWarning = function(reportingFunctionArguments, s) {
     if (UXES.S.LOG_LEVEL >= UXES.C.LOG_WARN) {
         if (! s) {
@@ -250,15 +144,6 @@ UXES.logWarning = function(reportingFunctionArguments, s) {
         UXES.logMessage(reportingFunctionArguments, "WARN", s);
     }
 }
-
-/**
-* Change the log level and restore what it was set to before the preceding call to pushLogLevel()
-*
-* @function UXES.popLogLevel
-* 
-* @return the previous log level before the popLogLevel()
-*          
-*/
 
 UXES.popLogLevel = function popLogLevel() {
 
@@ -275,17 +160,6 @@ UXES.popLogLevel = function popLogLevel() {
     return retVal;
 }
 
-/**
-* Change the log level and save the previous log level on a
-* stack.
-*
-* @function UXES.pushLogLevel
-* 
-* @param {integer} newLogLevel  - new log level
-* @return the previous log level
-*          
-*/
-
 UXES.pushLogLevel = function pushLogLevel(newLogLevel) {
 
     var retVal;
@@ -296,19 +170,6 @@ UXES.pushLogLevel = function pushLogLevel(newLogLevel) {
 
     return retVal;
 }
-
-/**
-* Generate some GUID. This is not really a 'proper' GUID generator, 
-* but for our needs it'll do.
-*
-* @function UXES.randomGUID
-* 
-* @return a random GUID in XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
-* XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-*           111 1111 1222 222222333333
-* 01234567 9012 4567 9012 456789012345
-*          
-*/
 
 UXES.randomGUID = function randomGUID() 
 {
@@ -364,16 +225,6 @@ UXES.rightPad = function rightPad(s, padChar, len) {
     return retVal;
 }
 
-/**
-* Make a copy of an object so it is equivalent, but does not share any references. 
-* Do not apply this on any nested objects
-* 
-* @function UXES.shallowClone
-* 
-* @param {any} obj - What we want to clone
-* @return a shallow clone of the object
-*/
-
 UXES.shallowClone = function shallowClone(obj) {
 
     var retVal = undefined;
@@ -419,28 +270,9 @@ UXES.shallowClone = function shallowClone(obj) {
     return retVal;
 }
 
-/**
-* Wrap a string in single quotes, so that eval(UXES.sQ(x)) == x 
-* 
-* @function UXES.sQ
-* 
-* @param {string} s - string to be quoted
-* @return a copy of s wrapped in quotes
-*/
-
 UXES.sQ = function(s) {
     return "'" + s.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/\n/g,"\\n").replace(/\r/g,"\\r") + "'";
 }
-
-/**
-* Convert a positive integer to a fixed-length hexadecimal number
-* 
-* @function UXES.toHex
-* 
-* @param {number} value - value to be converted
-* @param {number} numDigits - how many digits
-* @return a hexadecimal string or undefined
-*/
 
 UXES.toHex = function toHex(value, numDigits) 
 {
@@ -491,5 +323,3 @@ UXES.toHex = function toHex(value, numDigits)
 
     return retVal;
 }
-
-})();

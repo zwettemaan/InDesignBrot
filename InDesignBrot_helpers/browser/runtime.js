@@ -7,12 +7,10 @@ if ("undefined" == typeof UXES) {
 
 UXES.relativeFilePathsToLoad = [
 
-    "../shared/appMapper.js",
-
     "../api/globals.js",
-    "./api/globals.idjs",
+    "./api/globals.js",
     "../shared/globals.js",
-    "./globals.idjs",
+    "./globals.js",
 
     "../api/tweakableSettings.js",
     "../shared/tweakableSettings.js",
@@ -38,11 +36,47 @@ UXES.relativeFilePathsToLoad = [
     "../../InDesignBrot.js"
 ];
 
-var ES_SCRIPT_getHomeDir = 
-    "(function() {" +
-        "function dQ(s){\nreturn'\"'+s.replace(/\\\\/g,\"\\\\\\\\\").replace(/\"/g,'\\\\\"')+'\"';\n}" +
-        "return dQ(Folder('~').fsName)" +
-    "})()";
+// require() and global.require() are different functions. I've come up with a mix-and-match
+// using both. Below, I fetch UXES.fs and UXES.g_fs which are different 'fs-like'
+// entities
+
+if (! UXES.S) {
+    UXES.S = {};
+}
+
+if (! UXES.C) {
+    UXES.C = {};
+}
+
+if (! UXES.IMPLEMENTATION_MISSING) {
+    UXES.IMPLEMENTATION_MISSING = function IMPLEMENTATION_MISSING() {
+        UXES.logError("Implementation is missing");        
+    };
+}
+
+if (! UXES.VALUE_NOT_INITIALIZED) {
+    UXES.VALUE_NOT_INITIALIZED = { VALUE_NOT_INITIALIZED: true };
+}
+
+if (! UXES.tests) {
+    UXES.tests = {};
+}
+
+if (! UXES.uxp) {
+    UXES.uxp = require("uxp");
+}
+
+if (! UXES.storage) {
+    UXES.storage = UXES.uxp.storage;
+}
+
+if (! UXES.fs) {
+    UXES.fs = UXES.storage.localFileSystem;
+}
+
+if (! UXES.g_fs) {
+    UXES.g_fs = global.require("fs");
+}
 
 UXES.initDirsScript = async function initDirsScript() {
 
@@ -143,17 +177,6 @@ UXES.criticalError = function criticalError(error) {
 
 exports.loadModules = async function loadModules(nameSpace, completionCallback) {
 
-    if ("undefined" == typeof app) {
-        var id = require("indesign");
-        UXES.G = id;
-    }
-    else if ("undefined" == typeof $ || ! $.global) {
-        UXES.G = window;
-    }
-    else {
-        UXES.G = $.global;
-    }
-
     var failedTests = 0;
     var missingImplementations = 0;
 
@@ -174,10 +197,7 @@ exports.loadModules = async function loadModules(nameSpace, completionCallback) 
             for (var testEntryName in testCollection) {
                 var testEntry = testCollection[testEntryName];
                 if ("function" == typeof testEntry) {
-                    if (testEntry()) {
-                        UXES.logNote("Passed test " + testEntryName);
-                    }
-                    else {
+                    if (! testEntry()) {
                         UXES.criticalError("Failed test " + testEntryName);
                         failedTests++;
                     }
@@ -193,8 +213,6 @@ exports.loadModules = async function loadModules(nameSpace, completionCallback) 
         var path = UXES.relativeFilePathsToLoad[pathIdx];
         require(path);
     }
-
-    UXES.C.APP_NAME = UXES.mapAppId(UXES.C.APP_ID);
 
     await UXES.initDirsScript();
 

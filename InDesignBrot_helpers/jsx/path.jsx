@@ -1,31 +1,22 @@
 //
-// This code is exclusively UXPScript. It provides UXPScript-specific 
-// implementations of the pathutils API.
+// This code is exclusively ExtendScript. It provides ExtendScript-specific 
+// implementations of the path API.
 //
-// pathutils.js depends on these functions being implemented
+// utils.js depends on these functions being implemented
 // When adding new functionality here, make sure to also 
 // add corresponding tests to the utils_verifyDependencies()
 //
-(function() {
 
 if (! UXES.path) {
     UXES.path = {};
 }
 
-var URL_FILE_PREFIX = "file:///";
-
 UXES.path.exists = function exists(filePath) {
-
-    var retVal = false;
-
+    
     UXES.logEntry(arguments);
 
-    try {
-        var lstat = UXES.g_fs.lstatSync(URL_FILE_PREFIX + filePath);
-        retVal = true;
-    }
-    catch (err) {    
-    }
+    var f = File(filePath);
+    var retVal = f.exists;
 
     UXES.logExit(arguments);
 
@@ -33,17 +24,15 @@ UXES.path.exists = function exists(filePath) {
 }
 
 UXES.path.isDir = function isDir(folderPath) {
-
-    var retVal = false;
-
+    
     UXES.logEntry(arguments);
 
-    try {
-        var lstat = UXES.g_fs.lstatSync(URL_FILE_PREFIX + folderPath);
-        retVal = lstat.isDirectory()
-    }
-    catch (err) {    
-    }
+    // This casts to a File instead of a Folder if the
+    // path references a file
+
+    var folder = Folder(folderPath);
+
+    var retVal = (folder instanceof Folder);
 
     UXES.logExit(arguments);
 
@@ -53,8 +42,9 @@ UXES.path.isDir = function isDir(folderPath) {
 UXES.path.mkdir = function mkdir(folderPath, separator) {
 
     var success = false;
-    UXES.logEntry(arguments);
 
+    UXES.logEntry(arguments);
+    
     do {
         try {
             if (! folderPath) {
@@ -74,13 +64,9 @@ UXES.path.mkdir = function mkdir(folderPath, separator) {
                 break;
             }
 
-            try {
-                UXES.g_fs.mkdir(URL_FILE_PREFIX + folderPath);
-            }
-            catch (err) {                
-            }
-
-            success = UXES.path.isDir(folderPath);
+            var folder = Folder(folderPath);
+            folder.create();
+            success = folder.exists;
         }
         catch (err) {
             UXES.logError(arguments, "throws" + err);       
@@ -89,8 +75,6 @@ UXES.path.mkdir = function mkdir(folderPath, separator) {
     while (false);
 
     UXES.logExit(arguments);
-
+    
     return success;
 }
-
-})();

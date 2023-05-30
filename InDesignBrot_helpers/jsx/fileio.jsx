@@ -1,5 +1,3 @@
-(function() {
-
 if (! UXES.fileio) {
     UXES.fileio = {};
 }
@@ -26,7 +24,7 @@ UXES.fileio.appendUTF8TextFile = function appendUTF8TextFile(filePath, str, hand
 
 UXES.fileio.readUTF8TextFile = function readUTF8TextFile(filePath) {
 
-	var retVal = "";
+    var retVal = "";
 
     try {
         var textFile = File(filePath);
@@ -58,5 +56,3 @@ UXES.fileio.writeUTF8TextFile = function writeUTF8TextFile(filePath, text, handl
     catch (err) {        
     }
 }
-
-})();

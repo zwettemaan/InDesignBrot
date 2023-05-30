@@ -1,8 +1,7 @@
-// Don't use `var UXES`
-// By using `var` we will end up defining this in the wrong scope
-
-if ("undefined" == typeof UXES) {
+UXES = global.UXES;
+if (! UXES) {
     UXES = {};
+    global.UXES = UXES;
 }
 
 UXES.relativeFilePathsToLoad = [
@@ -10,31 +9,26 @@ UXES.relativeFilePathsToLoad = [
     "../shared/appMapper.js",
 
     "../api/globals.js",
-    "./api/globals.jsx",
+    "./api/globals.js",
     "../shared/globals.js",
-    "./globals.jsx",
+    "./globals.js",
 
     "../api/tweakableSettings.js",
     "../shared/tweakableSettings.js",
 
     "../api/utils.js",
     "../shared/utils.js",
-    "./utils.jsx",
+    "./utils.js",
 
     "../api/path.js",
     "../shared/path.js",
-    "./path.jsx",
+    "./path.js",
 
     "../api/fileio.js",
-    "./fileio.jsx",
+    "./fileio.js",
     
-    "../api/idDOM.js",
-    "./idDOM.jsx",
-
     "../api/compat.js",
-    "./compat.jsx",
-
-    "./promiscuous-browser.jsx",
+    "./compat.js",
 
     "../shared/init.js",
     "../../InDesignBrot.js"
@@ -47,20 +41,18 @@ UXES.initDirsScript = function initDirsScript() {
     do {
         try {
 
-            UXES.dirs.HOME = UXES.path.addTrailingSeparator(Folder("~").fsName);
-            UXES.dirs.DESKTOP = UXES.path.addTrailingSeparator(Folder.desktop.fsName);
-            UXES.dirs.TEMP = UXES.path.addTrailingSeparator(Folder.temp.fsName);
-
-
-            if (UXES.isMac) {
-                UXES.dirs.DRIVE_PREFIX = "";
+            if (! UXES.dirs) {
+                UXES.dirs = {};
             }
-            else {
-                var splitHomePath = UXES.dirs.HOME.split(UXES.path.SEPARATOR);
-                if (splitHomePath.length > 0) {
-                    UXES.dirs.DRIVE_PREFIX = splitHomePath[0] + UXES.path.SEPARATOR;
-                }
-            }
+
+            UXES.dirs.TEMP = 
+                UXES.path.addTrailingSeparator(UXES.os.tmpdir());
+
+            UXES.dirs.HOME = 
+                UXES.path.addTrailingSeparator(process.env.HOME);
+
+            UXES.dirs.DESKTOP = 
+                UXES.dirs.HOME + "Desktop" + UXES.path.SEPARATOR;
 
         }
         catch (err) { 
@@ -76,19 +68,17 @@ UXES.criticalError = function criticalError(error) {
         UXES.logError(error);
     }
     
-    if (UXES.S.LOG_CRITICAL_ERRORS && UXES.S.CRITICAL_LOG_FILE_ON_DESKTOP) {
+    if (UXES.S.LOG_CRITICAL_ERRORS) {
 
         try {
-            var logFile = File(Folder.desktop.fsName + "/" + UXES.S.CRITICAL_LOG_FILE_ON_DESKTOP);
-            logFile.open("a");
-            logFile.encoding = "UTF8";
-            logFile.writeln(error);   
-            logFile.close();         
+            const desktop = process.env.HOME + "/Desktop";
+            const logFile = desktop + "/criticalErrors.log";
+            UXES.fs.writeSync(logFile, error + "\n");
         }
         catch (err) {
 
             try {
-                alert(error);
+                console.log(error);
             }
             catch (err) {   
             }
@@ -97,21 +87,12 @@ UXES.criticalError = function criticalError(error) {
     }
 }
 
-UXES.loadModules = function loadModules(nameSpace, completionCallback) {
-
-    if ("undefined" == typeof app) {
-        var id = require("indesign");
-        UXES.G = id;
-    }
-    else if ("undefined" == typeof $ || ! $.global) {
-        UXES.G = window;
-    }
-    else {
-        UXES.G = $.global;
-    }
+exports.loadModules = async function loadModules(nameSpace, completionCallback) {
 
     var failedTests = 0;
     var missingImplementations = 0;
+
+    UXES.G = global;
 
     function verifyImplementationsAvailable(apiCollection) {
         if (apiCollection) {
@@ -145,20 +126,18 @@ UXES.loadModules = function loadModules(nameSpace, completionCallback) {
         }
     }
 
-    var basePath = File($.fileName).parent.fsName + "/";
     for (var pathIdx = 0; pathIdx < UXES.relativeFilePathsToLoad.length; pathIdx++) {
-        var path = basePath + UXES.relativeFilePathsToLoad[pathIdx];
-        $.evalFile(path);
+        var path = UXES.relativeFilePathsToLoad[pathIdx];
+        require(path);
     }
 
     UXES.initDirsScript();
 
-    UXES.C.APP_NAME = UXES.mapAppId(UXES.C.APP_ID);
-    
     UXES.sharedInitScript();
 
     for (var member in UXES) {
-        nameSpace[member] = UXES[member];        
+        nameSpace[member] = UXES[member]; 
+        exports[member] = UXES[member];       
     }
 
     if (UXES.S.RUN_TESTS) {
@@ -167,5 +146,4 @@ UXES.loadModules = function loadModules(nameSpace, completionCallback) {
     }
 
     UXES.main();
-
 }

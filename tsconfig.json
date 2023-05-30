@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "noLib": true,
+        "target": "es3",
+        "ignoreDeprecations": "5.0",
+        "declaration": true,
+        "emitDeclarationOnly": true, 
+        "outDir": "./types",       
+        "module": "none",
+        "allowJs": true,
+        "checkJs": true,
+        "strict": true,
+        "noImplicitAny": false,
+        "esModuleInterop": true,        
+        "allowSyntheticDefaultImports": true
+    },
+    "typeRoots": [
+        "./node_modules/@types",
+        "./node_modules/types-for-adobe/InDesign/2018"
+    ],
+    "include": [
+        "InDesignBrot_helpers/**/*",
+        "node_modules/types-for-adobe/**/*"
+    ]
+}

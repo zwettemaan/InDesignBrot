@@ -7,13 +7,11 @@
 // add corresponding tests to the utils_verifyDependencies()
 //
 
-(function() {
-
 UXES.alert = function alert(msg) {    
 
     UXES.logEntry(arguments);
 
-    const theDialog = app.dialogs.add();
+    const theDialog = UXES.G.app.dialogs.add();
     const col = theDialog.dialogColumns.add();
     const colText = col.staticTexts.add();
     colText.staticLabel = "" + msg;
@@ -38,6 +36,16 @@ UXES.checkMac = function checkMac() {
     return retVal;
 }
 
+UXES.checkLinux = function checkLinux() {    
+
+    var retVal = false;
+
+    UXES.logEntry(arguments);
+    UXES.logExit(arguments);
+
+    return retVal;
+}
+
 UXES.checkWindows = function checkWindows() {    
 
     var retVal = undefined;
@@ -46,6 +54,16 @@ UXES.checkWindows = function checkWindows() {
 
     retVal = window.navigator.platform.toLowerCase().indexOf("win") != -1;
 
+    UXES.logExit(arguments);
+
+    return retVal;
+}
+
+UXES.checkLinux = function checkLinux() {    
+
+    var retVal = false;
+
+    UXES.logEntry(arguments);
     UXES.logExit(arguments);
 
     return retVal;
@@ -131,5 +149,3 @@ UXES.logMessage = function(reportingFunctionArguments, levelPrefix, message) {
 
     UXES.inLogger = savedInLogger;
 }
-
-})();

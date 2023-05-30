@@ -2,17 +2,11 @@
 // This is the idDOM API. It is available in ExtendScript, CEP/JavaScript and UXPScript 
 //
 
-(function(){
-
-function declareAPI() {
-
-    UXES.instanceof = UXES.IMPLEMENTATION_MISSING;
-
-}
+UXES.instanceof = UXES.IMPLEMENTATION_MISSING;
 
 //----------- Tests
 
-UXES.tests.instanceof = function test_instanceof() {
+UXES.tests.instanceof = function tests_instanceof() {
 
     var retVal = true;
 
@@ -25,7 +19,7 @@ UXES.tests.instanceof = function test_instanceof() {
                 retVal = false;
             }
 
-            var tempDoc = app.documents.add(false);
+            var tempDoc = UXES.G.app.documents.add(false);
             if (! UXES.instanceof(tempDoc, "Document")) {
                 retVal = false;
             }
@@ -63,9 +57,3 @@ UXES.tests.instanceof = function test_instanceof() {
     
     return retVal;
 }
-
-//-------------------
-
-declareAPI();
-
-})();

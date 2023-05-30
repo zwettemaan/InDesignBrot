@@ -1,0 +1,25 @@
+// require() and global.require() are different functions. I've come up with a mix-and-match
+// using both. Below, I fetch UXES.fs and UXES.g_fs which are different 'fs-like'
+// entities
+
+if (! UXES.uxp) {
+    UXES.uxp = require("uxp");
+}
+
+if (! UXES.storage) {
+    UXES.storage = UXES.uxp.storage;
+}
+
+if (! UXES.fs) {
+    UXES.fs = UXES.storage.localFileSystem;
+}
+
+if (! UXES.g_fs) {
+    UXES.g_fs = global.require("fs");
+}
+
+UXES.C.APP_ID               = UXES.VALUE_NOT_INITIALIZED;
+UXES.C.APP_NAME             = UXES.VALUE_NOT_INITIALIZED;
+UXES.C.DIRNAME_PREFERENCES  = UXES.VALUE_NOT_INITIALIZED;
+UXES.C.FILENAME_PREFERENCES = UXES.VALUE_NOT_INITIALIZED;
+

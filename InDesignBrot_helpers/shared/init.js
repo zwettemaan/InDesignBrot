@@ -1,23 +1,7 @@
-(function() {
-
-if (UXES.checkMac()) {
-    UXES.path.SEPARATOR = "/";
-    UXES.isMac = true;
-    UXES.isWindows = false;
-}
-else {
-    UXES.path.SEPARATOR = "\\";
-    UXES.isMac = false;
-    UXES.isWindows = true;
-}
-UXES.path.GUESS_SEPARATOR = "?";
-
 UXES.sharedInitScript = function sharedInitScript() {
 
     do {
         try {
-
-            UXES.C.APP_NAME = UXES.mapAppId(UXES.C.APP_ID);
 
             if (! UXES.dirs.HOME) {
                 UXES.criticalError("sharedInitScript needs dirs.HOME");
@@ -81,5 +65,3 @@ UXES.sharedInitScript = function sharedInitScript() {
 
 
 }
-
-})();

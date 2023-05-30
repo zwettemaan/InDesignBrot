@@ -1,12 +1,11 @@
 //
-// This code is exclusively UXPScript. It provides UXPScript-specific 
+// This code is exclusively Node.js. It provides Node-specific 
 // implementations of the utils API.
 //
 
 UXES.clearImmediate = function _clearImmediate(taskId) {
 
     UXES.logEntry(arguments);
-
 
     clearImmediate(taskId);
 
@@ -18,7 +17,6 @@ UXES.clearInterval = function _clearInterval(taskId) {
 
     UXES.logEntry(arguments);
 
-
     clearInterval(taskId);
 
     UXES.logExit(arguments);
@@ -28,7 +26,6 @@ UXES.clearInterval = function _clearInterval(taskId) {
 UXES.clearTimeout = function _clearTimeout(taskId) {
 
     UXES.logEntry(arguments);
-
 
     clearTimeout(taskId);
 
@@ -41,7 +38,6 @@ UXES.setImmediate = function _setImmediate(taskFtn) {
     var retVal;
 
     UXES.logEntry(arguments);
-
 
     retVal = setImmediate(taskFtn);
 
@@ -56,7 +52,6 @@ UXES.setInterval = function _setInterval(taskFtn, timeoutMilliseconds) {
 
     UXES.logEntry(arguments);
 
-
     retVal = setInterval(taskFtn, timeoutMilliseconds);
 
     UXES.logExit(arguments);
@@ -69,7 +64,6 @@ UXES.setTimeout = function _setTimeout(taskFtn, timeoutMilliseconds) {
     var retVal;
 
     UXES.logEntry(arguments);
-
 
     retVal = setTimeout(taskFtn, timeoutMilliseconds);
 
