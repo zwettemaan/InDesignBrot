@@ -1,0 +1,59 @@
+{
+    "productCode": "InDesignBrot",
+    "version": "2.0.1",
+    "targets": [
+      {
+        "method": "STUB_UXPSCRIPT_IN_INDESIGN_SCRIPTS_PANEL",
+        "stubScript": [ 
+          "InDesignBrot.idjs"
+        ]
+      }
+    ],
+    "filters": [
+        // By default, sign and encrypt all .js and .idjs files
+        { 
+          "regExp": "/^.*\\.(id)?js$/i",  
+          "sign": true,
+          "encrypt": true
+        },
+        // But only sign, don't encrypt
+        // - the .idjs files that need to go on the Scripts Panel
+        // - the sample .indd file
+        // - the .nzip file 
+        // - the README.md file
+        { 
+          "regExp": "/^InDesignBrot\\.idjs$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^README.txt$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^CreativeDeveloperTools_UXP\\/.*$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^.*\\.txt/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        // Omit developer-only files: CreativeDeveloperTools_ES, any .tpkg file
+        // the Developer subfolder, and any invisible items (e.g. .git)
+        { 
+          "regExp": "/^Developer\\/$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^.*\\.tpkg$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^\\..*$/i",  
+          "omit": true
+        }
+    ]
+}

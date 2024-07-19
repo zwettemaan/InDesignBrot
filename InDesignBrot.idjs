@@ -1,0 +1,102 @@
+app = require("indesign").app;
+
+async function criticalAlert(message) {
+
+    const LEFT_ALIGN = 1818584692;
+    const CENTER_ALIGN = 1667591796;
+    const RIGHT_ALIGN = 1919379572;
+
+    var messageList = ("" + message).split("\n");
+
+    var dlg = app.dialogs.add();
+    var col = dlg.dialogColumns.add();
+    for (var idx = 0; idx < messageList.length; idx++) {
+        var row = col.dialogRows.add();
+        var stText = row.staticTexts.add({ 
+            staticAlignment: LEFT_ALIGN
+        });
+        stText.staticLabel = "" + messageList[idx];    
+    }
+    dlg.canCancel = false;
+    dlg.show();
+    dlg.destroy();
+}
+
+function relativeTo(rootPath, targetPath) {
+
+    var splitRootPath = rootPath.split("/");
+    var splitTargetPath = targetPath.split("/");
+    
+    var relativePath = "";
+    var rootIdx = 0;
+    var targetIdx = 0;
+    while (rootIdx < splitRootPath.length || targetIdx < splitTargetPath.length) {
+        
+        var rootSegment = undefined;
+        while (! rootSegment && rootIdx < splitRootPath.length) {
+            rootSegment = splitRootPath[rootIdx];
+            rootIdx++;
+        }    
+        
+        var targetSegment = undefined;
+        while (! targetSegment && targetIdx < splitTargetPath.length) {
+            targetSegment = splitTargetPath[targetIdx];
+            targetIdx++;
+        }
+
+        if (rootSegment && targetSegment) {
+            if (rootSegment != targetSegment) {
+                if (! relativePath) {
+                    relativePath = "../" + targetSegment;
+                }
+                else {
+                    relativePath = "../" + relativePath + "/" + targetSegment;
+                }
+            }
+        }
+        else if (rootSegment) {
+            relativePath = "../" + relativePath;
+        }
+        else if (targetSegment) {
+            relativePath = relativePath + "/" + targetSegment;
+        }
+    }
+
+    return relativePath;
+}
+
+try {
+
+    var HOME                                            = "/Users/kris/";
+    var LIBRARY                                         = HOME + "Library/";  
+    var INDESIGN_VERSION                                = "19.0";
+    var LOCALE                                          = "en_US";
+    var ISSUER_GUID                                     = "1186cb863f80e0c2d5ee377c49d7eade";
+    var FOLDER_NAME_PROJECT                             = "InDesignBrot.2.0.1";
+    var FOLDER_PATH_PROJECT_ROOT                        = LIBRARY + "Application Support/net.tightener/Licensing/Packages/" + ISSUER_GUID + "/" + FOLDER_NAME_PROJECT + "/";
+    var FOLDER_PATH_SCRIPT_PANEL_ROOT                   = LIBRARY + "Preferences/Adobe InDesign/Version " + INDESIGN_VERSION + "/" + LOCALE + "/Scripts/Scripts Panel/" + FOLDER_NAME_PROJECT + "/";
+
+    var RELATIVE_FILE_PATH_SCRIPT_PANEL_LAUNCHER_SCRIPT = "InDesignBrot.idjs";
+    var RELATIVE_FILE_PATH_PROJECT_MAIN_SCRIPT          = "InDesignBrot.js";
+    var RELATIVE_FILE_PATH_PROJECT_CRDT_UXP             = "CreativeDeveloperTools_UXP/crdtuxp.js";
+
+    var FILE_PATH_SCRIPT_PANEL_LAUNCHER_SCRIPT          = FOLDER_PATH_SCRIPT_PANEL_ROOT + "/" + FOLDER_NAME_PROJECT + "/" + RELATIVE_FILE_PATH_SCRIPT_PANEL_LAUNCHER_SCRIPT;
+
+    var FILE_PATH_PROJECT_CRDT_UXP                      = FOLDER_PATH_PROJECT_ROOT      + "/" + FOLDER_NAME_PROJECT + "/" + RELATIVE_FILE_PATH_PROJECT_CRDT_UXP;
+    var FILE_PATH_PROJECT_MAIN_SCRIPT                   = FOLDER_PATH_PROJECT_ROOT      + "/" + FOLDER_NAME_PROJECT + "/" + RELATIVE_FILE_PATH_PROJECT_MAIN_SCRIPT; 
+
+    var SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT  = relativeTo(FOLDER_PATH_SCRIPT_PANEL_ROOT, FOLDER_PATH_PROJECT_ROOT);
+
+    var SCRIPT_PANEL_RELATIVE_FILE_PATH_CRDT_UXP        = SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT + "/" + RELATIVE_FILE_PATH_PROJECT_CRDT_UXP;
+    var SCRIPT_PANEL_RELATIVE_FILE_PATH_MAIN_SCRIPT     = SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT + "/" + RELATIVE_FILE_PATH_PROJECT_MAIN_SCRIPT;
+    
+    global.crdtuxp = await global.require(SCRIPT_PANEL_RELATIVE_FILE_PATH_CRDT_UXP);
+
+    global.SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT = SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT;
+    
+    await global.require(SCRIPT_PANEL_RELATIVE_FILE_PATH_MAIN_SCRIPT);
+
+}
+catch (err) {
+    await criticalAlert(err + "\nError: broken link.\nThe software \'InDesignBrot.2.0.1\' has become\nunlinked from the Scripts Panel.\n\nRemove the script folder \'InDesignBrot.2.0.1\'\nfrom your Scripts panel manually, then re-install\nby way of PluginInstaller.");
+}

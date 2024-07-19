@@ -35,7 +35,7 @@ UXES.relativeFilePathsToLoad = [
     "./compat.idjs",
 
     "../shared/init.js",
-    "../../InDesignBrot.js"
+    "../../InDesignBrot_main.js"
 ];
 
 var ES_SCRIPT_getHomeDir = 
@@ -143,17 +143,19 @@ UXES.criticalError = function criticalError(error) {
 
 exports.loadModules = async function loadModules(nameSpace, completionCallback) {
 
-    if ("undefined" == typeof app) {
-        var id = require("indesign");
-        UXES.G = id;
+    if (! UXES.G) {
+        if ("undefined" == typeof app) {
+            var id = require("indesign");
+            UXES.G = id;
+        }
+        else if ("undefined" == typeof $ || ! $.global) {
+            UXES.G = window;
+        }
+        else {
+            UXES.G = $.global;
+        }
     }
-    else if ("undefined" == typeof $ || ! $.global) {
-        UXES.G = window;
-    }
-    else {
-        UXES.G = $.global;
-    }
-
+    
     var failedTests = 0;
     var missingImplementations = 0;
 
