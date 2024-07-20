@@ -27,6 +27,11 @@ const kDefaultNumPixels = 19;
 //
 const kDefaultRedrawDuringCalculation = true;
 
+//
+// Default: show dialog with elapsed time
+//
+const kDefaultShowElapsedTimeDialog = true;
+
 const kSectionNameConfig = "indesignbrot";
 
 function main() {
@@ -37,15 +42,17 @@ function main() {
         
         try {
 
-            let doc = app.documents.add();
-
             let context = {};   
-            context.doc = doc;    
 
-            if (! extractDocINIConfig(context)) {
-                crdtuxp.logError(arguments, "failed to read config");
+            let config = {};
+            let doc = getTargetDoc(config);
+            if (! doc) {
+                crdtuxp.logError(arguments, "failed to get target doc");
                 break;
             }
+
+            context.doc = doc;
+            context.config = config;
 
             if (! configureInDesign(context)) {
                 crdtuxp.logError(arguments, "failed to configure InDesign");
@@ -73,18 +80,24 @@ function main() {
 }
 module.exports.main = main;
 
-function configureInDesign(context) {
+function calculateMandelbrot(context) {
 
     let retVal = false;
 
     crdtuxp.logEntry(arguments);
 
     do {
-        
+
         try {
-            
+
             if (! context) {
                 crdtuxp.logError(arguments, "context missing");
+                break;
+            }
+
+            let doc = context.doc;
+            if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
+                crdtuxp.logError(arguments, "need valid document");
                 break;
             }
 
@@ -94,14 +107,103 @@ function configureInDesign(context) {
                 break;
             }
 
-            app.scriptPreferences.enableRedraw = config.redrawDuringCalculation;
-            retVal = true;
+            //
+            // For applying swatches we apply a logarithmic scale; pre-calculate this value because
+            // we'll need it a lot
+            //
+            let logOfMaxSteps = Math.log(config.maxSteps);
+
+            let swatches = {};
+    
+            //
+            // Do a bit of benchmarking: record the start and end times, and subtract them
+            //
+            let startDate = new Date();
+
+            let rects = createSquareOfNxN(context.firstPage, config.numPixels, 0, 0, context.pixelRectWidth);
+            let halfNumPixels = Math.floor(config.numPixels / 2 + 1);
+            for (let px = 0; px < config.numPixels; px++) {
+                for (let py = 0; py < halfNumPixels; py++) {
+                    let rect1 = rects[py][px];
+                    let pySymmetric = config.numPixels - py - 1;
+                    if (pySymmetric == py) {
+                        rect2 = undefined;
+                    }
+                    else {
+                        rect2 = rects[pySymmetric][px];
+                    }
+
+                    //
+                    // Convert [0 , config.numPixels[ into interval [-2, 2[
+                    //
+                    // (x,y) are the values on the frog's back
+                    //
+                    let x = 4 * px / config.numPixels - 2;
+                    let y = 4 * py / config.numPixels - 2;
+                    let lambda = new complex(x, y);
+
+                    let n = numSteps(lambda, config.maxSteps);
+
+                    //
+                    // Grab a swatch for that number of steps. If the swatch is not available yet, create it
+                    //
+                    let swatch = swatches[n];
+                    if (! swatch) {
+                        let swatchName = "N=" + n;
+                        // 
+                        // Try to get the swatch by name. If it ain't there, make it
+                        //
+                        swatch = doc.colors.itemByName(swatchName);
+                        if (! swatch || ! swatch.isValid) {
+                            //
+                            // Make a gray RGB swatch, and use a logartihmic scale to calculate the grayscale value
+                            //
+                            swatch = doc.colors.add(
+                                { 
+                                    name: swatchName, 
+                                    model: indesign.ColorModel.PROCESS, 
+                                    space: indesign.ColorSpace.RGB
+                                }
+                            );
+                            let grayScaleValue = 255 * Math.log(n) / logOfMaxSteps;
+                            swatch.colorValue = [grayScaleValue, grayScaleValue, grayScaleValue];
+                        }
+                        swatches[n] = swatch;
+                    }
+                    rect1.fillColor = swatch;
+                    if (rect2) {
+                        rect2.fillColor = swatch;        
+                    }
+                }
+            }
+
+            // 
+            // ...and we're done!
+            //
+            let endDate = new Date();
+
+            if (config.showElapsedTimeDialog) {
+                crdtuxp.alert("Time elapsed:" + (endDate.getTime() - startDate.getTime()) / 1000.0);
+            }
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);
-        }        
+        }
     }
     while (false);
+
+    crdtuxp.logExit(arguments);
+
+    return retVal;
+}
+
+function collectionToArray(in_collection) {
+
+    let retVal;
+
+    crdtuxp.logEntry(arguments);
+
+    retVal = in_collection.everyItem().getElements().slice(0);
 
     crdtuxp.logExit(arguments);
 
@@ -171,20 +273,193 @@ function configureDocument(context) {
     return retVal;
 }
 
-function collectionToArray(in_collection) {
+function configureInDesign(context) {
 
-    let retVal;
+    let retVal = false;
 
     crdtuxp.logEntry(arguments);
 
-    retVal = in_collection.everyItem().getElements().slice(0);
+    do {
+        
+        try {
+            
+            if (! context) {
+                crdtuxp.logError(arguments, "context missing");
+                break;
+            }
+
+            let config = context.config;
+            if (! config) {
+                crdtuxp.logError(arguments, "config missing");
+                break;
+            }
+
+            app.scriptPreferences.enableRedraw = config.redrawDuringCalculation;
+            retVal = true;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }        
+    }
+    while (false);
 
     crdtuxp.logExit(arguments);
 
     return retVal;
 }
 
-function findINIConfig(context) {
+function createDefaultDocument(config) {
+
+    let retVal = undefined;
+
+    crdtuxp.logEntry(arguments);
+
+    do {
+        
+        try {
+
+            doc = app.documents.add();
+
+            let configIniText = "";
+            configIniText += "[" + kSectionNameConfig + "]\n";
+            configIniText += "\n";
+            configIniText += "max steps =" + config.maxSteps + "\n";
+            configIniText += "num pixels =" + config.numPixels + "\n";
+            configIniText += "redraw during calculation = " + (config.redrawDuringCalculation ? "yes" : "no") + "\n";
+            configIniText += "show elapsed time dialog = " + (config.showElapsedTimeDialog ? "yes" : "no") + "\n";
+
+            let configFrame = doc.textFrames.add();
+
+            let firstPage = doc.pages.item(0);
+            let firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
+
+            var configFrameWidth = firstPageWidth / 3;
+            var gutterWidth = firstPageWidth / 10;
+
+            let xPosOnPasteboard = firstPage.bounds[1] - configFrameWidth - gutterWidth;
+            
+            configFrame.geometricBounds = [ firstPage.bounds[0], xPosOnPasteboard, firstPage.bounds[2], xPosOnPasteboard + configFrameWidth];
+            configFrame.contents = configIniText;
+
+            retVal = doc;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }        
+    }
+    while (false);
+
+    crdtuxp.logExit(arguments);
+
+    return retVal;
+}
+
+function defaultConfig(config) {
+
+    let retVal = false;
+
+    crdtuxp.logEntry(arguments);
+
+    do {
+
+        try {
+
+            if (! config) {
+                crdtuxp.logError(arguments, "need config");
+                break;
+            }
+
+            // Default values - can be overridden by user config extracted from doc INI            
+            config.maxSteps                = kDefaultMaxSteps;
+            config.numPixels               = kDefaultNumPixels;
+            config.redrawDuringCalculation = kDefaultRedrawDuringCalculation;
+            config.showElapsedTimeDialog   = kDefaultShowElapsedTimeDialog;
+            
+            retVal = true;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    crdtuxp.logExit(arguments);
+
+    return retVal;
+}
+
+function extractDocINIConfig(doc, config) {
+
+    let retVal = false;
+
+    crdtuxp.logEntry(arguments);
+
+    do {
+
+        try {
+
+            if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
+                crdtuxp.logError(arguments, "need valid document");
+                break;
+            }
+
+            if (! config) {
+                crdtuxp.logError(arguments, "need config");
+                break;
+            }
+
+            if (! defaultConfig(config)) {
+                crdtuxp.logError(arguments, "failed to set defaults");
+                break;
+            }
+            
+            let docINIConfig = findINIConfig(doc);
+            if (! docINIConfig) {
+                break;
+            }
+
+            let docConfig = docINIConfig[kSectionNameConfig];
+            if (! docConfig) {
+                break;
+            }
+
+            // Note: the raw attributes in docConfig are all lowercase (e.g. maxsteps vs maxSteps)
+            if (docConfig.maxsteps) {
+                let maxSteps = parseInt(docConfig.maxsteps, 10);
+                if (maxSteps && ! isNaN(maxSteps)) {
+                    config.maxSteps = maxSteps;
+                }
+            }
+
+            if (docConfig.numpixels) {
+                let numPixels = parseInt(docConfig.numpixels, 10);
+                if (numPixels && ! isNaN(numPixels)) {
+                    config.numPixels = numPixels;
+                }
+            }
+
+            if (docConfig.redrawduringcalculation) {
+                config.redrawDuringCalculation = crdtuxp.getBooleanFromINI(docConfig.redrawduringcalculation);
+            }
+
+            if (docConfig.showelapsedtimedialog) {
+                config.showElapsedTimeDialog = crdtuxp.getBooleanFromINI(docConfig.showelapsedtimedialog);
+            }
+
+            retVal = true;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    crdtuxp.logExit(arguments);
+
+    return retVal;
+}
+
+function findINIConfig(doc) {
 
     let retVal = undefined;
 
@@ -194,13 +469,6 @@ function findINIConfig(context) {
     {
         try
         {
-
-            if (! context) {
-                crdtuxp.logError(arguments, "context missing");
-                break;
-            }
-
-            let doc = context.doc;
             if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
                 crdtuxp.logError(arguments, "need valid document");
                 break;
@@ -229,181 +497,51 @@ function findINIConfig(context) {
     return retVal;
 }
 
-function extractDocINIConfig(context) {
+function getTargetDoc(config) {
 
-    let retVal = false;
-
-    crdtuxp.logEntry(arguments);
-
-    do {
-
-        try {
-
-            if (! context) {
-                crdtuxp.logError(arguments, "context missing");
-                break;
-            }
-
-            let doc = context.doc;
-            if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
-                crdtuxp.logError(arguments, "need valid document");
-                break;
-            }
-
-            let config = {};
-            context.config = config;
-
-            // Default values - can be overridden by user config extracted from doc INI            
-            config.maxSteps                = kDefaultMaxSteps;
-            config.numPixels               = kDefaultNumPixels;
-            config.redrawDuringCalculation = kDefaultRedrawDuringCalculation;
-            
-            let docConfig = findINIConfig(context);
-            if (! docConfig) {
-                crdtuxp.logWarning(arguments, "no config found in doc INI");
-                retVal = true;
-                break;
-            }
-
-            // Note: the raw attributes in docConfig are all lowercase (e.g. maxsteps vs maxSteps)
-            if (docConfig.maxsteps) {
-                let maxSteps = parseInt(docConfig.maxsteps, 10);
-                if (maxSteps && ! isNaN(maxSteps)) {
-                    config.maxSteps = maxSteps;
-                }
-            }
-
-            if (docConfig.numpixels) {
-                let numPixels = parseInt(docConfig.numpixels, 10);
-                if (numPixels && ! isNaN(numPixels)) {
-                    config.numPixels = numPixels;
-                }
-            }
-
-            if (docConfig.redrawduringcalculation) {
-                config.redrawDuringCalculation = crdtuxp.getBooleanFromINI(docConfig.redrawduringcalculation);
-            }
-
-            retVal = true;
-        }
-        catch (err) {
-            crdtuxp.logError(arguments, "throws " + err);
-        }
-    }
-    while (false);
-
-    crdtuxp.logExit(arguments);
-
-    return retVal;
-}
-
-function calculateMandelbrot(context) {
-
-    let retVal = false;
+    let retVal = undefined;
 
     crdtuxp.logEntry(arguments);
 
     do {
-
+        
         try {
 
-            if (! context) {
-                crdtuxp.logError(arguments, "context missing");
-                break;
-            }
-
-            let doc = context.doc;
-            if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
-                crdtuxp.logError(arguments, "need valid document");
-                break;
-            }
-
-            let config = context.config;
             if (! config) {
-                crdtuxp.logError(arguments, "config missing");
+                crdtuxp.logError(arguments, "need config");
                 break;
             }
 
-            //
-            // For applying swatches we apply a logarithmic scale; pre-calculate this value because
-            // we'll need it a lot
-            //
-            let logOfMaxSteps = Math.log(config.maxSteps);
-
-            let swatches = {};
-    
-            //
-            // Do a bit of benchmarking: record the start and end times, and subtract them
-            //
-            let startDate = new Date();
-
-            let rects = createSquareOfNxN(context.firstPage, config.numPixels, 0, 0, context.pixelRectWidth);
-            let halfNumPixels = Math.floor(config.numPixels / 2 + 1)
-            for (let px = 0; px < config.numPixels; px++) {
-                for (let py = 0; py < halfNumPixels; py++) {
-                    let rect1 = rects[py][px];
-                    let pySymmetric = config.numPixels - py - 1;
-                    if (pySymmetric == py) {
-                        rect2 = undefined;
-                    }
-                    else {
-                        rect2 = rects[pySymmetric][px];
-                    }
-
-                    //
-                    // Convert [0 , config.numPixels[ into interval [-2, 2[
-                    //
-                    // (x,y) are the values on the frog's back
-                    //
-                    let x = 4 * px / config.numPixels - 2;
-                    let y = 4 * py / config.numPixels - 2;
-                    let lambda = new complex(x, y);
-
-                    let n = numSteps(lambda, config.maxSteps);
-
-                    //
-                    // Grab a swatch for that number of steps. If the swatch is not available yet, create it
-                    //
-                    let swatch = swatches[n];
-                    if (! swatch) {
-                        let swatchName = "N=" + n;
-                        // 
-                        // Try to get the swatch by name. If it ain't there, make it
-                        //
-                        swatch = doc.colors.itemByName(swatchName);
-                        if (! swatch || ! swatch.isValid) {
-                            //
-                            // Make a gray RGB swatch, and use a logartihmic scale to calculate the grayscale value
-                            //
-                            swatch = doc.colors.add(
-                                { 
-                                    name: swatchName, 
-                                    model: indesign.ColorModel.PROCESS, 
-                                    space: indesign.ColorSpace.RGB
-                                }
-                            );
-                            let grayScaleValue = 255 * Math.log(n) / logOfMaxSteps;
-                            swatch.colorValue = [grayScaleValue, grayScaleValue, grayScaleValue];
-                        }
-                        swatches[n] = swatch;
-                    }
-                    rect1.fillColor = swatch;
-                    if (rect2) {
-                        rect2.fillColor = swatch;        
+            let doc = undefined;
+            try {
+                doc = app.activeDocument;
+                if (doc && (! doc.isValid || doc.constructor.name !== "Document")) {
+                    doc = undefined;
+                }
+                else {
+                    if (! extractDocINIConfig(doc, config)) {
+                        doc = undefined;
                     }
                 }
             }
+            catch (err) {                
+            }
 
-            // 
-            // ...and we're done!
-            //
-            let endDate = new Date();
+            if (! doc) {
 
-            crdtuxp.alert("Time elapsed:" + (endDate.getTime() - startDate.getTime()) / 1000.0);
+                if (! defaultConfig(config)) {
+                    crdtuxp.logError(arguments, "failed to set defaults");
+                    break;
+                }
+
+                doc = createDefaultDocument(config);
+            }
+
+            retVal = doc;
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);
-        }
+        }        
     }
     while (false);
 
@@ -564,6 +702,7 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
     }
 
     let rects_by_XxY = [];
+    let allRects = [];
     for (let rowIdx = 0; rowIdx < allRows.length; rowIdx++) {
         let row = allRows[rowIdx];
         let rects = row.rectangles.everyItem().getElements().slice(0);
@@ -576,8 +715,11 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
                 rects_by_XxY[yPos] = [];
             }
             rects_by_XxY[yPos][xPos] = rect;
+            allRects.push(rect);
         }
     }
+
+    firstPage.groups.add(allRects);
 
     return rects_by_XxY;
 }
