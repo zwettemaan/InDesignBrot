@@ -106,6 +106,7 @@ const PLATFORM_MAC_OS_X = "darwin";
 if (! module.exports) {
     module.exports = {};
 }
+var crdtuxp = module.exports;
 
 module.exports.IS_MAC = require('os').platform() == PLATFORM_MAC_OS_X;
 module.exports.IS_WINDOWS = ! module.exports.IS_MAC;
@@ -206,6 +207,76 @@ module.exports.TMP_DIR        = "TMP_DIR";
  */
 module.exports.USERDATA_DIR   = "USERDATA_DIR";
 
+/**
+ * `UNIT_NAME_NONE` represents unit-less values.
+ */
+module.exports.UNIT_NAME_NONE     = "NONE";
+
+/**
+ * `UNIT_NAME_INCH` for inches.
+ */
+module.exports.UNIT_NAME_INCH     = "\"";
+
+/**
+ * `UNIT_NAME_CM` for centimeters
+ */
+module.exports.UNIT_NAME_CM       = "cm";
+
+/**
+ * `UNIT_NAME_MM` for millimeters
+ */
+module.exports.UNIT_NAME_MM       = "mm";
+
+/**
+ * `UNIT_NAME_CICERO` for ciceros
+ */
+module.exports.UNIT_NAME_CICERO   = "cicero";
+
+/**
+ * `UNIT_NAME_PICA` for picas
+ */
+module.exports.UNIT_NAME_PICA     = "pica";
+
+/**
+ * `UNIT_NAME_PIXEL` for pixels
+ */
+module.exports.UNIT_NAME_PIXEL    = "px";
+
+/**
+ * `UNIT_NAME_POINT` for points
+ */
+module.exports.UNIT_NAME_POINT    = "pt";
+
+// INI parser states
+const STATE_IDLE                               =  0;
+const STATE_SEEN_OPEN_SQUARE_BRACKET           =  1;
+const STATE_SEEN_NON_WHITE                     =  2;
+const STATE_AFTER_NON_WHITE                    =  3;
+const STATE_SEEN_EQUAL                         =  4;
+const STATE_ERROR                              =  5;
+const STATE_SEEN_CLOSE_SQUARE_BRACKET          =  6;
+const STATE_IN_COMMENT                         =  7;
+
+// INI value string processing helpers
+const REGEXP_TRIM                              = /^\s*(\S?.*?)\s*$/;
+const REGEXP_TRIM_REPLACE                      = "$1";
+const REGEXP_DESPACE                           = /\s+/g;
+const REGEXP_DESPACE_REPLACE                   = "";
+const REGEXP_ALPHA_ONLY                        = /[^-a-zA-Z0-9_$]+/g;
+const REGEXP_ALPHA_ONLY_REPLACE                = "";
+const REGEXP_SECTION_NAME_ONLY                 = /[^-a-zA-Z0-9_$:]+/g;
+const REGEXP_SECTION_NAME_ONLY_REPLACE         = "";
+const REGEXP_NUMBER_ONLY                       = /^([\d\.]+).*$/;
+const REGEXP_NUMBER_ONLY_REPLACE               = "$1";
+const REGEXP_UNIT_ONLY                         = /^[\d\.]+\s*(.*)$/;
+const REGEXP_UNIT_ONLY_REPLACE                 = "$1";
+const REGEXP_PICAS                             = /^([\d]+)p(([\d]*)(\.([\d]+)?)?)?$/;
+const REGEXP_PICAS_REPLACE                     = "$1";
+const REGEXP_PICAS_POINTS_REPLACE              = "$2";
+const REGEXP_CICEROS                           = /^([\d]+)c(([\d]*)(\.([\d]+)?)?)?$/;
+const REGEXP_CICEROS_REPLACE                   = "$1";
+const REGEXP_CICEROS_POINTS_REPLACE            = "$2";
+
 //
 // UXP internally caches responses from the server - we need to avoid this as each script
 // run can return different results. `HTTP_CACHE_BUSTER` will be incremented after each use.
@@ -266,7 +337,7 @@ module.exports.alert = alert;
  * @function base64decode
  *
  * @param {string} base64Str - base64 encoded string
- * @returns {string} decoded string
+ * @returns {string|undefined} decoded string
  */
 async function base64decode(base64Str) {
 
@@ -292,7 +363,7 @@ module.exports.base64decode = base64decode;
  * @function base64encode
  *
  * @param {string} s_or_ByteArr - either a string or an array containing bytes (0-255).
- * @returns {string} encoded string
+ * @returns {string|undefined} encoded string
  *
  */
 async function base64encode(s_or_ByteArr) {
@@ -315,11 +386,11 @@ module.exports.base64encode = base64encode;
  *
  * @param {array} in_byteArray - an array containing bytes (0-255)
  * for a string using UTF-8 encoding.
- * @returns {string} a string or undefined if the UTF-8 is not valid
+ * @returns {string|undefined} a string or undefined if the UTF-8 is not valid
  */
 function binaryUTF8ToStr(in_byteArray) {
 
-    var retVal = "";
+    var retVal = undefined;
 
     try {
         var idx = 0;
@@ -363,6 +434,9 @@ function binaryUTF8ToStr(in_byteArray) {
                         }
                     }
                 }
+            }
+            if (! retVal) {
+                retVal = "";
             }
             retVal += c;
         }
@@ -466,7 +540,7 @@ module.exports.configLogger = configLogger;
  *
  * @param {string} s_or_ByteArr - a string or an array of bytes
  * @param {string} aesKey - a string or an array of bytes
- * @returns {array} an array of bytes
+ * @returns {array|undefined} an array of bytes
  */
 
 async function decrypt(s_or_ByteArr, aesKey, aesIV) {
@@ -649,7 +723,7 @@ module.exports.deQuote = deQuote;
 
 async function dirDelete(filePath, recurse) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("dirDelete(" + dQ(filePath) + "," + (recurse ? "true" : "false") + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -675,7 +749,7 @@ module.exports.dirDelete = dirDelete;
 
 async function dirExists(dirPath) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("dirExists(" + dQ(dirPath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -694,12 +768,12 @@ module.exports.dirExists = dirExists;
  * @function dirCreate
  *
  * @param {string} filePath
- * @returns {array} list if items in directory
+ * @returns {boolean} true or false
  */
 
 async function dirCreate(filePath) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("dirCreate(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -718,7 +792,7 @@ module.exports.dirCreate = dirCreate;
  * @function dirScan
  *
  * @param {string} filePath
- * @returns {array} list if items in directory
+ * @returns {array|undefined} list of items in directory
  */
 
 async function dirScan(filePath) {
@@ -768,8 +842,9 @@ module.exports.dQ = dQ;
  * @function encrypt
  *
  * @param {string} s_or_ByteArr - a string or an array of bytes
- * @param {string} aesKey - a string or an array of bytes
- * @returns {string} a base-64 encoded encrypted string.
+ * @param {string} aesKey - a string or an array of bytes, key
+ * @param {string=} aesIV - a string or an array of bytes, initial vector
+ * @returns {string|undefined} a base-64 encoded encrypted string.
  */
 
 async function encrypt(s_or_ByteArr, aesKey, aesIV) {
@@ -846,9 +921,9 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * @function evalTQL
  *
  * @param {string} tqlScript - a script to run
- * @param {string} tqlScopeName - a scope name to use. Scopes are persistent for the duration of the daemon process and can
+ * @param {string=} tqlScopeName - a scope name to use. Scopes are persistent for the duration of the daemon process and can
  * be used to pass data between different processes
- * @param {boolean} resultIsRawBinary - whether the resulting data is raw binary, or can be decoded as a string
+ * @param {boolean=} resultIsRawBinary - whether the resulting data is raw binary, or can be decoded as a string
  * @returns {any} a string or a byte array
  */
 async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
@@ -906,7 +981,7 @@ module.exports.evalTQL = evalTQL;
 
 async function fileClose(fileHandle) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("fileClose(" + fileHandle + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -930,7 +1005,7 @@ module.exports.fileClose = fileClose;
 
 async function fileDelete(filePath) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("fileDelete(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -956,7 +1031,7 @@ module.exports.fileDelete = fileDelete;
 
 async function fileExists(filePath) {
 
-    var retVal;
+    var retVal = false;
 
     var response = await evalTQL("fileExists(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
@@ -976,7 +1051,7 @@ module.exports.fileExists = fileExists;
  *
  * @param {string} fileName - a native full file path to the file
  * @param {string} mode - one of `'a'`, `'r'`, `'w'` (append, read, write)
- * @returns {number} file handle
+ * @returns {number|undefined} file handle
  */
 
 async function fileOpen(fileName, mode) {
@@ -1043,7 +1118,7 @@ module.exports.fileRead = fileRead;
 
 async function fileWrite(fileHandle, s_or_ByteArr) {
 
-    var retVal;
+    var retVal = false;
 
     var byteArray;
     if ("string" == typeof s_or_ByteArr) {
@@ -1061,6 +1136,30 @@ async function fileWrite(fileHandle, s_or_ByteArr) {
     return retVal;
 }
 module.exports.fileWrite = fileWrite;
+
+/**
+ * (sync) Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
+ *
+ * @function getBooleanFromINI
+ *
+ * @param {string} in_value - ini value
+ * @returns {boolean} value
+ */
+
+function getBooleanFromINI(in_value) {
+
+    var retVal = false;
+
+    if (in_value) {
+        var value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+        var firstChar = value.charAt(0).toLowerCase();
+        var firstValue = parseInt(firstChar, 10);
+        retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
+    }
+
+    return retVal;
+}
+module.exports.getBooleanFromINI = getBooleanFromINI;
 
 /**
  * (async) Query the daemon to see whether some software is currently activated or not
@@ -1088,6 +1187,29 @@ async function getCapability(issuer, capabilityCode, encryptionKey) {
     return retVal;
 }
 module.exports.getCapability = getCapability;
+
+/**
+ * (async) Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full
+ *
+ * Some functions, marked with "Only available to paid developer accounts" 
+ * will only work with level 2. Licensing function only work with level 1
+ *
+ * @function getCreativeDeveloperToolsLevel
+ *
+ * @returns {number} - 0, 1 or 2. -1 means: error
+ */
+async function getCreativeDeveloperToolsLevel() {
+
+    var retVal = -1;
+
+    var response = await evalTQL("getCreativeDeveloperToolsLevel()");
+    if (response && ! response.error) {
+        retVal = parseInt(response.text, 10);
+    }
+
+    return retVal;
+}
+module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
 
 /**
  * (async) Get the path of a system directory
@@ -1145,27 +1267,227 @@ async function getEnvironment(envVarName) {
 module.exports.getEnvironment = getEnvironment;
 
 /**
- * (async) Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full
+ * (sync) Interpret a string extracted from some INI data as a floating point value, followed by an optional unit
+ * If there is no unit, then no conversion is performed.
  *
- * Some functions, marked with "Only available to paid developer accounts" 
- * will only work with level 2. Licensing function only work with level 1
+ * @function getFloatWithUnitFromINI
  *
- * @function getCreativeDeveloperToolsLevel
- *
- * @returns {number} - 0, 1 or 2
+ * @param {string} in_valueStr - ini value
+ * @param {string} in_convertToUnit - default to use if no match is found
+ * @returns {number} value
  */
-async function getCreativeDeveloperToolsLevel() {
 
-    var retVal = -1;
+function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
 
-    var response = await evalTQL("getCreativeDeveloperToolsLevel()");
-    if (response && ! response.error) {
-        retVal = parseInt(response.text, 10);
+    var retVal = 0.0;
+
+    do {
+
+        if (! in_valueStr) {
+            break;
+        }
+
+        var convertToUnit;
+        if (in_convertToUnit) {
+            convertToUnit = in_convertToUnit;
+        }
+        else {
+            convertToUnit = crdtuxp.UNIT_NAME_NONE;
+        }
+
+        var sign = 1.0;
+
+        var valueStr = in_valueStr.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE).toLowerCase();
+
+        var firstChar = valueStr.charAt(0);
+        if (firstChar == '-') {
+            valueStr = valueStr.substring(1);
+            sign = -1.0;
+        }
+        else if (firstChar == '+') {
+            valueStr = valueStr.substring(1);
+        }
+
+        var picas = undefined;
+        var ciceros = undefined;
+        if (valueStr.match(REGEXP_PICAS)) {
+            picas = parseInt(valueStr.replace(REGEXP_PICAS, REGEXP_PICAS_REPLACE), 10);
+            valueStr = valueStr.replace(REGEXP_PICAS, REGEXP_PICAS_POINTS_REPLACE);
+        }
+        else if (valueStr.match(REGEXP_CICEROS)) {
+            ciceros = parseInt(valueStr.replace(REGEXP_CICEROS, REGEXP_CICEROS_REPLACE), 10);
+            valueStr = valueStr.replace(REGEXP_CICEROS, REGEXP_CICEROS_POINTS_REPLACE);
+        }
+
+        var numberOnlyStr = valueStr.replace(REGEXP_NUMBER_ONLY, REGEXP_NUMBER_ONLY_REPLACE);
+        var numberOnly = parseFloat(numberOnlyStr);
+        if (isNaN(numberOnly)) {
+            numberOnly = 0.0;
+        }
+
+        var fromUnit;
+        if (picas !== undefined) {
+            fromUnit = crdtuxp.UNIT_NAME_PICA;
+            numberOnly = picas + numberOnly / 6.0;
+        }
+        else if (ciceros !== undefined) {
+            fromUnit = crdtuxp.UNIT_NAME_CICERO;
+            numberOnly = ciceros + numberOnly / 6.0;
+        }
+        else {
+            var unitOnly = valueStr.replace(REGEXP_UNIT_ONLY, REGEXP_UNIT_ONLY_REPLACE);
+            fromUnit = getUnitFromINI(unitOnly, crdtuxp.UNIT_NAME_NONE);
+        }
+
+        var conversion = 1.0;
+        if (fromUnit != crdtuxp.UNIT_NAME_NONE && convertToUnit != crdtuxp.UNIT_NAME_NONE) {
+            conversion = unitToInchFactor(fromUnit) / unitToInchFactor(convertToUnit);
+        }
+
+        retVal = sign * numberOnly * conversion;
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.getFloatWithUnitFromINI = getFloatWithUnitFromINI;
+
+/**
+ * (sync) Interpret a string extracted from some INI data as an array with float values (e.g. "[ 255, 128.2, 1.7]" )
+ *
+ * @function getFloatValuesFromINI
+ *
+ * @param {string} in_valueStr - ini value
+ * @returns {array|undefined} array of numbers or undefined
+ */
+
+function getFloatValuesFromINI(in_valueStr) {
+
+    var retVal = undefined;
+
+    do {
+
+        if (! in_valueStr) {
+            break;
+        }
+
+        var floatValues = undefined;
+        var values = in_valueStr.split(",");
+        for (var idx = 0; idx < values.length; idx++) {
+            var value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            var numValue = 0;
+            if (value) {
+                numValue = parseFloat(values[idx]);
+                if (isNaN(numValue)) {
+                    floatValues = undefined;
+                    break;
+                }
+            }
+
+            if (! floatValues) {
+                floatValues = [];
+            }
+            floatValues.push(numValue);
+        }
+
+        retVal = floatValues;
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.getFloatValuesFromINI = getFloatValuesFromINI;
+
+/**
+ * (sync) Interpret a string extracted from some INI data as an array with int values (e.g. "[ 255, 128, 1]" )
+ *
+ * @function getIntValuesFromINI
+ *
+ * @param {string} in_valueStr - ini value
+ * @returns {array|undefined} array of ints or undefined
+ */
+
+function getIntValuesFromINI(in_valueStr) {
+
+    var retVal = undefined;
+
+    do {
+
+        if (! in_valueStr) {
+            break;
+        }
+
+        var intValues = undefined;
+        var values = in_valueStr.split(",");
+        for (var idx = 0; idx < values.length; idx++) {
+            var value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            if (! value) {
+                value = 0;
+            }
+            else {
+                value = parseInt(values[idx], 10);
+                if (isNaN(value)) {
+                    intValues = undefined;
+                    break;
+                }
+            }
+            if (! intValues) {
+                intValues = [];
+            }
+            intValues.push(value);
+        }
+
+        retVal = intValues;
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.getIntValuesFromINI = getIntValuesFromINI;
+
+/**
+ * (sync) Interpret a string extracted from some INI data as a unit name
+ *
+ * @function getUnitFromINI
+ *
+ * @param {string} in_value - ini value
+ * @param {string} in_defaultUnit - default to use if no match is found
+ * @returns {string} value
+ */
+
+function getUnitFromINI(in_value, in_defaultUnit) {
+
+    var defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
+
+    var retVal = defaultUnit;
+
+    var value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE).toLowerCase();
+
+    if (value == "\"" || value.substring(0,2) == "in") {
+        retVal = crdtuxp.UNIT_NAME_INCH;
+    }
+    else if (value == "cm" || value == "cms" || value.substr(0,4) == "cent") {
+        retVal = crdtuxp.UNIT_NAME_CM;
+    }
+    else if (value == "mm" || value == "mms" || value.substr(0,4) == "mill") {
+        retVal = crdtuxp.UNIT_NAME_MM;
+    }
+    else if (value.substring(0,3) == "cic") {
+        retVal = crdtuxp.UNIT_NAME_CICERO;
+    }
+    else if (value.substring(0,3) == "pic") {
+        retVal = crdtuxp.UNIT_NAME_PICA;
+    }
+    else if (value.substring(0,3) == "pix" || value == "px") {
+        retVal = crdtuxp.UNIT_NAME_PIXEL;
+    }
+    else if (value.substring(0,3) == "poi" || value == "pt") {
+        retVal = crdtuxp.UNIT_NAME_POINT;
     }
 
     return retVal;
 }
-module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
+module.exports.getUnitFromINI = getUnitFromINI;
 
 /**
  * (async) Get file path to PluginInstaller if it is installed
@@ -1664,6 +1986,242 @@ function pushLogLevel(newLogLevel) {
 module.exports.pushLogLevel = pushLogLevel;
 
 /**
+ * (sync) Read a bunch of text and try to extract structured information in .INI format
+ *
+ * This function is lenient and is able to extract slightly mangled INI data from the text frame
+ * content of an InDesign text frame.
+ *
+ * This function knows how to handle curly quotes should they be present.
+ *
+ * The following flexibilities have been built-in:
+ *
+ * - Attribute names are case-insensitive and anything not `a-z 0-9` is ignored.
+ * Entries like `this or that = ...` or `thisOrThat = ...` or `this'orThat = ...` are
+ * all equivalent. Only letters and digits are retained, and converted to lowercase.
+ *
+ * - Attribute values can be quoted with either single, double, curly quotes.
+ * This often occurs because InDesign can be configured to convert normal quotes into
+ * curly quotes automatically.
+ * Attribute values without quotes are trimmed (e.g. `bla =    x  ` is the same as `bla=x`)
+ * Spaces are retained in quoted attribute values.
+ *
+ * - Any text will be ignore if not properly formatted as either a section name or an attribute-value
+ * pair with an equal sign
+ *
+ * - Hard and soft returns are equivalent
+ *
+ * The return value is an object with the section names at the top level, and attribute names
+ * below that. The following .INI
+ * ```
+ * [My data]
+ * this is = " abc "
+ * that =      abc
+ * ```
+ * returns
+ * ```
+ * {
+ *   "mydata": {
+ *      "__rawSectionName": "My data",
+ *      "thisis": " abc ",
+ *      "that": "abc"
+ *   }
+ * }
+ * ```
+ *
+ * Duplicated sections and entries are automatically suffixed with a counter suffix - e.g.
+ * 
+ * [main]
+ * a=1
+ * a=2
+ * a=3
+ * 
+ * is equivalent with 
+ * 
+ * [main]
+ * a=1
+ * a_2=2
+ * a_3=3
+ * 
+ * [a]
+ * a=1
+ * [a]
+ * a=2
+ * 
+ * is equivalent with
+ * 
+ * [a]
+ * a=1
+ * [a_2]
+ * a=2
+ * 
+ * @function readINI
+ *
+ * @param {string} in_text - raw text, which might or might not contain some INI-formatted data mixed with normal text
+ * @returns {object} either the ini data or `undefined`.
+ */
+
+function readINI(in_text) {
+
+    var retVal = undefined;
+
+    do {
+        try {
+
+            if (! in_text) {
+                break;
+            }
+
+            if ("string" != typeof in_text) {
+                break;
+            }
+
+            var text = in_text + "\r";
+            var state = STATE_IDLE;
+            var attr = "";
+            var value = "";
+            var attrSpaceCount = 0;
+            var rawSectionName = "";
+            var sectionName = "";
+            var section = undefined;
+            var attrCounters = {};
+            var sectionCounters = {};
+
+            for (var idx = 0; state != STATE_ERROR && idx < text.length; idx++) {
+                var c = text.charAt(idx);
+                switch (state) {
+                    default:
+                        state = STATE_ERROR;
+                        break;
+                    case STATE_IDLE:
+                        if (c == '[') {
+                            state = STATE_SEEN_OPEN_SQUARE_BRACKET;
+                            rawSectionName = "";
+                        }
+                        else if (c == '#') {
+                            state = STATE_IN_COMMENT;
+                        }
+                        else if (c > ' ') {
+                            attr = c;
+                            attrSpaceCount = 0;
+                            state = STATE_SEEN_NON_WHITE;
+                        }
+                        break;
+                    case STATE_IN_COMMENT:
+                    case STATE_SEEN_CLOSE_SQUARE_BRACKET:
+                        if (c == '\r' || c == '\n') {
+                            state = STATE_IDLE;
+                        }
+                        break;
+                    case STATE_SEEN_OPEN_SQUARE_BRACKET:
+                        if (c == ']') {
+                            state = STATE_SEEN_CLOSE_SQUARE_BRACKET;
+                            sectionName = rawSectionName.toLowerCase();
+                            sectionName = sectionName.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE);
+                            sectionName = sectionName.replace(REGEXP_SECTION_NAME_ONLY, REGEXP_SECTION_NAME_ONLY_REPLACE);
+                            if (sectionName) {
+
+                                if (! retVal) {
+                                    retVal = {};
+                                }
+
+                                var sectionSuffix = "";
+                                var sectionCounter = 1;
+                                if (sectionName in sectionCounters) {
+                                    sectionCounter = sectionCounters[sectionName];
+                                    sectionCounter++;
+                                    sectionSuffix = "_" + sectionCounter;
+                                }
+                                sectionCounters[sectionName] = sectionCounter;
+                                sectionName += sectionSuffix;
+                                section = {};
+                                retVal[sectionName] = section;
+                                section.__rawSectionName = rawSectionName;
+                                attrCounters = {};
+                            }
+                        }
+                        else {
+                            rawSectionName += c;
+                        }
+                        break;
+                    case STATE_SEEN_NON_WHITE:
+                        if (c == "=") {
+                            value = "";
+                            state = STATE_SEEN_EQUAL;
+                        }
+                        else if (c == '\r' || c == '\n') {
+                            state = STATE_IDLE;
+                        }
+                        else if (c != " ") {
+                            while (attrSpaceCount > 0) {
+                                attr += " ";
+                                attrSpaceCount--;
+                            }
+                            attr += c;
+                        }
+                        else {
+                            attrSpaceCount++;
+                        }
+                        break;
+                    case STATE_SEEN_EQUAL:
+                        if (c != '\r' && c != '\n') {
+                            value += c;
+                        }
+                        else {
+                            value = value.replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+                            if (value.length >= 2) {
+                                var firstChar = value.charAt(0);
+                                var lastChar = value.charAt(value.length - 1);
+                                if (
+                                    (firstChar == "\"" || firstChar == "“" || firstChar == "”")
+                                &&
+                                    (lastChar == "\"" || lastChar == "“" || lastChar == "”")
+                                ) {
+                                    value = value.substring(1, value.length - 1);
+                                }
+                                else if (
+                                    (firstChar == "'" || firstChar == "‘" || firstChar == "’")
+                                &&
+                                    (lastChar == "'" || lastChar == "‘" || lastChar == "’")
+                                ) {
+                                    value = value.substring(1, value.length - 1);
+                                }
+                            }
+
+                            if (section) {
+                                attr = attr.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE).toLowerCase();
+                                attr = attr.replace(REGEXP_ALPHA_ONLY, REGEXP_ALPHA_ONLY_REPLACE);
+                                if (attr) {
+
+                                    var attrSuffix = "";
+                                    var attrCounter = 1;
+                                    if (attr in attrCounters) {
+                                        attrCounter = attrCounters[attr];
+                                        attrCounter++;
+                                        attrSuffix = "_" + attrCounter;
+                                    }
+                                    attrCounters[attr] = attrCounter;
+                                    attr += attrSuffix;
+
+                                    section[attr] = value;
+                                }
+                            }
+
+                            state = STATE_IDLE;
+                        }
+                        break;
+                }
+            }
+        }
+        catch (err) {
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.readINI = readINI;
+
+/**
  * (sync) Extend or shorten a string to an exact length, adding `padChar` as needed
  *
  * @function rightPad
@@ -1878,3 +2436,41 @@ function toHex(i, numDigits) {
     return retVal;
 }
 module.exports.toHex = toHex;
+
+/**
+ * (sync) Conversion factor from a length unit into inches
+ *
+ * @function unitToInchFactor
+ *
+ * @param {string} in_unit - unit name (`crdtes.UNIT_NAME...`)
+ * @returns { number } conversion factor or 1.0 if unknown/not applicable
+ */
+
+function unitToInchFactor(in_unit) {
+
+    var retVal = 1.0;
+
+    switch (in_unit) {
+        case crdtuxp.UNIT_NAME_CM:
+            retVal = 1.0/2.54;
+            break;
+        case crdtuxp.UNIT_NAME_MM:
+            retVal = 1.0/25.4;
+            break;
+        case crdtuxp.UNIT_NAME_CICERO:
+            retVal = 0.17762;
+            break;
+        case crdtuxp.UNIT_NAME_PICA:
+            retVal = 1.0/12.0;
+            break;
+        case crdtuxp.UNIT_NAME_PIXEL:
+            retVal = 1.0/72.0;
+            break;
+        case crdtuxp.UNIT_NAME_POINT:
+            retVal = 1.0/72.0;
+            break;
+    }
+
+    return retVal;
+}
+module.exports.unitToInchFactor = unitToInchFactor;
