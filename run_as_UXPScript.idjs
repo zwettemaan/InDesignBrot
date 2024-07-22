@@ -16,4 +16,4 @@ if ("undefined" == typeof UXES) {
     UXES = {};
 }
 
-await global.require("./InDesignBrot_helpers/idjs/runtime.idjs").loadModules(UXES);
+global.require("./InDesignBrot_helpers/idjs/runtime.idjs").loadModules(UXES);
