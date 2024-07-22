@@ -1,4 +1,5 @@
 .DS_Store
 node_modules
 *.tpkg
+package-lock.json
 Developer/*_trackingGUID.json
