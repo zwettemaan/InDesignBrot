@@ -11,6 +11,8 @@
 const indesign = require("indesign");
 const app = indesign.app;
 
+// The following defaults can be overridden by settings in a document text frame in INI format
+
 //
 // Default. How many steps before we bail out and decide the complex point is not going to reach
 // distance 2 from the origin. The higher, the more accurate, but also the slower
@@ -32,7 +34,13 @@ const kDefaultRedrawDuringCalculation = true;
 //
 const kDefaultShowElapsedTimeDialog = true;
 
+//
+// Default: delete previously calculated mandelbrot
+//
+const kDefaultDeletePreviousResult = true;
+
 const kSectionNameConfig = "indesignbrot";
+const kScriptLabel_FinishedSet = "Calculated_Mandelbrot";
 
 function main() {
 
@@ -237,6 +245,26 @@ function configureDocument(context) {
                 break;
             }
 
+            if (config.deletePreviousResult) {
+
+                let deleteGroupIDs = [];
+
+                let groups = collectionToArray(doc.groups);
+                for (let idx = 0; idx < groups.length; idx++) {
+                    let group = groups[idx];
+                    if (group.label == kScriptLabel_FinishedSet) {
+                        deleteGroupIDs.push(group.id);
+                    }
+                }
+
+                while (deleteGroupIDs.length > 0) {
+                    var groupId = deleteGroupIDs.pop();
+                    var group = doc.groups.itemByID(groupId);
+                    group.remove();
+                }
+
+            }
+
             doc.viewPreferences.horizontalMeasurementUnits = indesign.MeasurementUnits.POINTS;
             doc.viewPreferences.verticalMeasurementUnits = indesign.MeasurementUnits.POINTS;
             
@@ -327,6 +355,7 @@ function createDefaultDocument(config) {
             configIniText += "num pixels =" + config.numPixels + "\n";
             configIniText += "redraw during calculation = " + (config.redrawDuringCalculation ? "yes" : "no") + "\n";
             configIniText += "show elapsed time dialog = " + (config.showElapsedTimeDialog ? "yes" : "no") + "\n";
+            configIniText += "delete previous result = " + (config.deletePreviousResult ? "yes" : "no") + "\n";
 
             let configFrame = doc.textFrames.add();
 
@@ -374,6 +403,7 @@ function defaultConfig(config) {
             config.numPixels               = kDefaultNumPixels;
             config.redrawDuringCalculation = kDefaultRedrawDuringCalculation;
             config.showElapsedTimeDialog   = kDefaultShowElapsedTimeDialog;
+            config.deletePreviousResult    = kDefaultDeletePreviousResult;
             
             retVal = true;
         }
@@ -444,6 +474,10 @@ function extractDocINIConfig(doc, config) {
 
             if (docConfig.showelapsedtimedialog) {
                 config.showElapsedTimeDialog = crdtuxp.getBooleanFromINI(docConfig.showelapsedtimedialog);
+            }
+
+            if (docConfig.deletepreviousresult) {
+                config.deletePreviousResult = crdtuxp.getBooleanFromINI(docConfig.deletepreviousresult);
             }
 
             retVal = true;
@@ -719,7 +753,9 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
         }
     }
 
-    firstPage.groups.add(allRects);
+    let mandelBrot = firstPage.groups.add(allRects);
+    mandelBrot.label = kScriptLabel_FinishedSet;
+    mandelBrot.name = kScriptLabel_FinishedSet;
 
     return rects_by_XxY;
 }
