@@ -14,7 +14,7 @@
         { 
           "regExp": "/^.*\\.(id)?js$/i",  
           "sign": true,
-          "encrypt": true
+          "encrypt": false
         },
         // But only sign, don't encrypt
         // - the .idjs files that need to go on the Scripts Panel
