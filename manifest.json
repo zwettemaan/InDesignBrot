@@ -48,6 +48,22 @@
           "omit": true
         },
         { 
+          "regExp": "/^tsconfig\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^package\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^package-lock\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^node_modules\\/$/i",  
+          "omit": true
+        },
+        { 
           "regExp": "/^.*\\.tpkg$/i",  
           "omit": true
         },
