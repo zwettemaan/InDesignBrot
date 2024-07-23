@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "noLib": true,
-        "target": "es3",
+        "target": "es6",
+        "lib": ["dom", "es6"], 
         "ignoreDeprecations": "5.0",
         "declaration": true,
         "emitDeclarationOnly": true, 
@@ -12,7 +12,7 @@
         "strict": true,
         "noImplicitAny": false,
         "esModuleInterop": true,        
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true            
     },
     "typeRoots": [
         "./node_modules/@types",

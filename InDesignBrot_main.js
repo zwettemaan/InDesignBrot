@@ -193,6 +193,8 @@ function calculateMandelbrot(context) {
             if (config.showElapsedTimeDialog) {
                 crdtuxp.alert("Time elapsed:" + (endDate.getTime() - startDate.getTime()) / 1000.0);
             }
+
+            retVal = true;
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);

@@ -38,12 +38,13 @@
  * @module crdtuxp
  */
 
-var appType = undefined;
+let appType = undefined;
 const APP_TYPE_PHOTOSHOP = "PHSH";
 const APP_TYPE_INDESIGN = "IDSN";
 
-var app;
+let app;
 try {
+    // @ts-ignore
     app = require("indesign").app;
     appType = APP_TYPE_INDESIGN;
 }
@@ -51,6 +52,7 @@ catch (err) {
 }
 
 try {
+    // @ts-ignore
     app = require("photoshop").app;
     appType = APP_TYPE_PHOTOSHOP;
 }
@@ -63,7 +65,7 @@ function getPlatformGlobals() {
 
 global.app = app;
 
-var platformGlobals = getPlatformGlobals();
+let platformGlobals = getPlatformGlobals();
 platformGlobals.getPlatformGlobals = getPlatformGlobals;
 platformGlobals.defineGlobalObject = function defineGlobalObject(globalName) {
     if (! platformGlobals[globalName]) {
@@ -106,7 +108,7 @@ const PLATFORM_MAC_OS_X = "darwin";
 if (! module.exports) {
     module.exports = {};
 }
-var crdtuxp = module.exports;
+let crdtuxp = module.exports;
 
 module.exports.IS_MAC = require('os').platform() == PLATFORM_MAC_OS_X;
 module.exports.IS_WINDOWS = ! module.exports.IS_MAC;
@@ -281,17 +283,17 @@ const REGEXP_CICEROS_POINTS_REPLACE            = "$2";
 // UXP internally caches responses from the server - we need to avoid this as each script
 // run can return different results. `HTTP_CACHE_BUSTER` will be incremented after each use.
 //
-var HTTP_CACHE_BUSTER         = Math.floor(Math.random() * 1000000);
+let HTTP_CACHE_BUSTER         = Math.floor(Math.random() * 1000000);
 
-var LOG_LEVEL_STACK           = [];
-var LOG_ENTRY_EXIT            = false;
-var LOG_LEVEL                 = LOG_LEVEL_OFF;
-var IN_LOGGER                 = false;
-var LOG_TO_UXPDEVTOOL_CONSOLE = true;
-var LOG_TO_CRDT               = false;
-var LOG_TO_FILEPATH           = undefined;
+let LOG_LEVEL_STACK           = [];
+let LOG_ENTRY_EXIT            = false;
+let LOG_LEVEL                 = LOG_LEVEL_OFF;
+let IN_LOGGER                 = false;
+let LOG_TO_UXPDEVTOOL_CONSOLE = true;
+let LOG_TO_CRDT               = false;
+let LOG_TO_FILEPATH           = undefined;
 
-var SYS_INFO;
+let SYS_INFO;
 
 /**
  * (async) Show an alert.
@@ -306,9 +308,9 @@ async function alert(message) {
     do {
 
         if (appType == APP_TYPE_INDESIGN) {
-            var dlg = app.dialogs.add();
-            var col = dlg.dialogColumns.add();
-            var stText = col.staticTexts.add();
+            let dlg = app.dialogs.add();
+            let col = dlg.dialogColumns.add();
+            let stText = col.staticTexts.add();
             stText.staticLabel = "" + message;
             dlg.canCancel = false;
             dlg.show();
@@ -337,13 +339,13 @@ module.exports.alert = alert;
  * @function base64decode
  *
  * @param {string} base64Str - base64 encoded string
- * @returns {string|undefined} decoded string
+ * @returns {Promise<string|undefined>} decoded string
  */
 async function base64decode(base64Str) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("base64decode(" + dQ(base64Str) + ")");
+    let response = await evalTQL("base64decode(" + dQ(base64Str) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -363,14 +365,14 @@ module.exports.base64decode = base64decode;
  * @function base64encode
  *
  * @param {string} s_or_ByteArr - either a string or an array containing bytes (0-255).
- * @returns {string|undefined} encoded string
+ * @returns {Promise<string|undefined>} encoded string
  *
  */
 async function base64encode(s_or_ByteArr) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("base64encode(" + dQ(s_or_ByteArr) + ")");
+    let response = await evalTQL("base64encode(" + dQ(s_or_ByteArr) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -390,39 +392,39 @@ module.exports.base64encode = base64encode;
  */
 function binaryUTF8ToStr(in_byteArray) {
 
-    var retVal = undefined;
+    let retVal = undefined;
 
     try {
-        var idx = 0;
-        var len = in_byteArray.length;
-        var c;
+        let idx = 0;
+        let len = in_byteArray.length;
+        let c;
         while (idx < len) {
-            var byte = in_byteArray[idx];
+            let byte = in_byteArray[idx];
             idx++;
-            var bit7 = byte >> 7;
+            let bit7 = byte >> 7;
             if (! bit7) {
                 // U+0000 - U+007F
                 c = String.fromCharCode(byte);
             }
             else {
-                var bit6 = (byte & 0x7F) >> 6;
+                let bit6 = (byte & 0x7F) >> 6;
                 if (! bit6) {
                     // Invalid
                     retVal = undefined;
                     break;
                 }
                 else {
-                    var byte2 = in_byteArray[idx];
+                    let byte2 = in_byteArray[idx];
                     idx++;
-                    var bit5 = (byte & 0x3F) >> 5;
+                    let bit5 = (byte & 0x3F) >> 5;
                     if (! bit5) {
                         // U+0080 - U+07FF
                         c = String.fromCharCode(((byte & 0x1F) << 6) | (byte2 & 0x3F));
                     }
                     else {
-                        var byte3 = in_byteArray[idx];
+                        let byte3 = in_byteArray[idx];
                         idx++;
-                        var bit4 = (byte & 0x1F) >> 4;
+                        let bit4 = (byte & 0x1F) >> 4;
                         if (! bit4) {
                             // U+0800 - U+FFFF
                             c = String.fromCharCode(((byte & 0x0F) << 12) | ((byte2 & 0x3F) << 6) | (byte3 & 0x3F));
@@ -454,7 +456,7 @@ module.exports.binaryUTF8ToStr = binaryUTF8ToStr;
 
 function charCodeToUTF8__(in_charCode) {
 
-    var retVal = undefined;
+    let retVal = undefined;
 
     try {
 
@@ -463,16 +465,16 @@ function charCodeToUTF8__(in_charCode) {
             retVal.push(in_charCode);
         }
         else if (in_charCode <= 0x07FF) {
-            var hi = 0xC0 + ((in_charCode >> 6) & 0x1F);
-            var lo = 0x80 + ((in_charCode      )& 0x3F);
+            let hi = 0xC0 + ((in_charCode >> 6) & 0x1F);
+            let lo = 0x80 + ((in_charCode      )& 0x3F);
             retVal = [];
             retVal.push(hi);
             retVal.push(lo);
         }
         else {
-            var hi =  0xE0 + ((in_charCode >> 12) & 0x1F);
-            var mid = 0x80 + ((in_charCode >>  6) & 0x3F);
-            var lo =  0x80 + ((in_charCode      ) & 0x3F);
+            let hi =  0xE0 + ((in_charCode >> 12) & 0x1F);
+            let mid = 0x80 + ((in_charCode >>  6) & 0x3F);
+            let lo =  0x80 + ((in_charCode      ) & 0x3F);
             retVal = [];
             retVal.push(hi);
             retVal.push(mid);
@@ -503,7 +505,7 @@ function charCodeToUTF8__(in_charCode) {
  */
 function configLogger(logInfo) {
 
-    var retVal = false;
+    let retVal = false;
     try {
         if (logInfo) {
             if ("logLevel" in logInfo) {
@@ -540,18 +542,18 @@ module.exports.configLogger = configLogger;
  *
  * @param {string} s_or_ByteArr - a string or an array of bytes
  * @param {string} aesKey - a string or an array of bytes
- * @returns {array|undefined} an array of bytes
+ * @returns {Promise<Array|undefined>} an array of bytes
  */
 
 async function decrypt(s_or_ByteArr, aesKey, aesIV) {
 
-    var retVal;
+    let retVal;
 
     if (! aesIV) {
         aesIV = "";
     }
 
-    var response = await evalTQL("decrypt(" + dQ(s_or_ByteArr) + ", " + dQ(aesKey) + ", " + dQ(aesIV) + ")");
+    let response = await evalTQL("decrypt(" + dQ(s_or_ByteArr) + ", " + dQ(aesKey) + ", " + dQ(aesIV) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -571,16 +573,19 @@ module.exports.decrypt = decrypt;
  */
 function deQuote(quotedString) {
 
-    var retVal = [];
+    let retVal = [];
+
+    let state = 0;
+    let buffer = [];
 
     do {
 
-        var qLen = quotedString.length;
+        let qLen = quotedString.length;
         if (qLen < 2) {
             break;
         }
 
-        var quoteChar = quotedString.charAt(0);
+        let quoteChar = quotedString.charAt(0);
         qLen -= 1;
         if (quoteChar != quotedString.charAt(qLen)) {
             break;
@@ -590,16 +595,14 @@ function deQuote(quotedString) {
             break;
         }
 
-        var buffer = [];
-        var state = 0;
-        var cCode = 0;
-        for (charIdx = 1; charIdx < qLen; charIdx++) {
+        let cCode = 0;
+        for (let charIdx = 1; charIdx < qLen; charIdx++) {
 
             if (state == -1) {
                 break;
             }
 
-            var c = quotedString.charAt(charIdx);
+            let c = quotedString.charAt(charIdx);
             switch (state) {
             case 0:
                 if (c == '\\') {
@@ -678,12 +681,12 @@ function deQuote(quotedString) {
                 }
                 else if (state == 7) {
                     // Done with \uHHHHH - convert using UTF-8
-                    var bytes = charCodeToUTF8__(cCode);
+                    let bytes = charCodeToUTF8__(cCode);
                     if (! bytes) {
                         state = -1
                     }
                     else {
-                        for (var byteIdx = 0; byteIdx < bytes.length; byteIdx++) {
+                        for (let byteIdx = 0; byteIdx < bytes.length; byteIdx++) {
                             buffer.push(bytes[byteIdx]);
                         }
                         state = 0;
@@ -718,14 +721,14 @@ module.exports.deQuote = deQuote;
  *
  * @param {string} filePath
  * @param {boolean} recurse
- * @returns {boolean} success or failure
+ * @returns {Promise<boolean>} success or failure
  */
 
 async function dirDelete(filePath, recurse) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("dirDelete(" + dQ(filePath) + "," + (recurse ? "true" : "false") + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("dirDelete(" + dQ(filePath) + "," + (recurse ? "true" : "false") + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -744,14 +747,14 @@ module.exports.dirDelete = dirDelete;
  * @function dirExists
  *
  * @param {string} dirPath - a path to a directory
- * @returns {boolean} true or false
+ * @returns {Promise<boolean>} true or false
  */
 
 async function dirExists(dirPath) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("dirExists(" + dQ(dirPath) + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("dirExists(" + dQ(dirPath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -768,14 +771,14 @@ module.exports.dirExists = dirExists;
  * @function dirCreate
  *
  * @param {string} filePath
- * @returns {boolean} true or false
+ * @returns {Promise<boolean>} true or false
  */
 
 async function dirCreate(filePath) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("dirCreate(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("dirCreate(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -792,17 +795,37 @@ module.exports.dirCreate = dirCreate;
  * @function dirScan
  *
  * @param {string} filePath
- * @returns {array|undefined} list of items in directory
+ * @returns {Promise<Array|undefined>} list of items in directory
  */
 
 async function dirScan(filePath) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("enquote(dirScan(" + dQ(filePath) + ").toString())");
-    if (response && ! response.error) {
-        retVal = JSON.parse(binaryUTF8ToStr(deQuote(response.text)));
+    do {
+        let response = await evalTQL("enquote(dirScan(" + dQ(filePath) + ").toString())");
+        if (! response || response.error) {
+            break;
+        }
+
+        const responseText = response.text;
+        if (! responseText) {
+            break;
+        }
+
+        const deQuotedResponseText = deQuote(responseText);
+        if (! deQuotedResponseText) {
+            break;
+        }
+        
+        const binaryResponse = binaryUTF8ToStr(deQuotedResponseText);
+        if (! binaryResponse) {
+            break;
+        }
+
+        retVal = JSON.parse(binaryResponse);
     }
+    while (false);
 
     return retVal;
 }
@@ -816,16 +839,16 @@ module.exports.dirScan = dirScan;
  * When the input is a string, high Unicode characters are
  * encoded as `\uHHHH`.
  *
- * When the inoput is a byte array, all bytes are encoded
+ * When the input is a byte array, all bytes are encoded
  * as characters or as `\xHH` escape sequences.
  *
  * @function dQ
  *
- * @param {string} s_or_ByteArr - a Unicode string or an array of bytes
+ * @param {string|Array} s_or_ByteArr - a Unicode string or an array of bytes
  * @returns {string} a string enclosed in double quotes. This string is pure 7-bit
  * ASCII and can be used into generated script code
  * Example:
- * `var script = "a=b(" + dQ(somedata) + ");";`
+ * `let script = "a=b(" + dQ(somedata) + ");";`
  */
 function dQ(s_or_ByteArr) {
     return enQuote__(s_or_ByteArr, "\"");
@@ -844,17 +867,18 @@ module.exports.dQ = dQ;
  * @param {string} s_or_ByteArr - a string or an array of bytes
  * @param {string} aesKey - a string or an array of bytes, key
  * @param {string=} aesIV - a string or an array of bytes, initial vector
- * @returns {string|undefined} a base-64 encoded encrypted string.
+ * @returns {Promise<string|undefined>} a base-64 encoded encrypted string.
  */
 
 async function encrypt(s_or_ByteArr, aesKey, aesIV) {
-    var retVal;
+
+    let retVal;
 
     if (! aesIV) {
         aesIV = "";
     }
 
-    var response = await evalTQL("encrypt(" + dQ(s_or_ByteArr) + ", "+ dQ(aesKey) + ", " + dQ(aesIV) + ")");
+    let response = await evalTQL("encrypt(" + dQ(s_or_ByteArr) + ", "+ dQ(aesKey) + ", " + dQ(aesIV) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -868,15 +892,15 @@ module.exports.encrypt = encrypt;
 //
 function enQuote__(s_or_ByteArr, quoteChar) {
 
-    var retVal = "";
+    let retVal = "";
 
-    var quoteCharCode = quoteChar.charCodeAt(0);
+    let quoteCharCode = quoteChar.charCodeAt(0);
 
-    var isString = ("string" == typeof s_or_ByteArr);
-    var escapedS = "";
-    var sLen = s_or_ByteArr.length;
-    for (var charIdx = 0; charIdx < sLen; charIdx++) {
-        var cCode;
+    let isString = ("string" == typeof s_or_ByteArr);
+    let escapedS = "";
+    let sLen = s_or_ByteArr.length;
+    for (let charIdx = 0; charIdx < sLen; charIdx++) {
+        let cCode;
         if (isString) {
             cCode = s_or_ByteArr.charCodeAt(charIdx);
         }
@@ -924,11 +948,11 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * @param {string=} tqlScopeName - a scope name to use. Scopes are persistent for the duration of the daemon process and can
  * be used to pass data between different processes
  * @param {boolean=} resultIsRawBinary - whether the resulting data is raw binary, or can be decoded as a string
- * @returns {any} a string or a byte array
+ * @returns {Promise<any>} a string or a byte array
  */
 async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
 
-    var retVal = {
+    let retVal = {
         error: true
     };
 
@@ -947,7 +971,7 @@ async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
         HTTP_CACHE_BUSTER = HTTP_CACHE_BUSTER + 1;
 
         const responseText = await response.text();
-        var responseTextUnwrapped;
+        let responseTextUnwrapped;
         if (resultIsRawBinary) {
             responseTextUnwrapped = responseText;
         }
@@ -969,6 +993,43 @@ async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
 module.exports.evalTQL = evalTQL;
 
 /**
+ * (async) Append a string to a file (useful for logging)
+ *
+ * Not restricted by the UXP security sandbox.
+ *
+ * @function fileAppendString
+ *
+ * @param {string} fileName - path to file
+ * @param {string} appendStr - data to append. If a newline is needed it needs to be part of appendStr
+ * @returns {Promise<boolean>} success or failure
+ */
+
+async function fileAppendString(fileName, appendStr) {
+
+    let retVal = false;
+
+    let response = await evalTQL(
+        "var retVal = true;" + 
+        "var handle = fileOpen(" + dQ(fileName) + ",'a');" +
+        "if (! handle) {" + 
+            "retVal = false;" + 
+        "}" + 
+        "else if (! fileWrite(handle, " + dQ(appendStr) + ")) {" +
+            "retVal = false;" + 
+        "}" + 
+        "if (! fileClose(handle)) {" +
+            "retVal = false;" + 
+        "}" + 
+        "retVal");
+    if (response && ! response.error) {
+        retVal = response.text == "true";
+    }
+
+    return retVal;
+}
+module.exports.fileAppendString = fileAppendString;
+
+/**
  * (async) Close a currently open file
  *
  * Not restricted by the UXP security sandbox.
@@ -976,14 +1037,14 @@ module.exports.evalTQL = evalTQL;
  * @function fileClose
  *
  * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
- * @returns {boolean} success or failure
+ * @returns {Promise<boolean>} success or failure
  */
 
 async function fileClose(fileHandle) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("fileClose(" + fileHandle + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("fileClose(" + fileHandle + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -1000,14 +1061,14 @@ module.exports.fileClose = fileClose;
  * @function fileDelete
  *
  * @param {string} filePath
- * @returns {boolean} success or failure
+ * @returns {Promise<boolean>} success or failure
  */
 
 async function fileDelete(filePath) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("fileDelete(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("fileDelete(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -1026,14 +1087,14 @@ module.exports.fileDelete = fileDelete;
  * @function fileExists
  *
  * @param {string} filePath
- * @returns {boolean} existence of file
+ * @returns {Promise<boolean>} existence of file
  */
 
 async function fileExists(filePath) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var response = await evalTQL("fileExists(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("fileExists(" + dQ(filePath) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -1051,23 +1112,39 @@ module.exports.fileExists = fileExists;
  *
  * @param {string} fileName - a native full file path to the file
  * @param {string} mode - one of `'a'`, `'r'`, `'w'` (append, read, write)
- * @returns {number|undefined} file handle
+ * @returns {Promise<Number|undefined>} file handle
  */
 
 async function fileOpen(fileName, mode) {
 
-    var retVal;
+    let retVal;
 
-    var response;
-    if (mode) {
-        response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "," + dQ(mode) + "))");
+    do {
+        let response;
+        if (mode) {
+            response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "," + dQ(mode) + "))");
+        }
+        else {
+            response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "))");
+        }
+
+        if (! response || response.error) {
+            break;
+        }
+        
+        let responseStr = deQuote(response.text);
+        if (! responseStr) {
+            break;
+        }
+
+        let responseData = binaryUTF8ToStr(responseStr);
+        if (! responseData) {
+            break;
+        }
+
+        retVal = parseInt(responseData, 10);
     }
-    else {
-        response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "))");
-    }
-    if (response && ! response.error) {
-        retVal = parseInt(binaryUTF8ToStr(deQuote(response.text)), 10);
-    }
+    while (false);
 
     return retVal;
 }
@@ -1082,23 +1159,38 @@ module.exports.fileOpen = fileOpen;
  *
  * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
  * @param {boolean} isBinary - whether the file is considered a binary file (as opposed to a UTF-8 text file)
- * @returns {any} either a byte array or a string
+ * @returns {Promise<any>} either a byte array or a string
  */
 
 async function fileRead(fileHandle, isBinary) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("enquote(fileRead(" + fileHandle + "))", undefined, true);
-    if (response && ! response.error) {
-        var byteArray = deQuote(response.text);
+    do {
+
+        let response = await evalTQL("enquote(fileRead(" + fileHandle + "))", undefined, true);
+        if (! response || response.error) {
+            break;
+        }
+
+        let byteArrayStr = deQuote(response.text);
+        if (! byteArrayStr) {
+            break;
+        }
+
+        var str = binaryUTF8ToStr(byteArrayStr);
+        if (! str) {
+            break;
+        }
+
         if (isBinary) {
-            retVal = deQuote(binaryUTF8ToStr(byteArray));
+            retVal = deQuote(str);
+            break;
         }
-        else {
-            retVal = binaryUTF8ToStr(deQuote(binaryUTF8ToStr(byteArray)));
-        }
+
+        retVal = binaryUTF8ToStr(deQuote(str));
     }
+    while (false);
 
     return retVal;
 }
@@ -1112,15 +1204,15 @@ module.exports.fileRead = fileRead;
  * @function fileWrite
  *
  * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
- * @param {string} s_or_ByteArr - data to write to the file
- * @returns {boolean} success or failure
+ * @param {string|Array} s_or_ByteArr - data to write to the file
+ * @returns {Promise<boolean>} success or failure
  */
 
 async function fileWrite(fileHandle, s_or_ByteArr) {
 
-    var retVal = false;
+    let retVal = false;
 
-    var byteArray;
+    let byteArray;
     if ("string" == typeof s_or_ByteArr) {
         byteArray = strToUTF8(s_or_ByteArr);
     }
@@ -1128,7 +1220,7 @@ async function fileWrite(fileHandle, s_or_ByteArr) {
         byteArray = s_or_ByteArr;
     }
 
-    var response = await evalTQL("fileWrite(" + fileHandle + "," + dQ(byteArray) + ") ? \"true\" : \"false\"");
+    let response = await evalTQL("fileWrite(" + fileHandle + "," + dQ(byteArray) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -1136,6 +1228,30 @@ async function fileWrite(fileHandle, s_or_ByteArr) {
     return retVal;
 }
 module.exports.fileWrite = fileWrite;
+
+/**
+ * (sync) Extract the function name from its arguments
+ *
+ * @function functionNameFromArguments
+ *
+ * @param {object} functionArguments - pass in the current `arguments` to the function. This is used to determine the function's name
+ * @returns {string} function name
+ */
+
+function functionNameFromArguments(functionArguments) {
+
+    let functionName;
+    try {
+        functionName = functionArguments.callee.toString().match(/function ([^\(]+)/)[1];
+    }
+    catch (err) {
+        functionName = "[anonymous function]";
+    }
+
+    return functionName;
+
+}
+module.exports.functionNameFromArguments = functionNameFromArguments;
 
 /**
  * (sync) Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
@@ -1148,12 +1264,12 @@ module.exports.fileWrite = fileWrite;
 
 function getBooleanFromINI(in_value) {
 
-    var retVal = false;
+    let retVal = false;
 
     if (in_value) {
-        var value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-        var firstChar = value.charAt(0).toLowerCase();
-        var firstValue = parseInt(firstChar, 10);
+        let value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+        let firstChar = value.charAt(0).toLowerCase();
+        let firstValue = parseInt(firstChar, 10);
         retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
     }
 
@@ -1172,14 +1288,14 @@ module.exports.getBooleanFromINI = getBooleanFromINI;
  * a single `capabilityCode` (e.g. `capabilityCode` 'XYZ', `orderProductCode` 'XYZ_1YEAR', 'XYZ_2YEAR'...).
  * @param {string} encryptionKey - the secret encryption key (created by the developer) needed to decode the capability data. You want to make
  * sure this password is obfuscated and contained within encrypted script code.
- * @returns {string} a JSON-encoded object with meta object (containing customer GUID, seatIndex, decrypted developer-provided data from the activation file).
+ * @returns {Promise<string>} a JSON-encoded object with meta object (containing customer GUID, seatIndex, decrypted developer-provided data from the activation file).
  * The decrypted developer data is embedded as a string, so might be two levels of JSON-encoding to be dealt with to get to any JSON-encoded decrypted data
  */
 async function getCapability(issuer, capabilityCode, encryptionKey) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("getCapability(" + dQ(issuer) + ", " + dQ(capabilityCode) + ", " + dQ(encryptionKey) + ")");
+    let response = await evalTQL("getCapability(" + dQ(issuer) + ", " + dQ(capabilityCode) + ", " + dQ(encryptionKey) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -1196,13 +1312,13 @@ module.exports.getCapability = getCapability;
  *
  * @function getCreativeDeveloperToolsLevel
  *
- * @returns {number} - 0, 1 or 2. -1 means: error
+ * @returns {Promise<number>} - 0, 1 or 2. -1 means: error
  */
 async function getCreativeDeveloperToolsLevel() {
 
-    var retVal = -1;
+    let retVal = -1;
 
-    var response = await evalTQL("getCreativeDeveloperToolsLevel()");
+    let response = await evalTQL("getCreativeDeveloperToolsLevel()");
     if (response && ! response.error) {
         retVal = parseInt(response.text, 10);
     }
@@ -1228,13 +1344,13 @@ module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
  *    TMP_DIR
  *    USERDATA_DIR
  * ```
- * @returns {string} file path of dir or undefined. Directory paths include a trailing slash or backslash.
+ * @returns {Promise<string>} file path of dir or undefined. Directory paths include a trailing slash or backslash.
  */
 async function getDir(dirTag) {
 
-    var retVal;
+    let retVal;
 
-    var sysInfo = await getSysInfo__();
+    let sysInfo = await getSysInfo__();
     if (dirTag in sysInfo) {
         retVal = sysInfo[dirTag];
     }
@@ -1251,13 +1367,13 @@ module.exports.getDir = getDir;
  * @function getEnvironment
  *
  * @param {string} envVarName - name of environment variable
- * @returns {string} environment variable value
+ * @returns {Promise<string>} environment variable value
  */
 async function getEnvironment(envVarName) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("getEnv(" + dQ(envVarName) + ")");
+    let response = await evalTQL("getEnv(" + dQ(envVarName) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -1279,7 +1395,7 @@ module.exports.getEnvironment = getEnvironment;
 
 function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
 
-    var retVal = 0.0;
+    let retVal = 0.0;
 
     do {
 
@@ -1287,7 +1403,7 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             break;
         }
 
-        var convertToUnit;
+        let convertToUnit;
         if (in_convertToUnit) {
             convertToUnit = in_convertToUnit;
         }
@@ -1295,11 +1411,11 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             convertToUnit = crdtuxp.UNIT_NAME_NONE;
         }
 
-        var sign = 1.0;
+        let sign = 1.0;
 
-        var valueStr = in_valueStr.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE).toLowerCase();
+        let valueStr = in_valueStr.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE).toLowerCase();
 
-        var firstChar = valueStr.charAt(0);
+        let firstChar = valueStr.charAt(0);
         if (firstChar == '-') {
             valueStr = valueStr.substring(1);
             sign = -1.0;
@@ -1308,8 +1424,8 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             valueStr = valueStr.substring(1);
         }
 
-        var picas = undefined;
-        var ciceros = undefined;
+        let picas = undefined;
+        let ciceros = undefined;
         if (valueStr.match(REGEXP_PICAS)) {
             picas = parseInt(valueStr.replace(REGEXP_PICAS, REGEXP_PICAS_REPLACE), 10);
             valueStr = valueStr.replace(REGEXP_PICAS, REGEXP_PICAS_POINTS_REPLACE);
@@ -1319,13 +1435,13 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             valueStr = valueStr.replace(REGEXP_CICEROS, REGEXP_CICEROS_POINTS_REPLACE);
         }
 
-        var numberOnlyStr = valueStr.replace(REGEXP_NUMBER_ONLY, REGEXP_NUMBER_ONLY_REPLACE);
-        var numberOnly = parseFloat(numberOnlyStr);
+        let numberOnlyStr = valueStr.replace(REGEXP_NUMBER_ONLY, REGEXP_NUMBER_ONLY_REPLACE);
+        let numberOnly = parseFloat(numberOnlyStr);
         if (isNaN(numberOnly)) {
             numberOnly = 0.0;
         }
 
-        var fromUnit;
+        let fromUnit;
         if (picas !== undefined) {
             fromUnit = crdtuxp.UNIT_NAME_PICA;
             numberOnly = picas + numberOnly / 6.0;
@@ -1335,11 +1451,11 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             numberOnly = ciceros + numberOnly / 6.0;
         }
         else {
-            var unitOnly = valueStr.replace(REGEXP_UNIT_ONLY, REGEXP_UNIT_ONLY_REPLACE);
+            let unitOnly = valueStr.replace(REGEXP_UNIT_ONLY, REGEXP_UNIT_ONLY_REPLACE);
             fromUnit = getUnitFromINI(unitOnly, crdtuxp.UNIT_NAME_NONE);
         }
 
-        var conversion = 1.0;
+        let conversion = 1.0;
         if (fromUnit != crdtuxp.UNIT_NAME_NONE && convertToUnit != crdtuxp.UNIT_NAME_NONE) {
             conversion = unitToInchFactor(fromUnit) / unitToInchFactor(convertToUnit);
         }
@@ -1363,7 +1479,7 @@ module.exports.getFloatWithUnitFromINI = getFloatWithUnitFromINI;
 
 function getFloatValuesFromINI(in_valueStr) {
 
-    var retVal = undefined;
+    let retVal = undefined;
 
     do {
 
@@ -1371,11 +1487,11 @@ function getFloatValuesFromINI(in_valueStr) {
             break;
         }
 
-        var floatValues = undefined;
-        var values = in_valueStr.split(",");
-        for (var idx = 0; idx < values.length; idx++) {
-            var value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-            var numValue = 0;
+        let floatValues = undefined;
+        let values = in_valueStr.split(",");
+        for (let idx = 0; idx < values.length; idx++) {
+            let value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            let numValue = 0;
             if (value) {
                 numValue = parseFloat(values[idx]);
                 if (isNaN(numValue)) {
@@ -1409,7 +1525,7 @@ module.exports.getFloatValuesFromINI = getFloatValuesFromINI;
 
 function getIntValuesFromINI(in_valueStr) {
 
-    var retVal = undefined;
+    let retVal = undefined;
 
     do {
 
@@ -1417,15 +1533,16 @@ function getIntValuesFromINI(in_valueStr) {
             break;
         }
 
-        var intValues = undefined;
-        var values = in_valueStr.split(",");
-        for (var idx = 0; idx < values.length; idx++) {
-            var value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-            if (! value) {
+        let intValues = undefined;
+        let values = in_valueStr.split(",");
+        for (let idx = 0; idx < values.length; idx++) {
+            let valueStr = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            let value = 0;
+            if (! valueStr) {
                 value = 0;
             }
             else {
-                value = parseInt(values[idx], 10);
+                value = parseInt(valueStr, 10);
                 if (isNaN(value)) {
                     intValues = undefined;
                     break;
@@ -1457,11 +1574,11 @@ module.exports.getIntValuesFromINI = getIntValuesFromINI;
 
 function getUnitFromINI(in_value, in_defaultUnit) {
 
-    var defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
+    let defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
 
-    var retVal = defaultUnit;
+    let retVal = defaultUnit;
 
-    var value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE).toLowerCase();
+    let value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE).toLowerCase();
 
     if (value == "\"" || value.substring(0,2) == "in") {
         retVal = crdtuxp.UNIT_NAME_INCH;
@@ -1493,14 +1610,13 @@ module.exports.getUnitFromINI = getUnitFromINI;
  * (async) Get file path to PluginInstaller if it is installed
  *
  * @function getPluginInstallerPath
- * @returns {string} file path
+ * @returns {Promise<string>} file path
 */
-
 async function getPluginInstallerPath() {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("getPluginInstallerPath()");
+    let response = await evalTQL("getPluginInstallerPath()");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -1520,13 +1636,13 @@ module.exports.getPluginInstallerPath = getPluginInstallerPath;
  * @param {string} issuer - a GUID identifier for the developer account as seen in the PluginInstaller
  * @param {string} attribute - an attribute name for the data
  * @param {string} password - the password (created by the developer) needed to decode the persistent data
- * @returns {any} whatever persistent data is stored for the given attribute
+ * @returns {Promise<any>} whatever persistent data is stored for the given attribute
  */
 async function getPersistData(issuer, attribute, password) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("getPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + ")");
+    let response = await evalTQL("getPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + ")");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -1539,14 +1655,37 @@ module.exports.getPersistData = getPersistData;
 
 async function getSysInfo__() {
 
-    var retVal;
+    let retVal;
 
-    if (! SYS_INFO) {
-        var response = await evalTQL("enquote(sysInfo())");
-        if (response && ! response.error) {
-            SYS_INFO = JSON.parse(binaryUTF8ToStr(deQuote(response.text)));
+    do {
+
+        if (SYS_INFO) {
+            break;
         }
+
+        let response = await evalTQL("enquote(sysInfo())");
+        if (! response || response.error) {
+            break;
+        }
+
+        let responseWrapperStr = response.text;
+        if (! responseWrapperStr) {
+            break;
+        }
+
+        let responseData = deQuote(responseWrapperStr);
+        if (! responseData) {
+            break;
+        }
+
+        let responseStr = binaryUTF8ToStr(responseData);
+        if (! responseStr) {
+            break;
+        }
+
+        SYS_INFO = JSON.parse(responseStr);
     }
+    while (false);
 
     retVal = SYS_INFO;
 
@@ -1563,51 +1702,84 @@ async function getSysInfo__() {
  *
  * @param {number} i - Integer base
  * @param {number} intPower - integer power
- * @returns {number} i ^ intPower
+ * @returns {number|undefined} i ^ intPower
  */
 
 function intPow(i, intPower) {
 
-    var retVal;
-    if (Math.floor(intPower) != intPower) {
-        // Must be integer
-        retVal = undefined;
-    }
-    else if (intPower == 0) {
-        // Handle power of 0: 0^0 is not a number
-        if (i == 0) {
+    let retVal;
+
+    do {
+        if (Math.floor(intPower) != intPower) {
+            // Must be integer
+            retVal = undefined;
+            break;
+        }
+
+        if (intPower == 0) {
+            // Handle power of 0: 0^0 is not a number
+            if (i == 0) {
+                retVal = NaN;
+            }
+            else {
+                retVal = 1;
+            }
+            break;
+        }
+
+        if (intPower > 0 && i == 0) {
+            retVal = 0;
+            break;
+        }
+
+        if (intPower < 0 && i == 0) {
             retVal = NaN;
+            break;
         }
-        else {
+
+        if (i == 1) {
+            // Multiplying 1 with itself is 1
             retVal = 1;
+            break;
         }
-    }
-    else if (i == 1) {
-        // Multiplying 1 with itself is 1
-        retVal = 1;
-    }
-    else if (intPower == 1) {
-        // i ^ 1 is i
-        retVal = i;
-    }
-    else if (intPower < 0) {
-        // i^-x is 1/(i^x)
-        retVal = 1/intPow(i, -intPower);
-    }
-    else {
+
+        if (intPower == 1) {
+            // i ^ 1 is i
+            retVal = i;
+            break;
+        }
+        
+        if (intPower < 0) {
+            // i^-x is 1/(i^x)
+            let intermediate = intPow(i, -intPower);
+            if (intermediate) {
+                retVal = 1 / intermediate;
+            }
+            break;
+        }
+
         // Divide and conquer
-        var halfIntPower = intPower >> 1;
-        var otherHalfIntPower = intPower - halfIntPower;
-        var part1 = intPow(i, halfIntPower);
-        var part2;
+        let halfIntPower = intPower >> 1;
+        let otherHalfIntPower = intPower - halfIntPower;
+        let part1 = intPow(i, halfIntPower);
+        if (! part1) {
+            break;
+        }
+
+        let part2;
         if (halfIntPower == otherHalfIntPower) {
             part2 = part1;
         }
         else {
             part2 =  intPow(i, otherHalfIntPower);
+            if (! part2) {
+                break;
+            }
         }
-        retVal = part1 * part2;
+
+        retVal = part1 * part2;    
     }
+    while (false);
 
     return retVal;
 }
@@ -1626,7 +1798,7 @@ module.exports.intPow = intPow;
 
 function leftPad(s, padChar, len) {
 
-    var retVal = undefined;
+    let retVal = "";
 
     do {
         try {
@@ -1641,9 +1813,9 @@ function leftPad(s, padChar, len) {
                 break;
             }
 
-            var padLength = len - retVal.length;
+            let padLength = len - retVal.length;
 
-            var padding = new Array(padLength + 1).join(padChar)
+            let padding = new Array(padLength + 1).join(padChar)
             retVal = padding + retVal;
         }
         catch (err) {
@@ -1656,28 +1828,6 @@ function leftPad(s, padChar, len) {
 module.exports.leftPad = leftPad;
 
 /**
- * (async) Launch the PluginInstaller if it is installed and configured
- *
- * @function pluginInstaller
- * 
- * @returns {boolean} success/failure
-*/
-
-async function pluginInstaller() {
-
-    var retVal;
-
-    var response = await evalTQL("pluginInstaller()");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
-    }
-
-    return retVal;
-
-}
-module.exports.pluginInstaller = pluginInstaller;
-
-/**
  * (async) Make a log entry of the call of a function. Pass in the `arguments` keyword as a parameter.
  *
  * @function logEntry
@@ -1687,27 +1837,27 @@ module.exports.pluginInstaller = pluginInstaller;
 
 async function logEntry(reportingFunctionArguments) {
     if (LOG_ENTRY_EXIT) {
-        await logTrace(reportingFunctionArguments, "Entry");
+        logTrace(reportingFunctionArguments, "Entry");
     }
 }
 module.exports.logEntry = logEntry;
 
 /**
- * (async) Make a log entry of an error message. Pass in the `arguments` keyword as the first parameter
+ * Make a log entry of an error message. Pass in the `arguments` keyword as the first parameter
  * If the error level is below `LOG_LEVEL_ERROR` nothing happens
  *
  * @function logError
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
- * @param {string} message - error message
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} message - error message
  */
-async function logError(reportingFunctionArguments, message) {
+function logError(reportingFunctionArguments, message) {
     if (LOG_LEVEL >= LOG_LEVEL_ERROR) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        await logMessage(reportingFunctionArguments, LOG_LEVEL_ERROR, message);
+        logMessage(reportingFunctionArguments, LOG_LEVEL_ERROR, message);
     }
 }
 module.exports.logError = logError;
@@ -1717,7 +1867,7 @@ module.exports.logError = logError;
  *
  * @function logExit
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  */
 
 async function logExit(reportingFunctionArguments) {
@@ -1728,43 +1878,18 @@ async function logExit(reportingFunctionArguments) {
 module.exports.logExit = logExit;
 
 /**
- * (sync) Extract the function name from its arguments
- *
- * @function functionNameFromArguments
- *
- * @param {object} functionArguments - pass in the current `arguments` to the function. This is used to determine the function's name
- * @returns {string} function name
- */
-
-function functionNameFromArguments(functionArguments) {
-
-    var functionName;
-    try {
-        functionName = functionArguments.callee.toString().match(/function ([^\(]+)/)[1];
-    }
-    catch (err) {
-        functionName = "[anonymous function]";
-    }
-
-    return functionName;
-
-}
-module.exports.functionNameFromArguments = functionNameFromArguments;
-
-
-/**
- * (async) Output a log message. Pass in the `arguments` keyword as the first parameter.
+ * Output a log message. Pass in the `arguments` keyword as the first parameter.
  * 
  * @function logMessage
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
- * @param {logLevel} int - log level 0 - 4
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {number} logLevel - log level 0 - 4
  * @param {string} message - the note to output
  */
 
-async function logMessage(reportingFunctionArguments, logLevel, message) {
+function logMessage(reportingFunctionArguments, logLevel, message) {
 
-    var savedInLogger = IN_LOGGER;
+    let savedInLogger = IN_LOGGER;
 
     do {
         try {
@@ -1775,8 +1900,8 @@ async function logMessage(reportingFunctionArguments, logLevel, message) {
 
             IN_LOGGER = true;
 
-            var functionPrefix = "";
-            var functionName = "";
+            let functionPrefix = "";
+            let functionName = "";
 
             if (! message) {
 
@@ -1797,23 +1922,24 @@ async function logMessage(reportingFunctionArguments, logLevel, message) {
                 
             }
 
-            var now = new Date();
-            var timePrefix =
-                leftPad(now.getUTCDate(), "0", 2) +
+            let now = new Date();
+            let timePrefix =
+                leftPad("" + now.getUTCDate(), "0", 2) +
                 "-" +
-                leftPad(now.getUTCMonth() + 1, "0", 2) +
+                leftPad("" + (now.getUTCMonth() + 1), "0", 2) +
                 "-" +
-                leftPad(now.getUTCFullYear(), "0", 4) +
+                leftPad("" + now.getUTCFullYear(), "0", 4) +
                 " " +
-                leftPad(now.getUTCHours(), "0", 2) +
+                leftPad("" + now.getUTCHours(), "0", 2) +
                 ":" +
-                leftPad(now.getUTCMinutes(), "0", 2) +
+                leftPad("" + now.getUTCMinutes(), "0", 2) +
                 ":" +
-                leftPad(now.getUTCSeconds(), "0", 2) +
+                leftPad("" + now.getUTCSeconds(), "0", 2) +
                 "+00 ";
 
-            var platformPrefix = "U ";
+            let platformPrefix = "U ";
 
+            let logLevelPrefix = "";
             switch (logLevel) {
                 case LOG_LEVEL_ERROR:
                     logLevelPrefix = "ERROR";
@@ -1832,10 +1958,10 @@ async function logMessage(reportingFunctionArguments, logLevel, message) {
                     break;
             }
 
-            var logLine = platformPrefix + timePrefix + "- " + logLevelPrefix + ": " + functionPrefix + message;
+            let logLine = platformPrefix + timePrefix + "- " + logLevelPrefix + ": " + functionPrefix + message;
 
             if (LOG_TO_CRDT) {
-                await evalTQL("logMessage(" + logLevel + "," + dQ(functionName) + "," + dQ(message) + ")");                
+                evalTQL("logMessage(" + logLevel + "," + dQ(functionName) + "," + dQ(message) + ")");                
             }
 
             if (LOG_TO_UXPDEVTOOL_CONSOLE) {
@@ -1843,9 +1969,7 @@ async function logMessage(reportingFunctionArguments, logLevel, message) {
             }
 
             if (LOG_TO_FILEPATH) {
-                var fileHandle = await fileOpen(LOG_TO_FILEPATH, "a");
-                await fileWrite(fileHandle, logLine + "\n");
-                await fileClose(fileHandle);
+                fileAppendString(LOG_TO_FILEPATH, logLine + "\n");
             }
 
         }
@@ -1859,61 +1983,61 @@ async function logMessage(reportingFunctionArguments, logLevel, message) {
 module.exports.logMessage = logMessage;
 
 /**
- * (async) Make a log entry of a note. Pass in the `arguments` keyword as the first parameter.
+ * Make a log entry of a note. Pass in the `arguments` keyword as the first parameter.
  * If the error level is below `LOG_LEVEL_NOTE` nothing happens
  *
  * @function logNote
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
- * @param {string} message - the note to output
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} message - the note to output
  */
-async function logNote(reportingFunctionArguments, message) {
+function logNote(reportingFunctionArguments, message) {
     if (LOG_LEVEL >= LOG_LEVEL_NOTE) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        await logMessage(reportingFunctionArguments, LOG_LEVEL_NOTE, message);
+        logMessage(reportingFunctionArguments, LOG_LEVEL_NOTE, message);
     }
 }
 module.exports.logNote = logNote;
 
 /**
- * (async) Emit a trace messsage into the log. Pass in the `arguments` keyword as the first parameter.
+ * Emit a trace messsage into the log. Pass in the `arguments` keyword as the first parameter.
  * If the error level is below `LOG_LEVEL_TRACE` nothing happens
  *
  * @function logTrace
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
- * @param {string} message - the trace message to output
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} message - the trace message to output
  */
-async function logTrace(reportingFunctionArguments, message) {
+function logTrace(reportingFunctionArguments, message) {
     if (LOG_LEVEL >= LOG_LEVEL_TRACE) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        await logMessage(reportingFunctionArguments, LOG_LEVEL_TRACE, message);
+        logMessage(reportingFunctionArguments, LOG_LEVEL_TRACE, message);
     }
 }
 module.exports.logTrace = logTrace;
 
 /**
- * (async) Emit a warning messsage into the log. Pass in the `arguments` keyword as the first parameter.
+ * Emit a warning messsage into the log. Pass in the `arguments` keyword as the first parameter.
  * If the error level is below `LOG_LEVEL_WARNING` nothing happens
  *
  * @function logWarning
  *
- * @param {array} arguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
- * @param {string} message - the warning message to output
+ * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} message - the warning message to output
  */
-async function logWarning(reportingFunctionArguments, message) {
+function logWarning(reportingFunctionArguments, message) {
     if (LOG_LEVEL >= LOG_LEVEL_WARNING) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        await logMessage(reportingFunctionArguments, LOG_LEVEL_WARNING, message);
+        logMessage(reportingFunctionArguments, LOG_LEVEL_WARNING, message);
     }
 }
 module.exports.logWarning = logWarning;
@@ -1925,13 +2049,13 @@ module.exports.logWarning = logWarning;
  * 
  * @function machineGUID
  *
- * @returns {string} a `GUID` string
+ * @returns {Promise<string | undefined>} a `GUID` string
  */
 async function machineGUID() {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("machineGUID()");
+    let response = await evalTQL("machineGUID()");
     if (response && ! response.error) {
         retVal = response.text;
     }
@@ -1939,6 +2063,28 @@ async function machineGUID() {
     return retVal;
 }
 module.exports.machineGUID = machineGUID;
+
+/**
+ * (async) Launch the PluginInstaller if it is installed and configured
+ *
+ * @function pluginInstaller
+ * 
+ * @returns {Promise<boolean|undefined>} success/failure
+*/
+
+async function pluginInstaller() {
+
+    let retVal;
+
+    let response = await evalTQL("pluginInstaller()");
+    if (response && ! response.error) {
+        retVal = response.text == "true";
+    }
+
+    return retVal;
+
+}
+module.exports.pluginInstaller = pluginInstaller;
 
 /**
  * (sync) Restore the log level to what it was when pushLogLevel was called
@@ -1950,14 +2096,14 @@ module.exports.machineGUID = machineGUID;
 
 function popLogLevel() {
 
-    var retVal;
+    let retVal;
 
     retVal = LOG_LEVEL;
     if (LOG_LEVEL_STACK.length > 0) {
         LOG_LEVEL = LOG_LEVEL_STACK.pop();
     }
     else {
-        LOG_LEVEL = LOG_LEVEL_NONE;
+        LOG_LEVEL = LOG_LEVEL_OFF;
     }
 
     return retVal;
@@ -1975,7 +2121,7 @@ module.exports.popLogLevel = popLogLevel;
 
 function pushLogLevel(newLogLevel) {
 
-    var retVal;
+    let retVal;
 
     retVal = LOG_LEVEL;
     LOG_LEVEL_STACK.push(LOG_LEVEL);
@@ -2062,7 +2208,7 @@ module.exports.pushLogLevel = pushLogLevel;
 
 function readINI(in_text) {
 
-    var retVal = undefined;
+    let retVal = undefined;
 
     do {
         try {
@@ -2075,19 +2221,19 @@ function readINI(in_text) {
                 break;
             }
 
-            var text = in_text + "\r";
-            var state = STATE_IDLE;
-            var attr = "";
-            var value = "";
-            var attrSpaceCount = 0;
-            var rawSectionName = "";
-            var sectionName = "";
-            var section = undefined;
-            var attrCounters = {};
-            var sectionCounters = {};
+            let text = in_text + "\r";
+            let state = STATE_IDLE;
+            let attr = "";
+            let value = "";
+            let attrSpaceCount = 0;
+            let rawSectionName = "";
+            let sectionName = "";
+            let section = undefined;
+            let attrCounters = {};
+            let sectionCounters = {};
 
-            for (var idx = 0; state != STATE_ERROR && idx < text.length; idx++) {
-                var c = text.charAt(idx);
+            for (let idx = 0; state != STATE_ERROR && idx < text.length; idx++) {
+                let c = text.charAt(idx);
                 switch (state) {
                     default:
                         state = STATE_ERROR;
@@ -2124,8 +2270,8 @@ function readINI(in_text) {
                                     retVal = {};
                                 }
 
-                                var sectionSuffix = "";
-                                var sectionCounter = 1;
+                                let sectionSuffix = "";
+                                let sectionCounter = 1;
                                 if (sectionName in sectionCounters) {
                                     sectionCounter = sectionCounters[sectionName];
                                     sectionCounter++;
@@ -2135,6 +2281,7 @@ function readINI(in_text) {
                                 sectionName += sectionSuffix;
                                 section = {};
                                 retVal[sectionName] = section;
+                                // @ts-ignore
                                 section.__rawSectionName = rawSectionName;
                                 attrCounters = {};
                             }
@@ -2169,8 +2316,8 @@ function readINI(in_text) {
                         else {
                             value = value.replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
                             if (value.length >= 2) {
-                                var firstChar = value.charAt(0);
-                                var lastChar = value.charAt(value.length - 1);
+                                let firstChar = value.charAt(0);
+                                let lastChar = value.charAt(value.length - 1);
                                 if (
                                     (firstChar == "\"" || firstChar == "“" || firstChar == "”")
                                 &&
@@ -2192,8 +2339,8 @@ function readINI(in_text) {
                                 attr = attr.replace(REGEXP_ALPHA_ONLY, REGEXP_ALPHA_ONLY_REPLACE);
                                 if (attr) {
 
-                                    var attrSuffix = "";
-                                    var attrCounter = 1;
+                                    let attrSuffix = "";
+                                    let attrCounter = 1;
                                     if (attr in attrCounters) {
                                         attrCounter = attrCounters[attr];
                                         attrCounter++;
@@ -2234,7 +2381,7 @@ module.exports.readINI = readINI;
 
 function rightPad(s, padChar, len) {
 
-    var retVal = undefined;
+    let retVal = "";
 
     do {
         try {
@@ -2250,9 +2397,9 @@ function rightPad(s, padChar, len) {
                 break;
             }
 
-            var padLength = len - retVal.length;
+            let padLength = len - retVal.length;
 
-            var padding = new Array(padLength + 1).join(padChar)
+            let padding = new Array(padLength + 1).join(padChar)
             retVal = retVal + padding;
         }
         catch (err) {
@@ -2273,13 +2420,13 @@ module.exports.rightPad = rightPad;
  *
  * @param {string} issuerGUID - a GUID identifier for the developer account as seen in the PluginInstaller
  * @param {string} issuerEmail - the email for the developer account as seen in the PluginInstaller
- * @returns { boolean } - success or failure
+ * @returns {Promise<boolean|undefined>} - success or failure
  */
 async function setIssuer(issuerGUID, issuerEmail) {
 
-    var retVal;
+    let retVal;
 
-    var response = await evalTQL("setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ")");
+    let response = await evalTQL("setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ")");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -2304,7 +2451,7 @@ module.exports.setIssuer = setIssuer;
  * @returns {string} a string enclosed in double quotes. This string is pure 7-bit
  * ASCII and can be used into generated script code
  * Example:
- * `var script = "a=b(" + sQ(somedata) + ");";`
+ * `let script = "a=b(" + sQ(somedata) + ");";`
  */
 function sQ(s_or_ByteArr) {
     return enQuote__(s_or_ByteArr, "'");
@@ -2322,11 +2469,13 @@ module.exports.sQ = sQ;
  * @param {string} attribute - an attribute name for the data
  * @param {string} password - the password (created by the developer) needed to decode the persistent data
  * @param {string} data - any data to persist
- * @returns {boolean} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 async function setPersistData(issuer, attribute, password, data) {
 
-    var response = await evalTQL("setPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + "," + dQ(data) + ") ? \"true\" : \"false\"");
+    let retVal;
+
+    let response = await evalTQL("setPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + "," + dQ(data) + ") ? \"true\" : \"false\"");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -2341,25 +2490,28 @@ module.exports.setPersistData = setPersistData;
  * @function strToUTF8
  *
  * @param {string} in_s - a string
- * @returns { array } a byte array
+ * @returns {array|undefined} a byte array
  */
 function strToUTF8(in_s) {
 
-    var retVal = [];
+    let retVal = undefined;
 
-    var idx = 0;
-    var len = in_s.length;
-    var cCode;
+    let idx = 0;
+    let len = in_s.length;
+    let cCode;
     while (idx < len) {
         cCode = in_s.charCodeAt(idx);
         idx++;
-        var bytes = charCodeToUTF8__(cCode);
+        let bytes = charCodeToUTF8__(cCode);
         if (! bytes) {
             retVal = undefined;
             break;
         }
         else {
-            for (var byteIdx = 0; byteIdx < bytes.length; byteIdx++) {
+            for (let byteIdx = 0; byteIdx < bytes.length; byteIdx++) {
+                if (! retVal) {
+                    retVal = [];
+                }
                 retVal.push(bytes[byteIdx]);
             }
         }
@@ -2378,13 +2530,13 @@ module.exports.strToUTF8 = strToUTF8;
  *
  * @param {string} key - key needed to decode activation data
  * @param {string} activation - encrypted activation data
- * @returns { boolean } success or failure
+ * @returns { Promise<boolean> } success or failure
  */
 async function sublicense(key, activation) {
 
-    var retVal;
+    let retVal = false;
 
-    var response = await evalTQL("sublicense(" + dQ(key) + "," + dQ(activation) + ")");
+    let response = await evalTQL("sublicense(" + dQ(key) + "," + dQ(activation) + ")");
     if (response && ! response.error) {
         retVal = response.text == "true";
     }
@@ -2392,6 +2544,8 @@ async function sublicense(key, activation) {
     return retVal;
 }
 module.exports.sublicense = sublicense;
+
+let TO_HEX_BUNCH_OF_ZEROES = "";
 
 /**
  * (sync) Convert an integer into a hex representation with a fixed number of digits.
@@ -2405,33 +2559,45 @@ module.exports.sublicense = sublicense;
  */
 function toHex(i, numDigits) {
 
-    if (! numDigits) {
-        numDigits = 4;
-    }
+    let retVal = "";
+
+    do {
+        if (! numDigits) {
+            numDigits = 4;
+        }
 
     if (i < 0) {
-        var upper = intPow(2, numDigits*4);
+        let upper = intPow(2, numDigits*4);
+        if (! upper) {
+            break;
+        }
+        
         // Calculate 2's complement with numDigits if negative
-        i = (intPow(2, numDigits*4) + i) & (upper - 1);
+        i = (upper + i) & (upper - 1);
     }
 
-    // Calculate and cache a long enough string of zeroes
-    var zeroes = toHex.zeroes;
-    if (! zeroes) {
-        zeroes = "0";
-    }
-    while (zeroes.length < numDigits) {
-        zeroes += zeroes;
-    }
-    toHex.zeroes = zeroes;
+        // Calculate and cache a long enough string of zeroes
+        let zeroes = TO_HEX_BUNCH_OF_ZEROES;
+        if (! zeroes) {
+            zeroes = "0";
+        }
+        if (zeroes.length < numDigits) {
+            while (zeroes.length < numDigits) {
+                zeroes += zeroes;
+            }
+            TO_HEX_BUNCH_OF_ZEROES = zeroes;
+        }
 
-    var retVal = i.toString(16).toLowerCase(); // Probably always lowercase by default, but just in case...
-    if (retVal.length > numDigits) {
-        retVal = retVal.substring(retVal.length - numDigits);
+        retVal = i.toString(16).toLowerCase(); // Probably always lowercase by default, but just in case...
+        if (retVal.length > numDigits) {
+            retVal = retVal.substring(retVal.length - numDigits);
+        }
+        else if (retVal.length < numDigits) {
+            retVal = zeroes.substring(0, numDigits - retVal.length) + retVal;
+        }
+            
     }
-    else if (retVal.length < numDigits) {
-        retVal = zeroes.substr(0, numDigits - retVal.length) + retVal;
-    }
+    while (false);
 
     return retVal;
 }
@@ -2448,7 +2614,7 @@ module.exports.toHex = toHex;
 
 function unitToInchFactor(in_unit) {
 
-    var retVal = 1.0;
+    let retVal = 1.0;
 
     switch (in_unit) {
         case crdtuxp.UNIT_NAME_CM:
