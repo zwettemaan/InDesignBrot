@@ -1,4 +1,4 @@
-// Mandelbrot set visualization in Adobe InDesign (tested with CS5 and above)
+// Mandelbrot set visualization in Adobe InDesign 
 //
 // (c) 2015-2024 Kris Coppieters, kris@rorohiko.com
 //
@@ -25,11 +25,6 @@ const kDefaultMaxSteps = 35;
 const kDefaultNumPixels = 19;
 
 //
-// Default: redraw during calculation (slow, but fun to watch), or not
-//
-const kDefaultRedrawDuringCalculation = true;
-
-//
 // Default: show dialog with elapsed time
 //
 const kDefaultShowElapsedTimeDialog = true;
@@ -50,10 +45,10 @@ function main() {
         
         try {
 
-            let context = {};   
+            const context = {};   
 
-            let config = {};
-            let doc = getTargetDoc(config);
+            const config = {};
+            const doc = getTargetDoc(config);
             if (! doc) {
                 crdtuxp.logError(arguments, "failed to get target doc");
                 break;
@@ -103,13 +98,13 @@ function calculateMandelbrot(context) {
                 break;
             }
 
-            let doc = context.doc;
+            const doc = context.doc;
             if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
                 crdtuxp.logError(arguments, "need valid document");
                 break;
             }
 
-            let config = context.config;
+            const config = context.config;
             if (! config) {
                 crdtuxp.logError(arguments, "config missing");
                 break;
@@ -119,21 +114,21 @@ function calculateMandelbrot(context) {
             // For applying swatches we apply a logarithmic scale; pre-calculate this value because
             // we'll need it a lot
             //
-            let logOfMaxSteps = Math.log(config.maxSteps);
+            const logOfMaxSteps = Math.log(config.maxSteps);
 
-            let swatches = {};
+            const swatches = {};
     
             //
             // Do a bit of benchmarking: record the start and end times, and subtract them
             //
-            let startDate = new Date();
+            const startDate = new Date();
 
-            let rects = createSquareOfNxN(context.firstPage, config.numPixels, 0, 0, context.pixelRectWidth);
-            let halfNumPixels = Math.floor(config.numPixels / 2 + 1);
+            const rects = createSquareOfNxN(context.firstPage, config.numPixels, 0, 0, context.pixelRectWidth);
+            const halfNumPixels = Math.floor(config.numPixels / 2 + 1);
             for (let px = 0; px < config.numPixels; px++) {
                 for (let py = 0; py < halfNumPixels; py++) {
-                    let rect1 = rects[py][px];
-                    let pySymmetric = config.numPixels - py - 1;
+                    const rect1 = rects[py][px];
+                    const pySymmetric = config.numPixels - py - 1;
                     if (pySymmetric == py) {
                         rect2 = undefined;
                     }
@@ -146,18 +141,18 @@ function calculateMandelbrot(context) {
                     //
                     // (x,y) are the values on the frog's back
                     //
-                    let x = 4 * px / config.numPixels - 2;
-                    let y = 4 * py / config.numPixels - 2;
-                    let lambda = new complex(x, y);
+                    const x = 4 * px / config.numPixels - 2;
+                    const y = 4 * py / config.numPixels - 2;
+                    const lambda = new complex(x, y);
 
-                    let n = numSteps(lambda, config.maxSteps);
+                    const n = numSteps(lambda, config.maxSteps);
 
                     //
                     // Grab a swatch for that number of steps. If the swatch is not available yet, create it
                     //
                     let swatch = swatches[n];
                     if (! swatch) {
-                        let swatchName = "N=" + n;
+                        const swatchName = "N=" + n;
                         // 
                         // Try to get the swatch by name. If it ain't there, make it
                         //
@@ -173,7 +168,7 @@ function calculateMandelbrot(context) {
                                     space: indesign.ColorSpace.RGB
                                 }
                             );
-                            let grayScaleValue = 255 * Math.log(n) / logOfMaxSteps;
+                            const grayScaleValue = 255 * Math.log(n) / logOfMaxSteps;
                             swatch.colorValue = [grayScaleValue, grayScaleValue, grayScaleValue];
                         }
                         swatches[n] = swatch;
@@ -188,12 +183,12 @@ function calculateMandelbrot(context) {
             // 
             // ...and we're done!
             //
-            let endDate = new Date();
+            const endDate = new Date();
 
             if (config.showElapsedTimeDialog) {
                 crdtuxp.alert("Time elapsed:" + (endDate.getTime() - startDate.getTime()) / 1000.0);
             }
-
+            
             retVal = true;
         }
         catch (err) {
@@ -235,13 +230,13 @@ function configureDocument(context) {
                 break;
             }
 
-            let doc = context.doc;
+            const doc = context.doc;
             if (! doc || doc.constructor.name !== "Document" || ! doc.isValid) {
                 crdtuxp.logError(arguments, "need valid document");
                 break;
             }
 
-            let config = context.config;
+            const config = context.config;
             if (! config) {
                 crdtuxp.logError(arguments, "config missing");
                 break;
@@ -249,19 +244,19 @@ function configureDocument(context) {
 
             if (config.deletePreviousResult) {
 
-                let deleteGroupIDs = [];
+                const deleteGroupIDs = [];
 
-                let groups = collectionToArray(doc.groups);
+                const groups = collectionToArray(doc.groups);
                 for (let idx = 0; idx < groups.length; idx++) {
-                    let group = groups[idx];
+                    const group = groups[idx];
                     if (group.label == kScriptLabel_FinishedSet) {
                         deleteGroupIDs.push(group.id);
                     }
                 }
 
                 while (deleteGroupIDs.length > 0) {
-                    var groupId = deleteGroupIDs.pop();
-                    var group = doc.groups.itemByID(groupId);
+                    const groupId = deleteGroupIDs.pop();
+                    const group = doc.groups.itemByID(groupId);
                     group.remove();
                 }
 
@@ -270,13 +265,13 @@ function configureDocument(context) {
             doc.viewPreferences.horizontalMeasurementUnits = indesign.MeasurementUnits.POINTS;
             doc.viewPreferences.verticalMeasurementUnits = indesign.MeasurementUnits.POINTS;
             
-            let firstPage = doc.pages.item(0);
+            const firstPage = doc.pages.item(0);
             context.firstPage = firstPage;
 
-            let firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
+            const firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
             context.firstPageWidth = firstPageWidth;
 
-            let firstPageHeight = firstPage.bounds[2] - firstPage.bounds[0];
+            const firstPageHeight = firstPage.bounds[2] - firstPage.bounds[0];
             context.firstPageHeight = firstPageHeight;
             
             let gridWidth;
@@ -312,19 +307,7 @@ function configureInDesign(context) {
     do {
         
         try {
-            
-            if (! context) {
-                crdtuxp.logError(arguments, "context missing");
-                break;
-            }
-
-            let config = context.config;
-            if (! config) {
-                crdtuxp.logError(arguments, "config missing");
-                break;
-            }
-
-            app.scriptPreferences.enableRedraw = config.redrawDuringCalculation;
+            app.scriptPreferences.enableRedraw = false;
             retVal = true;
         }
         catch (err) {
@@ -355,19 +338,18 @@ function createDefaultDocument(config) {
             configIniText += "\n";
             configIniText += "max steps =" + config.maxSteps + "\n";
             configIniText += "num pixels =" + config.numPixels + "\n";
-            configIniText += "redraw during calculation = " + (config.redrawDuringCalculation ? "yes" : "no") + "\n";
             configIniText += "show elapsed time dialog = " + (config.showElapsedTimeDialog ? "yes" : "no") + "\n";
             configIniText += "delete previous result = " + (config.deletePreviousResult ? "yes" : "no") + "\n";
 
-            let configFrame = doc.textFrames.add();
+            const configFrame = doc.textFrames.add();
 
-            let firstPage = doc.pages.item(0);
-            let firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
+            const firstPage = doc.pages.item(0);
+            const firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
 
-            var configFrameWidth = firstPageWidth / 3;
-            var gutterWidth = firstPageWidth / 10;
+            const configFrameWidth = firstPageWidth / 3;
+            const gutterWidth = firstPageWidth / 10;
 
-            let xPosOnPasteboard = firstPage.bounds[1] - configFrameWidth - gutterWidth;
+            const xPosOnPasteboard = firstPage.bounds[1] - configFrameWidth - gutterWidth;
             
             configFrame.geometricBounds = [ firstPage.bounds[0], xPosOnPasteboard, firstPage.bounds[2], xPosOnPasteboard + configFrameWidth];
             configFrame.contents = configIniText;
@@ -403,7 +385,6 @@ function defaultConfig(config) {
             // Default values - can be overridden by user config extracted from doc INI            
             config.maxSteps                = kDefaultMaxSteps;
             config.numPixels               = kDefaultNumPixels;
-            config.redrawDuringCalculation = kDefaultRedrawDuringCalculation;
             config.showElapsedTimeDialog   = kDefaultShowElapsedTimeDialog;
             config.deletePreviousResult    = kDefaultDeletePreviousResult;
             
@@ -470,10 +451,6 @@ function extractDocINIConfig(doc, config) {
                 }
             }
 
-            if (docConfig.redrawduringcalculation) {
-                config.redrawDuringCalculation = crdtuxp.getBooleanFromINI(docConfig.redrawduringcalculation);
-            }
-
             if (docConfig.showelapsedtimedialog) {
                 config.showElapsedTimeDialog = crdtuxp.getBooleanFromINI(docConfig.showelapsedtimedialog);
             }
@@ -512,10 +489,10 @@ function findINIConfig(doc) {
 
             let stories = collectionToArray(doc.stories);
             for (let idx = 0; idx < stories.length; idx++) {
-                let story = stories[idx];
-                let contents = story.contents;
+                const story = stories[idx];
+                const contents = story.contents;
                 if (contents.toLowerCase().indexOf("[" + kSectionNameConfig + "]") >= 0) {
-                    let config = crdtuxp.readINI(contents);
+                    const config = crdtuxp.readINI(contents);
                     if (config && config[kSectionNameConfig]) {
                         retVal = config;
                     }
@@ -670,11 +647,11 @@ function numSteps(lambda, maxSteps) {
 //
 function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
 
-    let rect = firstPage.rectangles.add();
+    const rect = firstPage.rectangles.add();
     rect.strokeWeight = 0;
     rect.strokeColor = "None";
     rect.visibleBounds = [ y, x, y + pixelRectWidth, x + pixelRectWidth ];
-    let rowRectList = [rect];
+    const rowRectList = [rect];
     let dupeRectXPos = x;
     for (let copyIdx = 1; copyIdx < n; copyIdx++) {
         dupeRectXPos += pixelRectWidth;
@@ -688,8 +665,8 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
     //
     // Create a group with all rects of this first row. Then duplicate it as needed.
     //
-    let rects = rowRectList.slice(0);
-    let firstRowRectGroup = firstPage.groups.add(rects);
+    const rects = rowRectList.slice(0);
+    const firstRowRectGroup = firstPage.groups.add(rects);
 
     let neededRows = n - 1;
     let dupeRowYPos = y + pixelRectWidth;
@@ -737,16 +714,16 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
         }
     }
 
-    let rects_by_XxY = [];
-    let allRects = [];
+    const rects_by_XxY = [];
+    const allRects = [];
     for (let rowIdx = 0; rowIdx < allRows.length; rowIdx++) {
-        let row = allRows[rowIdx];
-        let rects = row.rectangles.everyItem().getElements().slice(0);
+        const row = allRows[rowIdx];
+        const rects = row.rectangles.everyItem().getElements().slice(0);
         row.ungroup();
-        let yPos = Math.floor((rects[0].geometricBounds[0] - y)/pixelRectWidth + 0.5);
+        const yPos = Math.floor((rects[0].geometricBounds[0] - y)/pixelRectWidth + 0.5);
         for (let idx = 0; idx < rects.length; idx++) {
-            let rect = rects[idx];
-            let xPos = Math.floor((rect.geometricBounds[1] - x)/pixelRectWidth + 0.5);
+            const rect = rects[idx];
+            const xPos = Math.floor((rect.geometricBounds[1] - x)/pixelRectWidth + 0.5);
             if (! rects_by_XxY[yPos]) {
                 rects_by_XxY[yPos] = [];
             }
@@ -755,7 +732,7 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
         }
     }
 
-    let mandelBrot = firstPage.groups.add(allRects);
+    const mandelBrot = firstPage.groups.add(allRects);
     mandelBrot.label = kScriptLabel_FinishedSet;
     mandelBrot.name = kScriptLabel_FinishedSet;
 

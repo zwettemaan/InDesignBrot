@@ -43,9 +43,12 @@ const APP_TYPE_PHOTOSHOP = "PHSH";
 const APP_TYPE_INDESIGN = "IDSN";
 
 let app;
+let indesign;
+let photoshop;
 try {
     // @ts-ignore
-    app = require("indesign").app;
+    indesign = require("indesign");
+    app = indesign.app;
     appType = APP_TYPE_INDESIGN;
 }
 catch (err) {
@@ -53,7 +56,8 @@ catch (err) {
 
 try {
     // @ts-ignore
-    app = require("photoshop").app;
+    photoshop = require("photoshop");
+    app = photoshop.app;
     appType = APP_TYPE_PHOTOSHOP;
 }
 catch (err) {    
@@ -279,6 +283,28 @@ const REGEXP_CICEROS                           = /^([\d]+)c(([\d]*)(\.([\d]+)?)?
 const REGEXP_CICEROS_REPLACE                   = "$1";
 const REGEXP_CICEROS_POINTS_REPLACE            = "$2";
 
+const RESOLVED_UNDEFINED_PROMISE               = Promise.resolve(undefined);
+const RESOLVED_ERROR_PROMISE                   = Promise.resolve({ error: true });
+
+const LOCALE_EN_US                             = "en_US";
+
+const DEFAULT_LOCALE                           = LOCALE_EN_US;
+
+const BTN_OK                                   = "BTN_OK";
+const TTL_DIALOG_ALERT                         = "TTL_DIALOG_ALERT";
+
+let LOCALE_STRINGS                             = {
+    BTN_OK: {
+        "en_US": "OK"
+    },
+    TTL_DIALOG_ALERT: {
+        "en_US": "Alert"
+    }
+};
+
+module.exports.LOCALE                          = DEFAULT_LOCALE;
+module.exports.LOCALE_STRINGS                  = LOCALE_STRINGS;
+
 //
 // UXP internally caches responses from the server - we need to avoid this as each script
 // run can return different results. `HTTP_CACHE_BUSTER` will be incremented after each use.
@@ -296,41 +322,89 @@ let LOG_TO_FILEPATH           = undefined;
 let SYS_INFO;
 
 /**
- * (async) Show an alert.
+ * Show an alert.
  *
  * @function alert
  *
  * @param {string} message - string to display
  */
 
-async function alert(message) {
+function alert(message) {
 
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+    
     do {
 
         if (appType == APP_TYPE_INDESIGN) {
-            let dlg = app.dialogs.add();
-            let col = dlg.dialogColumns.add();
-            let stText = col.staticTexts.add();
+        
+            // InDesign dialogs are not async - they stall the thread until they are closed
+
+            const dlg = app.dialogs.add();
+            const col = dlg.dialogColumns.add();
+            const stText = col.staticTexts.add();
             stText.staticLabel = "" + message;
             dlg.canCancel = false;
-            dlg.show();
-            dlg.destroy();
+			dlg.show();
+            dlg.destroy(); 
             break;
         }
         
         if (appType == APP_TYPE_PHOTOSHOP) {
-            app.showAlert(message);
+        
+            modalDialog = () => {
+
+                const dlg = document.createElement("dialog");
+                const frm = document.createElement("form");
+                const bdy = document.createElement("sp-body");
+                bdy.textContent = message;
+                frm.appendChild(bdy);
+
+                const buttonContainer = document.createElement("div");
+                buttonContainer.style.display = "flex";
+                buttonContainer.style.justifyContent = "flex-end";
+                frm.appendChild(buttonContainer);
+                                
+                const btnOK = document.createElement("sp-button");
+                buttonContainer.appendChild(btnOK);
+                
+                btnOK.textContent = S(BTN_OK);
+
+                btnOK.onclick = () => {
+                    dlg.close();
+                };
+
+                dlg.appendChild(frm);
+                document.body.appendChild(dlg);			
+                return dlg.uxpShowModal(
+                    {
+                        title: S(TTL_DIALOG_ALERT),
+                        resize: "none", 
+                        size: { width: 400, height: 100}	
+                    }
+                );
+            }
+            
+            retVal = 
+                photoshop.core.executeAsModal(
+                    modalDialog, 
+                    {
+                        "commandName": "alert message"
+                    }
+                );
+                        
             break;
         }
 
         throw "Unsupported app type";
     }
     while (false);
+    
+    return retVal;
 }
 module.exports.alert = alert;
 
 /**
- * (async) Decode a string that was encoded using base64.
+ * Decode a string that was encoded using base64.
  *
  * This function has not been speed-tested;
  * I suspect it might only be beneficial for very large long strings, if that. The overheads might be
@@ -341,21 +415,36 @@ module.exports.alert = alert;
  * @param {string} base64Str - base64 encoded string
  * @returns {Promise<string|undefined>} decoded string
  */
-async function base64decode(base64Str) {
+function base64decode(base64Str) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("base64decode(" + dQ(base64Str) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("base64decode(" + dQ(base64Str) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
-
-    return retVal;
+    while (false);
+    
+    return retVal;  
 }
 module.exports.base64decode = base64decode;
 
 /**
- * (async) Encode a string or an array of bytes using Base 64 encoding.
+ * Encode a string or an array of bytes using Base 64 encoding.
  *
  * This function has not been speed-tested.
  *
@@ -368,21 +457,36 @@ module.exports.base64decode = base64decode;
  * @returns {Promise<string|undefined>} encoded string
  *
  */
-async function base64encode(s_or_ByteArr) {
+function base64encode(s_or_ByteArr) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("base64encode(" + dQ(s_or_ByteArr) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("base64encode(" + dQ(s_or_ByteArr) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
-
-    return retVal;
+    while (false);
+    
+    return retVal;    
 }
 module.exports.base64encode = base64encode;
 
 /**
- * (sync) Decode an array of bytes that contains a UTF-8 encoded string.
+ * Decode an array of bytes that contains a UTF-8 encoded string.
  *
  * @function binaryUTF8ToStr
  *
@@ -396,7 +500,7 @@ function binaryUTF8ToStr(in_byteArray) {
 
     try {
         let idx = 0;
-        let len = in_byteArray.length;
+        const len = in_byteArray.length;
         let c;
         while (idx < len) {
             let byte = in_byteArray[idx];
@@ -451,7 +555,7 @@ function binaryUTF8ToStr(in_byteArray) {
 }
 module.exports.binaryUTF8ToStr = binaryUTF8ToStr;
 
-// (sync) charCodeToUTF8__: internal function: convert a Unicode character code to a 1 to 3 byte UTF8 byte sequence
+// charCodeToUTF8__: internal function: convert a Unicode character code to a 1 to 3 byte UTF8 byte sequence
 // returns undefined if invalid in_charCode
 
 function charCodeToUTF8__(in_charCode) {
@@ -465,16 +569,16 @@ function charCodeToUTF8__(in_charCode) {
             retVal.push(in_charCode);
         }
         else if (in_charCode <= 0x07FF) {
-            let hi = 0xC0 + ((in_charCode >> 6) & 0x1F);
-            let lo = 0x80 + ((in_charCode      )& 0x3F);
+            const hi = 0xC0 + ((in_charCode >> 6) & 0x1F);
+            const lo = 0x80 + ((in_charCode      )& 0x3F);
             retVal = [];
             retVal.push(hi);
             retVal.push(lo);
         }
         else {
-            let hi =  0xE0 + ((in_charCode >> 12) & 0x1F);
-            let mid = 0x80 + ((in_charCode >>  6) & 0x3F);
-            let lo =  0x80 + ((in_charCode      ) & 0x3F);
+            const hi =  0xE0 + ((in_charCode >> 12) & 0x1F);
+            const mid = 0x80 + ((in_charCode >>  6) & 0x3F);
+            const lo =  0x80 + ((in_charCode      ) & 0x3F);
             retVal = [];
             retVal.push(hi);
             retVal.push(mid);
@@ -490,7 +594,7 @@ function charCodeToUTF8__(in_charCode) {
 }
 
 /**
- * (sync) Configure the logger
+ * Configure the logger
  *
  * @function configLogger
  *
@@ -534,7 +638,7 @@ function configLogger(logInfo) {
 module.exports.configLogger = configLogger;
 
 /**
- * (async) Reverse the operation of the `encrypt()` function.
+ * Reverse the operation of the `encrypt()` function.
  *
  * Only available to paid developer accounts
  *
@@ -545,25 +649,40 @@ module.exports.configLogger = configLogger;
  * @returns {Promise<Array|undefined>} an array of bytes
  */
 
-async function decrypt(s_or_ByteArr, aesKey, aesIV) {
+function decrypt(s_or_ByteArr, aesKey, aesIV) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    if (! aesIV) {
-        aesIV = "";
+    do {
+
+        if (! aesIV) {
+            aesIV = "";
+        }
+        
+        const responsePromise = evalTQL("decrypt(" + dQ(s_or_ByteArr) + ", " + dQ(aesKey) + ", " + dQ(aesIV) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
-
-    let response = await evalTQL("decrypt(" + dQ(s_or_ByteArr) + ", " + dQ(aesKey) + ", " + dQ(aesIV) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
-    }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.decrypt = decrypt;
 
 /**
- * (sync) Reverse the operation of `dQ()` or `sQ()`.
+ * Reverse the operation of `dQ()` or `sQ()`.
  *
  * @function deQuote
  *
@@ -585,7 +704,7 @@ function deQuote(quotedString) {
             break;
         }
 
-        let quoteChar = quotedString.charAt(0);
+        const quoteChar = quotedString.charAt(0);
         qLen -= 1;
         if (quoteChar != quotedString.charAt(qLen)) {
             break;
@@ -602,7 +721,7 @@ function deQuote(quotedString) {
                 break;
             }
 
-            let c = quotedString.charAt(charIdx);
+            const c = quotedString.charAt(charIdx);
             switch (state) {
             case 0:
                 if (c == '\\') {
@@ -711,7 +830,7 @@ function deQuote(quotedString) {
 module.exports.deQuote = deQuote;
 
 /**
- * (async) Delete a directory.
+ * Delete a directory.
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -721,24 +840,39 @@ module.exports.deQuote = deQuote;
  *
  * @param {string} filePath
  * @param {boolean} recurse
- * @returns {Promise<boolean>} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function dirDelete(filePath, recurse) {
+function dirDelete(filePath, recurse) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("dirDelete(" + dQ(filePath) + "," + (recurse ? "true" : "false") + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("dirDelete(" + dQ(filePath) + "," + (recurse ? "true" : "false") + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.dirDelete = dirDelete;
 
 /**
- * (async) Verify whether a directory exists. Will return `false` if the path points to a file (instead of a directory).
+ * Verify whether a directory exists. Will return `false` if the path points to a file (instead of a directory).
  *
  * Also see `fileExists()`.
  *
@@ -747,48 +881,78 @@ module.exports.dirDelete = dirDelete;
  * @function dirExists
  *
  * @param {string} dirPath - a path to a directory
- * @returns {Promise<boolean>} true or false
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function dirExists(dirPath) {
+function dirExists(dirPath) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("dirExists(" + dQ(dirPath) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("dirExists(" + dQ(dirPath) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.dirExists = dirExists;
 
 /**
- * (async) Create a directory.
+ * Create a directory.
  *
  * Not restricted by the UXP security sandbox.
  *
  * @function dirCreate
  *
  * @param {string} filePath
- * @returns {Promise<boolean>} true or false
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function dirCreate(filePath) {
+function dirCreate(filePath) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("dirCreate(" + dQ(filePath) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("dirCreate(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.dirCreate = dirCreate;
 
 /**
- * (async) Scan a directory.
+ * Scan a directory.
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -798,41 +962,60 @@ module.exports.dirCreate = dirCreate;
  * @returns {Promise<Array|undefined>} list of items in directory
  */
 
-async function dirScan(filePath) {
+function dirScan(filePath) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
     do {
-        let response = await evalTQL("enquote(dirScan(" + dQ(filePath) + ").toString())");
-        if (! response || response.error) {
+
+        const responsePromise = evalTQL("enquote(dirScan(" + dQ(filePath) + ").toString())");
+        if (! responsePromise) {
             break;
         }
 
-        const responseText = response.text;
-        if (! responseText) {
-            break;
-        }
+        retVal = responsePromise.then(
 
-        const deQuotedResponseText = deQuote(responseText);
-        if (! deQuotedResponseText) {
-            break;
-        }
-        
-        const binaryResponse = binaryUTF8ToStr(deQuotedResponseText);
-        if (! binaryResponse) {
-            break;
-        }
+            response => {
 
-        retVal = JSON.parse(binaryResponse);
+                let retVal;
+
+                do {
+                    if (! response || response.error) {
+                        break;
+                    }
+            
+                    const responseText = response.text;
+                    if (! responseText) {
+                        break;
+                    }
+            
+                    const deQuotedResponseText = deQuote(responseText);
+                    if (! deQuotedResponseText) {
+                        break;
+                    }
+                    
+                    const binaryResponse = binaryUTF8ToStr(deQuotedResponseText);
+                    if (! binaryResponse) {
+                        break;
+                    }
+            
+                    retVal = JSON.parse(binaryResponse);
+                } 
+                while (false);
+
+                return retVal;
+            }
+        );
+
     }
     while (false);
-
+    
     return retVal;
 }
 module.exports.dirScan = dirScan;
 
 /**
- * (sync) Wrap a string or a byte array into double quotes, encoding any
+ * Wrap a string or a byte array into double quotes, encoding any
  * binary data as a string. Knows how to handle Unicode characters
  * or binary zeroes.
  *
@@ -856,7 +1039,7 @@ function dQ(s_or_ByteArr) {
 module.exports.dQ = dQ;
 
 /**
- * (async) Encrypt a string or array of bytes using a key. A random salt
+ * Encrypt a string or array of bytes using a key. A random salt
  * is added into the mix, so even when passing in the same parameter values, the result will
  * be different every time.
  *
@@ -870,35 +1053,50 @@ module.exports.dQ = dQ;
  * @returns {Promise<string|undefined>} a base-64 encoded encrypted string.
  */
 
-async function encrypt(s_or_ByteArr, aesKey, aesIV) {
+function encrypt(s_or_ByteArr, aesKey, aesIV) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    if (! aesIV) {
-        aesIV = "";
+    do {
+
+        if (! aesIV) {
+            aesIV = "";
+        }
+        
+        const responsePromise = evalTQL("encrypt(" + dQ(s_or_ByteArr) + ", "+ dQ(aesKey) + ", " + dQ(aesIV) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
-
-    let response = await evalTQL("encrypt(" + dQ(s_or_ByteArr) + ", "+ dQ(aesKey) + ", " + dQ(aesIV) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
-    }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.encrypt = encrypt;
 
 //
-// (sync) enQuote__: Internal helper function. Escape and wrap a string in quotes
+// enQuote__: Internal helper function. Escape and wrap a string in quotes
 //
 function enQuote__(s_or_ByteArr, quoteChar) {
 
     let retVal = "";
 
-    let quoteCharCode = quoteChar.charCodeAt(0);
+    const quoteCharCode = quoteChar.charCodeAt(0);
 
-    let isString = ("string" == typeof s_or_ByteArr);
+    const isString = ("string" == typeof s_or_ByteArr);
+    const sLen = s_or_ByteArr.length;
     let escapedS = "";
-    let sLen = s_or_ByteArr.length;
     for (let charIdx = 0; charIdx < sLen; charIdx++) {
         let cCode;
         if (isString) {
@@ -931,7 +1129,6 @@ function enQuote__(s_or_ByteArr, quoteChar) {
         else {
             escapedS += String.fromCharCode(cCode);
         }
-
     }
 
     retVal = quoteChar + escapedS + quoteChar;
@@ -940,7 +1137,7 @@ function enQuote__(s_or_ByteArr, quoteChar) {
 }
 
 /**
- * (async) Send a TQL script to the daemon and wait for the result
+ * Send a TQL script to the daemon and wait for the result
  *
  * @function evalTQL
  *
@@ -950,13 +1147,11 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * @param {boolean=} resultIsRawBinary - whether the resulting data is raw binary, or can be decoded as a string
  * @returns {Promise<any>} a string or a byte array
  */
-async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
+function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
 
-    let retVal = {
-        error: true
-    };
+    let retVal = RESOLVED_ERROR_PROMISE;
 
-    try {
+    do {
 
         if (! tqlScopeName) {
             tqlScopeName = TQL_SCOPE_NAME_DEFAULT;
@@ -967,33 +1162,51 @@ async function evalTQL(tqlScript, tqlScopeName, resultIsRawBinary) {
             body: tqlScript
         };
 
-        const response = await fetch(LOCALHOST_URL + "/" + tqlScopeName + "?" + HTTP_CACHE_BUSTER, init);
+        const responsePromise = fetch(LOCALHOST_URL + "/" + tqlScopeName + "?" + HTTP_CACHE_BUSTER, init);
         HTTP_CACHE_BUSTER = HTTP_CACHE_BUSTER + 1;
 
-        const responseText = await response.text();
-        let responseTextUnwrapped;
-        if (resultIsRawBinary) {
-            responseTextUnwrapped = responseText;
-        }
-        else {
-            responseTextUnwrapped = binaryUTF8ToStr(deQuote(responseText));
+        if (! responsePromise) {
+            break;
         }
 
-        retVal = {
-            error: false,
-            text: responseTextUnwrapped
-        };
-
-    } catch (e) {
-        throw "CRDT daemon is probably not running. Use PluginInstaller to verify CRDT is activated, then use the Preferences screen to start it";
-    }
+        retVal = responsePromise.then(
+            response => {
+                const responseTextPromise = response.text();
+                return responseTextPromise.then(
+                    responseText => {
+                        let responseTextUnwrapped;
+                        if (resultIsRawBinary) {
+                            responseTextUnwrapped = responseText;
+                        }
+                        else {
+                            responseTextUnwrapped = binaryUTF8ToStr(deQuote(responseText));
+                        }
+                
+                        retVal = {
+                            error: false,
+                            text: responseTextUnwrapped
+                        };
+                        return retVal;
+                    },
+                    error => {
+                        return "CRDT daemon is probably not running. Use PluginInstaller to verify CRDT is activated, then use the Preferences screen to start it";
+                    }
+                );
+            },
+            error => {
+                return "CRDT daemon is probably not running. Use PluginInstaller to verify CRDT is activated, then use the Preferences screen to start it";
+            }
+        );
+        
+    } 
+    while (false);
 
     return retVal;
 }
 module.exports.evalTQL = evalTQL;
 
 /**
- * (async) Append a string to a file (useful for logging)
+ * Append a string to a file (useful for logging)
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1001,84 +1214,128 @@ module.exports.evalTQL = evalTQL;
  *
  * @param {string} fileName - path to file
  * @param {string} appendStr - data to append. If a newline is needed it needs to be part of appendStr
- * @returns {Promise<boolean>} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function fileAppendString(fileName, appendStr) {
+function fileAppendString(fileName, appendStr) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL(
-        "var retVal = true;" + 
-        "var handle = fileOpen(" + dQ(fileName) + ",'a');" +
-        "if (! handle) {" + 
-            "retVal = false;" + 
-        "}" + 
-        "else if (! fileWrite(handle, " + dQ(appendStr) + ")) {" +
-            "retVal = false;" + 
-        "}" + 
-        "if (! fileClose(handle)) {" +
-            "retVal = false;" + 
-        "}" + 
-        "retVal");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL(
+            "var retVal = true;" + 
+            "var handle = fileOpen(" + dQ(fileName) + ",'a');" +
+            "if (! handle) {" + 
+                "retVal = false;" + 
+            "}" + 
+            "else if (! fileWrite(handle, " + dQ(appendStr) + ")) {" +
+                "retVal = false;" + 
+            "}" + 
+            "if (! fileClose(handle)) {" +
+                "retVal = false;" + 
+            "}" + 
+            "retVal");        
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.fileAppendString = fileAppendString;
 
 /**
- * (async) Close a currently open file
+ * Close a currently open file
  *
  * Not restricted by the UXP security sandbox.
  *
  * @function fileClose
  *
  * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
- * @returns {Promise<boolean>} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function fileClose(fileHandle) {
+function fileClose(fileHandle) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("fileClose(" + fileHandle + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("fileClose(" + fileHandle + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.fileClose = fileClose;
 
 /**
- * (async) Delete a file
+ * Delete a file
  *
  * Not restricted by the UXP security sandbox.
  *
  * @function fileDelete
  *
  * @param {string} filePath
- * @returns {Promise<boolean>} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function fileDelete(filePath) {
+function fileDelete(filePath) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("fileDelete(" + dQ(filePath) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("fileDelete(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.fileDelete = fileDelete;
 
 /**
- * (async) Check if a file exists. Will return `false` if the file path points to a directory.
+ * Check if a file exists. Will return `false` if the file path points to a directory.
  *
  * Also see `dirExists()`.
  *
@@ -1087,24 +1344,39 @@ module.exports.fileDelete = fileDelete;
  * @function fileExists
  *
  * @param {string} filePath
- * @returns {Promise<boolean>} existence of file
+ * @returns {Promise<boolean|undefined>} existence of file
  */
 
-async function fileExists(filePath) {
+function fileExists(filePath) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("fileExists(" + dQ(filePath) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("fileExists(" + dQ(filePath) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.fileExists = fileExists;
 
 /**
- * (async) Open a binary file and return a handle
+ * Open a binary file and return a handle
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1115,34 +1387,50 @@ module.exports.fileExists = fileExists;
  * @returns {Promise<Number|undefined>} file handle
  */
 
-async function fileOpen(fileName, mode) {
+function fileOpen(fileName, mode) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
     do {
-        let response;
+
+        let responsePromise;
         if (mode) {
-            response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "," + dQ(mode) + "))");
+            responsePromise = evalTQL("enquote(fileOpen(" + dQ(fileName) + "," + dQ(mode) + "))");
         }
         else {
-            response = await evalTQL("enquote(fileOpen(" + dQ(fileName) + "))");
+            responsePromise = evalTQL("enquote(fileOpen(" + dQ(fileName) + "))");
         }
-
-        if (! response || response.error) {
-            break;
-        }
-        
-        let responseStr = deQuote(response.text);
-        if (! responseStr) {
+        if (! responsePromise) {
             break;
         }
 
-        let responseData = binaryUTF8ToStr(responseStr);
-        if (! responseData) {
-            break;
-        }
+        retVal = responsePromise.then(
+            response => {
 
-        retVal = parseInt(responseData, 10);
+                let retVal;
+
+                do {
+                    if (! response || response.error) {
+                        break;
+                    }
+                    
+                    let responseStr = deQuote(response.text);
+                    if (! responseStr) {
+                        break;
+                    }
+            
+                    let responseData = binaryUTF8ToStr(responseStr);
+                    if (! responseData) {
+                        break;
+                    }
+            
+                    retVal = parseInt(responseData, 10);
+                }
+                while (false);
+
+                return retVal;
+            }
+        );
     }
     while (false);
 
@@ -1151,7 +1439,7 @@ async function fileOpen(fileName, mode) {
 module.exports.fileOpen = fileOpen;
 
 /**
- * (async) Read a file into memory
+ * Read a file into memory
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1162,33 +1450,49 @@ module.exports.fileOpen = fileOpen;
  * @returns {Promise<any>} either a byte array or a string
  */
 
-async function fileRead(fileHandle, isBinary) {
+function fileRead(fileHandle, isBinary) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
     do {
-
-        let response = await evalTQL("enquote(fileRead(" + fileHandle + "))", undefined, true);
-        if (! response || response.error) {
+        const responsePromise = evalTQL("enquote(fileRead(" + fileHandle + "))", undefined, true);;
+        if (! responsePromise) {
             break;
         }
 
-        let byteArrayStr = deQuote(response.text);
-        if (! byteArrayStr) {
-            break;
-        }
+        retVal = responsePromise.then(
+            
+            response => {
 
-        var str = binaryUTF8ToStr(byteArrayStr);
-        if (! str) {
-            break;
-        }
+                let retVal;
 
-        if (isBinary) {
-            retVal = deQuote(str);
-            break;
-        }
+                do {
+                    if (! response || response.error) {
+                        break;
+                    }
+            
+                    let byteArrayStr = deQuote(response.text);
+                    if (! byteArrayStr) {
+                        break;
+                    }
+            
+                    var str = binaryUTF8ToStr(byteArrayStr);
+                    if (! str) {
+                        break;
+                    }
+            
+                    if (isBinary) {
+                        retVal = deQuote(str);
+                        break;
+                    }
+            
+                    retVal = binaryUTF8ToStr(deQuote(str));
+                }
+                while (false);
 
-        retVal = binaryUTF8ToStr(deQuote(str));
+                return retVal;
+            }
+        );
     }
     while (false);
 
@@ -1197,7 +1501,7 @@ async function fileRead(fileHandle, isBinary) {
 module.exports.fileRead = fileRead;
 
 /**
- * (async) Binary write to a file. Strings are written as UTF-8
+ * Binary write to a file. Strings are written as UTF-8
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1205,32 +1509,47 @@ module.exports.fileRead = fileRead;
  *
  * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
  * @param {string|Array} s_or_ByteArr - data to write to the file
- * @returns {Promise<boolean>} success or failure
+ * @returns {Promise<boolean|undefined>} success or failure
  */
 
-async function fileWrite(fileHandle, s_or_ByteArr) {
+function fileWrite(fileHandle, s_or_ByteArr) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let byteArray;
-    if ("string" == typeof s_or_ByteArr) {
-        byteArray = strToUTF8(s_or_ByteArr);
-    }
-    else {
-        byteArray = s_or_ByteArr;
-    }
+    do {
 
-    let response = await evalTQL("fileWrite(" + fileHandle + "," + dQ(byteArray) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+        let byteArray;
+        if ("string" == typeof s_or_ByteArr) {
+            byteArray = strToUTF8(s_or_ByteArr);
+        }
+        else {
+            byteArray = s_or_ByteArr;
+        }
+
+        const responsePromise = evalTQL("fileWrite(" + fileHandle + "," + dQ(byteArray) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.fileWrite = fileWrite;
 
 /**
- * (sync) Extract the function name from its arguments
+ * Extract the function name from its arguments
  *
  * @function functionNameFromArguments
  *
@@ -1254,7 +1573,7 @@ function functionNameFromArguments(functionArguments) {
 module.exports.functionNameFromArguments = functionNameFromArguments;
 
 /**
- * (sync) Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
+ * Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
  *
  * @function getBooleanFromINI
  *
@@ -1267,9 +1586,9 @@ function getBooleanFromINI(in_value) {
     let retVal = false;
 
     if (in_value) {
-        let value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-        let firstChar = value.charAt(0).toLowerCase();
-        let firstValue = parseInt(firstChar, 10);
+        const value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+        const firstChar = value.charAt(0).toLowerCase();
+        const firstValue = parseInt(firstChar, 10);
         retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
     }
 
@@ -1278,7 +1597,7 @@ function getBooleanFromINI(in_value) {
 module.exports.getBooleanFromINI = getBooleanFromINI;
 
 /**
- * (async) Query the daemon to see whether some software is currently activated or not
+ * Query the daemon to see whether some software is currently activated or not
  *
  * @function getCapability
  *
@@ -1288,47 +1607,77 @@ module.exports.getBooleanFromINI = getBooleanFromINI;
  * a single `capabilityCode` (e.g. `capabilityCode` 'XYZ', `orderProductCode` 'XYZ_1YEAR', 'XYZ_2YEAR'...).
  * @param {string} encryptionKey - the secret encryption key (created by the developer) needed to decode the capability data. You want to make
  * sure this password is obfuscated and contained within encrypted script code.
- * @returns {Promise<string>} a JSON-encoded object with meta object (containing customer GUID, seatIndex, decrypted developer-provided data from the activation file).
+ * @returns {Promise<string|undefined>} a JSON-encoded object with meta object (containing customer GUID, seatIndex, decrypted developer-provided data from the activation file).
  * The decrypted developer data is embedded as a string, so might be two levels of JSON-encoding to be dealt with to get to any JSON-encoded decrypted data
  */
-async function getCapability(issuer, capabilityCode, encryptionKey) {
+function getCapability(issuer, capabilityCode, encryptionKey) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("getCapability(" + dQ(issuer) + ", " + dQ(capabilityCode) + ", " + dQ(encryptionKey) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("getCapability(" + dQ(issuer) + ", " + dQ(capabilityCode) + ", " + dQ(encryptionKey) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.getCapability = getCapability;
 
 /**
- * (async) Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full
+ * Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full
  *
  * Some functions, marked with "Only available to paid developer accounts" 
  * will only work with level 2. Licensing function only work with level 1
  *
  * @function getCreativeDeveloperToolsLevel
  *
- * @returns {Promise<number>} - 0, 1 or 2. -1 means: error
+ * @returns {Promise<Number|undefined>} - 0, 1 or 2. -1 means: error
  */
-async function getCreativeDeveloperToolsLevel() {
+function getCreativeDeveloperToolsLevel() {
 
-    let retVal = -1;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("getCreativeDeveloperToolsLevel()");
-    if (response && ! response.error) {
-        retVal = parseInt(response.text, 10);
+    do {
+
+        const responsePromise = evalTQL("getCreativeDeveloperToolsLevel()");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = parseInt(response.text, 10);
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
 
 /**
- * (async) Get the path of a system directory
+ * Get the path of a system directory
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1344,23 +1693,40 @@ module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
  *    TMP_DIR
  *    USERDATA_DIR
  * ```
- * @returns {Promise<string>} file path of dir or undefined. Directory paths include a trailing slash or backslash.
+ * @returns {Promise<string|undefined>} file path of dir or undefined. Directory paths include a trailing slash or backslash.
  */
-async function getDir(dirTag) {
+function getDir(dirTag) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let sysInfo = await getSysInfo__();
-    if (dirTag in sysInfo) {
-        retVal = sysInfo[dirTag];
+    do {
+
+        const sysInfoPromise = getSysInfo__();
+        if (! sysInfoPromise) {
+            break;
+        }
+
+        retVal = sysInfoPromise.then(
+            sysInfo => {
+                let retVal;
+                if (sysInfo && ! sysInfo.error) {
+                    if (dirTag in sysInfo) {
+                        retVal = sysInfo[dirTag];
+                    }
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.getDir = getDir;
 
 /**
- * (async) Access the environment as available to the daemon program
+ * Access the environment as available to the daemon program
  *
  * Not restricted by the UXP security sandbox.
  *
@@ -1369,21 +1735,36 @@ module.exports.getDir = getDir;
  * @param {string} envVarName - name of environment variable
  * @returns {Promise<string>} environment variable value
  */
-async function getEnvironment(envVarName) {
+function getEnvironment(envVarName) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("getEnv(" + dQ(envVarName) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("getEnv(" + dQ(envVarName) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
 module.exports.getEnvironment = getEnvironment;
 
 /**
- * (sync) Interpret a string extracted from some INI data as a floating point value, followed by an optional unit
+ * Interpret a string extracted from some INI data as a floating point value, followed by an optional unit
  * If there is no unit, then no conversion is performed.
  *
  * @function getFloatWithUnitFromINI
@@ -1415,7 +1796,7 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
 
         let valueStr = in_valueStr.replace(REGEXP_DESPACE, REGEXP_DESPACE_REPLACE).toLowerCase();
 
-        let firstChar = valueStr.charAt(0);
+        const firstChar = valueStr.charAt(0);
         if (firstChar == '-') {
             valueStr = valueStr.substring(1);
             sign = -1.0;
@@ -1435,7 +1816,7 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
             valueStr = valueStr.replace(REGEXP_CICEROS, REGEXP_CICEROS_POINTS_REPLACE);
         }
 
-        let numberOnlyStr = valueStr.replace(REGEXP_NUMBER_ONLY, REGEXP_NUMBER_ONLY_REPLACE);
+        const numberOnlyStr = valueStr.replace(REGEXP_NUMBER_ONLY, REGEXP_NUMBER_ONLY_REPLACE);
         let numberOnly = parseFloat(numberOnlyStr);
         if (isNaN(numberOnly)) {
             numberOnly = 0.0;
@@ -1469,7 +1850,7 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
 module.exports.getFloatWithUnitFromINI = getFloatWithUnitFromINI;
 
 /**
- * (sync) Interpret a string extracted from some INI data as an array with float values (e.g. "[ 255, 128.2, 1.7]" )
+ * Interpret a string extracted from some INI data as an array with float values (e.g. "[ 255, 128.2, 1.7]" )
  *
  * @function getFloatValuesFromINI
  *
@@ -1488,12 +1869,12 @@ function getFloatValuesFromINI(in_valueStr) {
         }
 
         let floatValues = undefined;
-        let values = in_valueStr.split(",");
+        const values = in_valueStr.split(",");
         for (let idx = 0; idx < values.length; idx++) {
-            let value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            const value = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
             let numValue = 0;
             if (value) {
-                numValue = parseFloat(values[idx]);
+                numValue = parseFloat(value);
                 if (isNaN(numValue)) {
                     floatValues = undefined;
                     break;
@@ -1515,7 +1896,7 @@ function getFloatValuesFromINI(in_valueStr) {
 module.exports.getFloatValuesFromINI = getFloatValuesFromINI;
 
 /**
- * (sync) Interpret a string extracted from some INI data as an array with int values (e.g. "[ 255, 128, 1]" )
+ * Interpret a string extracted from some INI data as an array with int values (e.g. "[ 255, 128, 1]" )
  *
  * @function getIntValuesFromINI
  *
@@ -1534,9 +1915,9 @@ function getIntValuesFromINI(in_valueStr) {
         }
 
         let intValues = undefined;
-        let values = in_valueStr.split(",");
+        const values = in_valueStr.split(",");
         for (let idx = 0; idx < values.length; idx++) {
-            let valueStr = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
+            const valueStr = values[idx].replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
             let value = 0;
             if (! valueStr) {
                 value = 0;
@@ -1563,7 +1944,7 @@ function getIntValuesFromINI(in_valueStr) {
 module.exports.getIntValuesFromINI = getIntValuesFromINI;
 
 /**
- * (sync) Interpret a string extracted from some INI data as a unit name
+ * Interpret a string extracted from some INI data as a unit name
  *
  * @function getUnitFromINI
  *
@@ -1574,11 +1955,11 @@ module.exports.getIntValuesFromINI = getIntValuesFromINI;
 
 function getUnitFromINI(in_value, in_defaultUnit) {
 
-    let defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
+    const defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
 
     let retVal = defaultUnit;
 
-    let value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE).toLowerCase();
+    const value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE).toLowerCase();
 
     if (value == "\"" || value.substring(0,2) == "in") {
         retVal = crdtuxp.UNIT_NAME_INCH;
@@ -1607,27 +1988,41 @@ function getUnitFromINI(in_value, in_defaultUnit) {
 module.exports.getUnitFromINI = getUnitFromINI;
 
 /**
- * (async) Get file path to PluginInstaller if it is installed
+ * Get file path to PluginInstaller if it is installed
  *
  * @function getPluginInstallerPath
  * @returns {Promise<string>} file path
 */
-async function getPluginInstallerPath() {
+function getPluginInstallerPath() {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("getPluginInstallerPath()");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("getPluginInstallerPath()");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
-
 }
 module.exports.getPluginInstallerPath = getPluginInstallerPath;
 
 /**
- * (async) Query the daemon for persisted data
+ * Query the daemon for persisted data
  *
  * Only available to paid developer accounts
  *
@@ -1638,14 +2033,29 @@ module.exports.getPluginInstallerPath = getPluginInstallerPath;
  * @param {string} password - the password (created by the developer) needed to decode the persistent data
  * @returns {Promise<any>} whatever persistent data is stored for the given attribute
  */
-async function getPersistData(issuer, attribute, password) {
+function getPersistData(issuer, attribute, password) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("getPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + ")");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("getPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
+    while (false);
 
     return retVal;
 }
@@ -1653,47 +2063,62 @@ module.exports.getPersistData = getPersistData;
 
 // Internal function getSysInfo__: fetch the whole Tightener sysInfo structure
 
-async function getSysInfo__() {
+function getSysInfo__() {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
     do {
 
         if (SYS_INFO) {
+            retVal = Promise.resolve(SYS_INFO);
             break;
         }
 
-        let response = await evalTQL("enquote(sysInfo())");
-        if (! response || response.error) {
+        const responsePromise = evalTQL("enquote(sysInfo())");
+        if (! responsePromise) {
             break;
         }
 
-        let responseWrapperStr = response.text;
-        if (! responseWrapperStr) {
-            break;
-        }
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                do {
+                    if (! response || response.error) {
+                        break;
+                    }
+            
+                    let responseWrapperStr = response.text;
+                    if (! responseWrapperStr) {
+                        break;
+                    }
+            
+                    let responseData = deQuote(responseWrapperStr);
+                    if (! responseData) {
+                        break;
+                    }
+            
+                    let responseStr = binaryUTF8ToStr(responseData);
+                    if (! responseStr) {
+                        break;
+                    }
+            
+                    SYS_INFO = JSON.parse(responseStr);
+                    retVal = SYS_INFO;
+                }
+                while (false);
 
-        let responseData = deQuote(responseWrapperStr);
-        if (! responseData) {
-            break;
-        }
+                return retVal;
+            }
+        );
 
-        let responseStr = binaryUTF8ToStr(responseData);
-        if (! responseStr) {
-            break;
-        }
-
-        SYS_INFO = JSON.parse(responseStr);
     }
     while (false);
-
-    retVal = SYS_INFO;
 
     return retVal;
 }
 
 /**
- * (sync) Calculate an integer power of an int value. Avoids using floating point, so
+ * Calculate an integer power of an int value. Avoids using floating point, so
  * should not have any floating-point round-off errors. `Math.pow()` will probably
  * give the exact same result, but I am doubtful that some implementations might internally use `log` and `exp`
  * to handle `Math.pow()`
@@ -1759,9 +2184,9 @@ function intPow(i, intPower) {
         }
 
         // Divide and conquer
-        let halfIntPower = intPower >> 1;
-        let otherHalfIntPower = intPower - halfIntPower;
-        let part1 = intPow(i, halfIntPower);
+        const halfIntPower = intPower >> 1;
+        const otherHalfIntPower = intPower - halfIntPower;
+        const part1 = intPow(i, halfIntPower);
         if (! part1) {
             break;
         }
@@ -1786,7 +2211,7 @@ function intPow(i, intPower) {
 module.exports.intPow = intPow;
 
 /**
- * (sync) Extend or shorten a string to an exact length, adding `padChar` as needed
+ * Extend or shorten a string to an exact length, adding `padChar` as needed
  *
  * @function leftPad
  *
@@ -1813,9 +2238,9 @@ function leftPad(s, padChar, len) {
                 break;
             }
 
-            let padLength = len - retVal.length;
+            const padLength = len - retVal.length;
 
-            let padding = new Array(padLength + 1).join(padChar)
+            const padding = new Array(padLength + 1).join(padChar)
             retVal = padding + retVal;
         }
         catch (err) {
@@ -1828,17 +2253,23 @@ function leftPad(s, padChar, len) {
 module.exports.leftPad = leftPad;
 
 /**
- * (async) Make a log entry of the call of a function. Pass in the `arguments` keyword as a parameter.
+ * Make a log entry of the call of a function. Pass in the `arguments` keyword as a parameter.
  *
  * @function logEntry
  *
  * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 
-async function logEntry(reportingFunctionArguments) {
+function logEntry(reportingFunctionArguments) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+
     if (LOG_ENTRY_EXIT) {
-        logTrace(reportingFunctionArguments, "Entry");
+        retVal = logTrace(reportingFunctionArguments, "Entry");
     }
+    
+    return retVal;
 }
 module.exports.logEntry = logEntry;
 
@@ -1850,30 +2281,42 @@ module.exports.logEntry = logEntry;
  *
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  * @param {any} message - error message
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 function logError(reportingFunctionArguments, message) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+
     if (LOG_LEVEL >= LOG_LEVEL_ERROR) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        logMessage(reportingFunctionArguments, LOG_LEVEL_ERROR, message);
+        retVal = logMessage(reportingFunctionArguments, LOG_LEVEL_ERROR, message);
     }
+    
+    return retVal;
 }
 module.exports.logError = logError;
 
 /**
- * (async) Make a log entry of the exit of a function. Pass in the `arguments` keyword as a parameter.
+ * Make a log entry of the exit of a function. Pass in the `arguments` keyword as a parameter.
  *
  * @function logExit
  *
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 
-async function logExit(reportingFunctionArguments) {
+function logExit(reportingFunctionArguments) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+
     if (LOG_ENTRY_EXIT) {
-        logTrace(reportingFunctionArguments, "Exit");
+        retVal = logTrace(reportingFunctionArguments, "Exit");
     }
+    
+    return retVal;
 }
 module.exports.logExit = logExit;
 
@@ -1885,10 +2328,13 @@ module.exports.logExit = logExit;
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  * @param {number} logLevel - log level 0 - 4
  * @param {string} message - the note to output
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 
 function logMessage(reportingFunctionArguments, logLevel, message) {
 
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+    
     let savedInLogger = IN_LOGGER;
 
     do {
@@ -1960,8 +2406,9 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
 
             let logLine = platformPrefix + timePrefix + "- " + logLevelPrefix + ": " + functionPrefix + message;
 
+            let promises = [];
             if (LOG_TO_CRDT) {
-                evalTQL("logMessage(" + logLevel + "," + dQ(functionName) + "," + dQ(message) + ")");                
+                promises.push(evalTQL("logMessage(" + logLevel + "," + dQ(functionName) + "," + dQ(message) + ")"));
             }
 
             if (LOG_TO_UXPDEVTOOL_CONSOLE) {
@@ -1969,7 +2416,11 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
             }
 
             if (LOG_TO_FILEPATH) {
-                fileAppendString(LOG_TO_FILEPATH, logLine + "\n");
+                promises.push(fileAppendString(LOG_TO_FILEPATH, logLine + "\n"));
+            }
+            
+            if (promises.length) {
+                retVal = Promise.all(promises);
             }
 
         }
@@ -1979,6 +2430,8 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
     while (false);
 
     IN_LOGGER = savedInLogger;
+    
+    return retVal;
 }
 module.exports.logMessage = logMessage;
 
@@ -1990,15 +2443,21 @@ module.exports.logMessage = logMessage;
  *
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  * @param {any} message - the note to output
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 function logNote(reportingFunctionArguments, message) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+    
     if (LOG_LEVEL >= LOG_LEVEL_NOTE) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        logMessage(reportingFunctionArguments, LOG_LEVEL_NOTE, message);
+        retVal = logMessage(reportingFunctionArguments, LOG_LEVEL_NOTE, message);
     }
+    
+    return retVal;
 }
 module.exports.logNote = logNote;
 
@@ -2010,15 +2469,21 @@ module.exports.logNote = logNote;
  *
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  * @param {any} message - the trace message to output
+ * @returns {Promise} - a promise that can be used to await the log call completion
  */
 function logTrace(reportingFunctionArguments, message) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+
     if (LOG_LEVEL >= LOG_LEVEL_TRACE) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        logMessage(reportingFunctionArguments, LOG_LEVEL_TRACE, message);
+        retVal = logMessage(reportingFunctionArguments, LOG_LEVEL_TRACE, message);
     }
+    
+    return retVal;
 }
 module.exports.logTrace = logTrace;
 
@@ -2032,18 +2497,23 @@ module.exports.logTrace = logTrace;
  * @param {any} message - the warning message to output
  */
 function logWarning(reportingFunctionArguments, message) {
+
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
+
     if (LOG_LEVEL >= LOG_LEVEL_WARNING) {
         if (! message) {
             message = reportingFunctionArguments;
             reportingFunctionArguments = undefined;
         }
-        logMessage(reportingFunctionArguments, LOG_LEVEL_WARNING, message);
+        retVal = logMessage(reportingFunctionArguments, LOG_LEVEL_WARNING, message);
     }
+    
+    return retVal;
 }
 module.exports.logWarning = logWarning;
 
 /**
- * (async) The unique `GUID` of this computer
+ * The unique `GUID` of this computer
  *
  * Only available to paid developer accounts
  * 
@@ -2051,43 +2521,72 @@ module.exports.logWarning = logWarning;
  *
  * @returns {Promise<string | undefined>} a `GUID` string
  */
-async function machineGUID() {
+function machineGUID() {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("machineGUID()");
-    if (response && ! response.error) {
-        retVal = response.text;
+    do {
+
+        const responsePromise = evalTQL("machineGUID()");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text;
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.machineGUID = machineGUID;
 
 /**
- * (async) Launch the PluginInstaller if it is installed and configured
+ * Launch the PluginInstaller if it is installed and configured
  *
  * @function pluginInstaller
  * 
- * @returns {Promise<boolean|undefined>} success/failure
+ * @returns {Promise<boolean|undefined>} success or failure
 */
 
-async function pluginInstaller() {
+function pluginInstaller() {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("pluginInstaller()");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("pluginInstaller()");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
-
 }
 module.exports.pluginInstaller = pluginInstaller;
 
 /**
- * (sync) Restore the log level to what it was when pushLogLevel was called
+ * Restore the log level to what it was when pushLogLevel was called
  *
  * @function popLogLevel
  *
@@ -2111,7 +2610,7 @@ function popLogLevel() {
 module.exports.popLogLevel = popLogLevel;
 
 /**
- * (sync) Save the previous log level and set a new log level
+ * Save the previous log level and set a new log level
  *
  * @function pushLogLevel
  *
@@ -2132,7 +2631,7 @@ function pushLogLevel(newLogLevel) {
 module.exports.pushLogLevel = pushLogLevel;
 
 /**
- * (sync) Read a bunch of text and try to extract structured information in .INI format
+ * Read a bunch of text and try to extract structured information in .INI format
  *
  * This function is lenient and is able to extract slightly mangled INI data from the text frame
  * content of an InDesign text frame.
@@ -2233,7 +2732,7 @@ function readINI(in_text) {
             let sectionCounters = {};
 
             for (let idx = 0; state != STATE_ERROR && idx < text.length; idx++) {
-                let c = text.charAt(idx);
+                const c = text.charAt(idx);
                 switch (state) {
                     default:
                         state = STATE_ERROR;
@@ -2369,7 +2868,7 @@ function readINI(in_text) {
 module.exports.readINI = readINI;
 
 /**
- * (sync) Extend or shorten a string to an exact length, adding `padChar` as needed
+ * Extend or shorten a string to an exact length, adding `padChar` as needed
  *
  * @function rightPad
  *
@@ -2397,9 +2896,9 @@ function rightPad(s, padChar, len) {
                 break;
             }
 
-            let padLength = len - retVal.length;
+            const padLength = len - retVal.length;
 
-            let padding = new Array(padLength + 1).join(padChar)
+            const padding = new Array(padLength + 1).join(padChar)
             retVal = retVal + padding;
         }
         catch (err) {
@@ -2412,7 +2911,7 @@ function rightPad(s, padChar, len) {
 module.exports.rightPad = rightPad;
 
 /**
- * (async) Send in activation data so the daemon can determine whether some software is currently activated or not.
+ * Send in activation data so the daemon can determine whether some software is currently activated or not.
  *
  * Needs to be followed by a `sublicense()` call
  *
@@ -2422,21 +2921,75 @@ module.exports.rightPad = rightPad;
  * @param {string} issuerEmail - the email for the developer account as seen in the PluginInstaller
  * @returns {Promise<boolean|undefined>} - success or failure
  */
-async function setIssuer(issuerGUID, issuerEmail) {
+function setIssuer(issuerGUID, issuerEmail) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ")");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.setIssuer = setIssuer;
 
 /**
- * (sync) Wrap a string or a byte array into single quotes, encoding any
+ * Fetch a localized string.
+ *
+ * @function s
+ *
+ * @param {string} stringCode - a token for the string to be localized (e.g. BTN_OK)
+ * @param {string?} locale - a locale. Optional - defaults to "en_US"
+ * @returns {string} a localized string. If the stringCode is not found, returns the stringCode itself.
+ */
+function S(stringCode, locale) {
+
+    let retVal = stringCode;
+
+    do {
+
+        if (! locale) {
+            locale = DEFAULT_LOCALE;
+        }
+
+        if (! (stringCode in LOCALE_STRINGS)) {
+            break;
+        }
+
+        const localeStrings = LOCALE_STRINGS[stringCode];
+        if (locale in localeStrings) {
+            retVal = localeStrings[locale];        
+        }
+        else if (LOCALE_EN_US in localeStrings) {
+            retVal = localeStrings[LOCALE_EN_US];
+        }
+
+    }
+    while (false);
+
+
+    return retVal;
+}
+module.exports.S = S;
+
+/**
+ * Wrap a string or a byte array into single quotes, encoding any
  * binary data as a string. Knows how to handle Unicode characters
  * or binary zeroes.
  *
@@ -2459,7 +3012,7 @@ function sQ(s_or_ByteArr) {
 module.exports.sQ = sQ;
 
 /**
- * (async) Store some persistent data (e.g. a time stamp to determine a demo version lapsing)
+ * Store some persistent data (e.g. a time stamp to determine a demo version lapsing)
  *
  * Only available to paid developer accounts
  *
@@ -2471,21 +3024,36 @@ module.exports.sQ = sQ;
  * @param {string} data - any data to persist
  * @returns {Promise<boolean|undefined>} success or failure
  */
-async function setPersistData(issuer, attribute, password, data) {
+function setPersistData(issuer, attribute, password, data) {
 
-    let retVal;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("setPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + "," + dQ(data) + ") ? \"true\" : \"false\"");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("setPersistData(" + dQ(issuer) + "," + dQ(attribute) + "," + dQ(password) + "," + dQ(data) + ") ? \"true\" : \"false\"");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.setPersistData = setPersistData;
 
 /**
- * (sync) Encode a string into an byte array using UTF-8
+ * Encode a string into an byte array using UTF-8
  *
  * @function strToUTF8
  *
@@ -2522,7 +3090,7 @@ function strToUTF8(in_s) {
 module.exports.strToUTF8 = strToUTF8;
 
 /**
- * (async) Send in sublicense info generated in the PluginInstaller so the daemon can determine whether some software is currently activated or not.
+ * Send in sublicense info generated in the PluginInstaller so the daemon can determine whether some software is currently activated or not.
  *
  * Needs to be preceded by a `setIssuer()` call.
  *
@@ -2530,17 +3098,32 @@ module.exports.strToUTF8 = strToUTF8;
  *
  * @param {string} key - key needed to decode activation data
  * @param {string} activation - encrypted activation data
- * @returns { Promise<boolean> } success or failure
+ * @returns { Promise<boolean|undefined> } success or failure
  */
-async function sublicense(key, activation) {
+function sublicense(key, activation) {
 
-    let retVal = false;
+    let retVal = RESOLVED_UNDEFINED_PROMISE;
 
-    let response = await evalTQL("sublicense(" + dQ(key) + "," + dQ(activation) + ")");
-    if (response && ! response.error) {
-        retVal = response.text == "true";
+    do {
+
+        const responsePromise = evalTQL("sublicense(" + dQ(key) + "," + dQ(activation) + ")");
+        if (! responsePromise) {
+            break;
+        }
+
+        retVal = responsePromise.then(
+            response => {
+                let retVal;
+                if (response && ! response.error) {
+                    retVal = response.text == "true";
+                }
+                return retVal;
+            }
+        );
+
     }
-
+    while (false);
+    
     return retVal;
 }
 module.exports.sublicense = sublicense;
@@ -2548,7 +3131,7 @@ module.exports.sublicense = sublicense;
 let TO_HEX_BUNCH_OF_ZEROES = "";
 
 /**
- * (sync) Convert an integer into a hex representation with a fixed number of digits.
+ * Convert an integer into a hex representation with a fixed number of digits.
  * Negative numbers are converted using 2-s complement (so `-15` results in `0x01`)
  *
  * @function toHex
@@ -2604,7 +3187,7 @@ function toHex(i, numDigits) {
 module.exports.toHex = toHex;
 
 /**
- * (sync) Conversion factor from a length unit into inches
+ * Conversion factor from a length unit into inches
  *
  * @function unitToInchFactor
  *
