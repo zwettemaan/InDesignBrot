@@ -5,7 +5,10 @@
       {
         "method": "STUB_UXPSCRIPT_IN_INDESIGN_SCRIPTS_PANEL",
         "stubScript": [ 
-          "InDesignBrot.idjs"
+          {
+            "name": "InDesignBrot.idjs",
+            "asyncWrapper": false
+          }
         ]
       }
     ],
