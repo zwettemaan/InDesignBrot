@@ -41,6 +41,7 @@
 let appType = undefined;
 const APP_TYPE_PHOTOSHOP = "PHSH";
 const APP_TYPE_INDESIGN = "IDSN";
+const APP_TYPE_INDESIGN_SERVER = "IDSN_S";
 
 let app;
 let indesign;
@@ -49,7 +50,12 @@ try {
     // @ts-ignore
     indesign = require("indesign");
     app = indesign.app;
-    appType = APP_TYPE_INDESIGN;
+    if (app.name.indexOf("Server") >= 0) {
+        appType = APP_TYPE_INDESIGN_SERVER;
+    }
+    else {
+        appType = APP_TYPE_INDESIGN;
+    }
 }
 catch (err) {
 }
@@ -334,6 +340,14 @@ function alert(message) {
     let retVal = RESOLVED_UNDEFINED_PROMISE;
     
     do {
+
+        if (appType == APP_TYPE_INDESIGN_SERVER) {
+            // We've lost access to the alert() function in InDesign Server, which writes
+            // to stdout.
+            // The only workaround I currently have is to pass through ExtendScript
+            app.doScript("alert(" + crdtuxp.dQ(message) + ")", indesign.ScriptLanguage.JAVASCRIPT);
+            break;
+        }
 
         if (appType == APP_TYPE_INDESIGN) {
         
