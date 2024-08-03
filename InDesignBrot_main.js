@@ -528,7 +528,7 @@ function getTargetDoc(config) {
             let doc = undefined;
             try {
                 doc = app.activeDocument;
-                if (doc && (! doc.isValid || doc.constructor.name !== "Document")) {
+                if (! doc || ! doc.isValid || doc.constructor.name !== "Document") {
                     doc = undefined;
                 }
                 else {

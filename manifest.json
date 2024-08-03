@@ -71,6 +71,14 @@
           "omit": true
         },
         { 
+          "regExp": "/^.*\\.cate$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^.*\\.prod$/i",  
+          "omit": true
+        },
+        { 
           "regExp": "/^\\..*$/i",  
           "omit": true
         }

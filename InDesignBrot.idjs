@@ -1,1 +1,22 @@
-global.require(SCRIPT_PANEL_RELATIVE_FOLDER_PATH_PROJECT_ROOT + "/InDesignBrot_main").main();
+const NAME_MAIN_SCRIPT = "InDesignBrot_main"; 
+const LOGLEVEL = 3;
+const LOGPATH = "/Users/kris/Desktop/t.log"; // or undefined
+
+// If this script was launched from a wrapper script in the InDesign Scripts folder then
+// crdtuxp will already be defined
+// If this script is launched directly, crdtuxp will not yet be defined
+
+const IS_STANDALONE_SCRIPT = ! global.crdtuxp;
+
+if (IS_STANDALONE_SCRIPT) {
+    global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    crdtuxp.init();
+}
+
+crdtuxp.configLogger({
+    logLevel: LOGLEVEL,
+    logToUXPConsole: true,
+    logToFilePath: LOGPATH
+});
+
+global.require("./" + NAME_MAIN_SCRIPT).main();
