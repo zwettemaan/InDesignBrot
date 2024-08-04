@@ -19,4 +19,9 @@ crdtuxp.configLogger({
     logToFilePath: LOGPATH
 });
 
-global.require("./" + NAME_MAIN_SCRIPT).main();
+// We need to refer to the main script relative to RUNPATH_ROOT which
+// varies depending on how this script was launched
+let context = crdtuxp.getContext();
+global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
+//
+await Promise.finalizePromises();

@@ -39,10 +39,11 @@
  */
 
 const DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS   = 1000;
-const DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS    = 60000;
+const DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS    = 6000000;
 
 const UXP_VARIANT_PHOTOSHOP_UXP                 = "UXP_VARIANT_PHOTOSHOP_UXP";
 const UXP_VARIANT_PHOTOSHOP_UXPSCRIPT           = "UXP_VARIANT_PHOTOSHOP_UXPSCRIPT";
+const UXP_VARIANT_INDESIGN_UXP                  = "UXP_VARIANT_INDESIGN_UXP";
 const UXP_VARIANT_INDESIGN_UXPSCRIPT            = "UXP_VARIANT_INDESIGN_UXPSCRIPT";
 const UXP_VARIANT_INDESIGN_SERVER_UXPSCRIPT     = "UXP_VARIANT_INDESIGN_SERVER_UXPSCRIPT";
 
@@ -51,6 +52,10 @@ const FILE_NAME_SUFFIX_TQL_REQUEST              = "q";
 const FILE_NAME_SUFFIX_TQL_RESPONSE             = "r";
 
 const LENGTH_REQUEST_ID                         =  10;
+
+const RESOLVED_PROMISE_UNDEFINED                = Promise.resolve(undefined);
+const RESOLVED_PROMISE_FALSE                    = Promise.resolve(false);
+const RESOLVED_PROMISE_TRUE                     = Promise.resolve(true);
 
 // Some functions can be either resolved internally or via the daemon.
 // Choose what we prefer
@@ -270,9 +275,9 @@ const REGEXP_TRIM                              = /^\s*(\S?.*?)\s*$/;
 const REGEXP_TRIM_REPLACE                      = "$1";
 const REGEXP_DESPACE                           = /\s+/g;
 const REGEXP_DESPACE_REPLACE                   = "";
-const REGEXP_ALPHA_ONLY                        = /[^-a-zA-Z0-9_$]+/g;
+const REGEXP_ALPHA_ONLY                        = /[^-a-zA-Z0-9$]+/g;
 const REGEXP_ALPHA_ONLY_REPLACE                = "";
-const REGEXP_SECTION_NAME_ONLY                 = /[^-a-zA-Z0-9_$:]+/g;
+const REGEXP_SECTION_NAME_ONLY                 = /[^-a-zA-Z0-9$:]+/g;
 const REGEXP_SECTION_NAME_ONLY_REPLACE         = "";
 const REGEXP_NUMBER_ONLY                       = /^([\d\.]+).*$/;
 const REGEXP_NUMBER_ONLY_REPLACE               = "$1";
@@ -381,7 +386,7 @@ module.exports.path.addTrailingSeparator = addTrailingSeparator;
 
 function alert(message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -505,7 +510,7 @@ module.exports.alert = alert;
  */
 function base64decode(base64Str, options) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -599,7 +604,7 @@ module.exports.base64decode = base64decode;
  */
 function base64encode(s_or_ByteArr) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -715,7 +720,6 @@ module.exports.path.baseName = baseName;
  */
 function binaryUTF8ToStr(in_byteArray) {
 // coderstate: function
-
     let retVal = undefined;
 
     try {
@@ -789,7 +793,7 @@ module.exports.binaryUTF8ToStr = binaryUTF8ToStr;
  * @returns {string|undefined} a string with the exact same bytes
  */
 function byteArrayToRawString(in_array) {
-
+// coderstate: function
     let retVal = "";
 
     try {
@@ -918,7 +922,7 @@ module.exports.configLogger = configLogger;
 
 function decrypt(s_or_ByteArr, aesKey, aesIV) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -990,8 +994,7 @@ module.exports.decrypt = decrypt;
  */
 function delayFunction(delayTimeMilliseconds, ftn, ...args) {
 // coderstate: promisor
-
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     try {
 
@@ -1203,7 +1206,7 @@ module.exports.deQuote = deQuote;
 
 function dirCreate(filePath) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -1328,7 +1331,7 @@ module.exports.dirCreate = dirCreate;
 
 function dirDelete(filePath, recurse) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -1343,7 +1346,7 @@ function dirDelete(filePath, recurse) {
                 try {
                     const stats = uxpContext.fs.lstatSync(filePath);
                     if (! stats || ! stats.isDirectory()) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     }
                 }
@@ -1351,7 +1354,7 @@ function dirDelete(filePath, recurse) {
                     if (err != -2) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
-                    retVal = false;
+                    retVal = RESOLVED_PROMISE_FALSE;
                     break;
                 }
 
@@ -1361,14 +1364,14 @@ function dirDelete(filePath, recurse) {
                 }
                 catch (err) {
                     crdtuxp.logError(arguments, "throws " + err);
-                    retVal = false;
+                    retVal = RESOLVED_PROMISE_FALSE;
                     break;
                 }
 
                 if (! recurse) {
 
                     if (entries.length > 0) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     }
 
@@ -1390,7 +1393,7 @@ function dirDelete(filePath, recurse) {
                     }
                     catch (err) {
                         crdtuxp.logError(arguments, "throws " + err);
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                     }
 
                     break;
@@ -1450,7 +1453,7 @@ function dirDelete(filePath, recurse) {
                 }
 
                 if (! promises) {
-                    retVal = false;
+                    retVal = RESOLVED_PROMISE_FALSE;
                 }
 
                 function allResolveFtn() {
@@ -1556,7 +1559,7 @@ module.exports.dirDelete = dirDelete;
 
 function dirExists(dirPath) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -1567,7 +1570,7 @@ function dirExists(dirPath) {
                 try {
                     const stats = uxpContext.fs.lstatSync(dirPath);
                     if (! stats || ! stats.isDirectory()) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     }
                 }
@@ -1575,11 +1578,11 @@ function dirExists(dirPath) {
                     if (err != -2) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
-                    retVal = false;
+                    retVal = RESOLVED_PROMISE_FALSE;
                     break;
                 }
 
-                retVal = true;
+                retVal = RESOLVED_PROMISE_TRUE;
                 break;
             }
 
@@ -1696,7 +1699,7 @@ module.exports.path.dirName = dirName;
 
 function dirScan(filePath) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -1715,7 +1718,7 @@ function dirScan(filePath) {
                     retVal = false;
                     break;
                 }
-                retVal = entries;
+                retVal = Promise.resolve(entries);
                 break;
             }
 
@@ -1841,7 +1844,7 @@ module.exports.dQ = dQ;
 
 function encrypt(s_or_ByteArr, aesKey, aesIV) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2159,11 +2162,12 @@ function evalTQL(tqlScript, options) {
                     uxpContext.fs.writeFileSync(requestFilePath, new Uint8Array(tqlRequestByteArray));
                 }
                 catch (err) {
+                    crdtuxp.logError(arguments, "write failed " + err);
                     break;
                 }
 
                 if (! wait) {
-                    retVal = undefined;
+                    retVal = RESOLVED_PROMISE_UNDEFINED;
                     break;
                 }
 
@@ -2185,7 +2189,7 @@ function evalTQL(tqlScript, options) {
             HTTP_CACHE_BUSTER = HTTP_CACHE_BUSTER + 1;
 
             if (! wait) {
-                retVal = undefined;
+                retVal = RESOLVED_PROMISE_UNDEFINED;
                 break;
             }
 
@@ -2281,7 +2285,7 @@ module.exports.evalTQL = evalTQL;
 
 function fileAppendString(fileName, in_appendStr, options) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2314,7 +2318,7 @@ function fileAppendString(fileName, in_appendStr, options) {
             );
 
             if (options && ! options.wait) {
-                retVal = undefined;
+                retVal = RESOLVED_PROMISE_UNDEFINED;
                 break;
             }
 
@@ -2373,7 +2377,7 @@ module.exports.fileAppendString = fileAppendString;
 
 function fileClose(fileHandle) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2386,7 +2390,7 @@ function fileClose(fileHandle) {
                     break;
                 }
                 delete uxpContext.fileInfoByFileHandle[fileHandle];
-                retVal = true;
+                retVal = RESOLVED_PROMISE_TRUE;
                 break;
             }
 
@@ -2449,7 +2453,7 @@ module.exports.fileClose = fileClose;
 
 function fileDelete(filePath) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2462,7 +2466,7 @@ function fileDelete(filePath) {
                 try {
                     const stats = uxpContext.fs.lstatSync(filePath);
                     if (! stats || ! stats.isFile()) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     } 
                 }
@@ -2555,7 +2559,7 @@ module.exports.fileDelete = fileDelete;
 
 function fileExists(filePath) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2568,7 +2572,7 @@ function fileExists(filePath) {
                 try {
                     const stats = uxpContext.fs.lstatSync(filePath);
                     if (! stats || ! stats.isFile()) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     } 
                 }
@@ -2579,7 +2583,7 @@ function fileExists(filePath) {
                     break;
                 }
 
-                retVal = true;
+                retVal = Promise.resolve(true);
                 break;
             }
 
@@ -2641,7 +2645,7 @@ module.exports.fileExists = fileExists;
  */
 
 function fileNameExtension(filePath, separator) {
-
+// coderstate: function
     let retVal;
 
     try {
@@ -2675,7 +2679,7 @@ module.exports.path.fileNameExtension = fileNameExtension;
 
 function fileOpen(filePath, mode) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2713,7 +2717,7 @@ function fileOpen(filePath, mode) {
                         mode: mode
                     }
                     uxpContext.fileInfoByFileHandle[uniqueFileHandleID] = fileInfo;
-                    retVal = uniqueFileHandleID;
+                    retVal = Promise.resolve(uniqueFileHandleID);
 
                 } 
                 else if (mode == 'r') {
@@ -2738,7 +2742,7 @@ function fileOpen(filePath, mode) {
                         mode: mode
                     }
                     uxpContext.fileInfoByFileHandle[uniqueFileHandleID] = fileInfo;
-                    retVal = uniqueFileHandleID;
+                    retVal = Promise.resolve(uniqueFileHandleID);
                 }
                 break;
             }
@@ -2835,7 +2839,7 @@ module.exports.fileOpen = fileOpen;
 
 function fileRead(fileHandle, options) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2867,7 +2871,7 @@ function fileRead(fileHandle, options) {
                 try {
                     replyByteArray = new Uint8Array(uxpContext.fs.readFileSync(fileInfo.filePath));
                     if (options?.isBinary) {
-                        retVal = replyByteArray;
+                        retVal = Promise.resolve(replyByteArray);
                         break;
                     }
                 }
@@ -2876,7 +2880,7 @@ function fileRead(fileHandle, options) {
                     break;
                 }
 
-                retVal = binaryUTF8ToStr(replyByteArray);
+                retVal = Promise.resolve(binaryUTF8ToStr(replyByteArray));
                 break;
             }
 
@@ -2961,7 +2965,7 @@ module.exports.fileRead = fileRead;
 
 function fileWrite(fileHandle, s_or_ByteArr) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -2999,7 +3003,7 @@ function fileWrite(fileHandle, s_or_ByteArr) {
                     break;
                 }
 
-                retVal = lengthWritten == byteArray.length;
+                retVal = Promise.resolve(lengthWritten == byteArray.length);
 
                 break;
             }
@@ -3060,7 +3064,7 @@ module.exports.fileWrite = fileWrite;
  */
 
 function functionNameFromArguments(functionArguments) {
-
+// coderstate: function
     let functionName;
     try {
         functionName = functionArguments.callee.toString().match(/function ([^\(]+)/)[1];
@@ -3084,7 +3088,7 @@ module.exports.functionNameFromArguments = functionNameFromArguments;
  */
 
 function getBooleanFromINI(in_value) {
-
+// coderstate: function
     let retVal = false;
 
     try {
@@ -3119,7 +3123,7 @@ module.exports.getBooleanFromINI = getBooleanFromINI;
  */
 function getCapability(issuer, capabilityCode, encryptionKey) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3187,7 +3191,7 @@ module.exports.getCapability = getCapability;
  */
 function getCreativeDeveloperToolsLevel() {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3264,7 +3268,7 @@ module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
  */
 function getDir(dirTag) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3272,37 +3276,37 @@ function getDir(dirTag) {
             if (crdtuxp.context) {
 
                 if (dirTag == module.exports.DESKTOP_DIR && crdtuxp.context.PATH_DESKTOP) {
-                    retVal = crdtuxp.context.PATH_DESKTOP;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_DESKTOP);
                     break;
                 }
 
                 if (dirTag == module.exports.DOCUMENTS_DIR && crdtuxp.context.PATH_DOCUMENTS) {
-                    retVal = crdtuxp.context.PATH_DOCUMENTS;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_DOCUMENTS);
                     break;
                 }
 
                 if (dirTag == module.exports.HOME_DIR && crdtuxp.context.PATH_HOME) {
-                    retVal = crdtuxp.context.PATH_HOME;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_HOME);
                     break;
                 }
 
                 if (dirTag == module.exports.LOG_DIR && crdtuxp.context.PATH_LOG) {
-                    retVal = crdtuxp.context.PATH_LOG;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_LOG);
                     break;
                 }
 
                 if (dirTag == module.exports.SYSTEMDATA_DIR && crdtuxp.context.PATH_SYSTEMDATA) {
-                    retVal = crdtuxp.context.PATH_SYSTEMDATA;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_SYSTEMDATA);
                     break;
                 }
 
                 if (dirTag == module.exports.TMP_DIR && crdtuxp.context.PATH_TMP) {
-                    retVal = crdtuxp.context.PATH_TMP;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_TMP);
                     break;
                 }
 
                 if (dirTag == module.exports.USERDATA_DIR && crdtuxp.context.PATH_USERDATA) {
-                    retVal = crdtuxp.context.PATH_USERDATA;
+                    retVal = Promise.resolve(crdtuxp.context.PATH_USERDATA);
                     break;
                 }
             }
@@ -3368,7 +3372,7 @@ module.exports.getDir = getDir;
  */
 function getEnvironment(envVarName) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3432,7 +3436,7 @@ module.exports.getEnvironment = getEnvironment;
  */
 
 function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
-
+// coderstate: function
     let retVal = 0.0;
 
     do {
@@ -3522,7 +3526,7 @@ module.exports.getFloatWithUnitFromINI = getFloatWithUnitFromINI;
  */
 
 function getFloatValuesFromINI(in_valueStr) {
-
+// coderstate: function
     let retVal = undefined;
 
     do {
@@ -3574,7 +3578,7 @@ module.exports.getFloatValuesFromINI = getFloatValuesFromINI;
  */
 
 function getIntValuesFromINI(in_valueStr) {
-
+// coderstate: function
     let retVal = undefined;
 
     do {
@@ -3632,7 +3636,7 @@ module.exports.getIntValuesFromINI = getIntValuesFromINI;
  */
 function getPersistData(issuer, attribute, password) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3696,7 +3700,7 @@ module.exports.getPersistData = getPersistData;
 */
 function getPluginInstallerPath() {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3758,7 +3762,7 @@ module.exports.getPluginInstallerPath = getPluginInstallerPath;
 
 function getSysInfo__() {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -3844,7 +3848,7 @@ function getSysInfo__() {
  */
 
 function getUnitFromINI(in_value, in_defaultUnit) {
-
+// coderstate: function
     const defaultUnit = (in_defaultUnit !== undefined) ? in_defaultUnit : crdtuxp.UNIT_NAME_NONE;
     let retVal = defaultUnit;
 
@@ -3891,7 +3895,7 @@ module.exports.getUnitFromINI = getUnitFromINI;
  */
 
 function getContext() {
-
+// coderstate: function
     let retVal;
 
     do {
@@ -3902,17 +3906,17 @@ function getContext() {
             // data that we can add
             
             let context = crdtuxp.context;
-            if (context) {
+            if (! context) {
                 context = {};
                 crdtuxp.context = context;
             }
 
-            if (context.isFinalized) {
+            if (context.areDefaultGetContextPathsInitialized) {
                 retVal = context;
                 break;
             }
 
-            context.isFinalized = true;
+            context.areDefaultGetContextPathsInitialized = true;
 
             let uxpContext = getUXPContext();
 
@@ -3974,7 +3978,7 @@ module.exports.getContext = getContext;
  */
 
 function getUXPContext() {
-
+// coderstate: function
     let retVal;
 
     do {
@@ -4006,11 +4010,22 @@ function getUXPContext() {
                 uxpContext.app = uxpContext.indesign.app;
                 if (uxpContext.app.name.indexOf("Server") >= 0) {
                     uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_SERVER_UXPSCRIPT;
+                    uxpContext.hasDirectFileAccess = true;
                     uxpContext.hasNetworkAccess = true;
                 }
                 else {
                     uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXPSCRIPT;
-                    uxpContext.hasNetworkAccess = true;
+                    let commandId = uxpContext.uxp?.script?.executionContext?.commandInfo?._manifestCommand?.commandId;
+                    if (commandId == "scriptMainCommand") {
+                        uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXPSCRIPT;
+                        uxpContext.hasDirectFileAccess = true;
+                        uxpContext.hasNetworkAccess = false;
+                    }
+                    else {
+                        uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXP;
+                        uxpContext.hasDirectFileAccess = false;
+                        uxpContext.hasNetworkAccess = true;
+                    }
                 }
             }
             catch (err) {
@@ -4025,9 +4040,11 @@ function getUXPContext() {
                 if (commandId == "scriptMainCommand") {
                     uxpContext.uxpVariant = UXP_VARIANT_PHOTOSHOP_UXPSCRIPT;
                     uxpContext.hasDirectFileAccess = true;
+                    uxpContext.hasNetworkAccess = false;
                 }
                 else {
                     uxpContext.uxpVariant = UXP_VARIANT_PHOTOSHOP_UXP;
+                    uxpContext.hasDirectFileAccess = false;
                     uxpContext.hasNetworkAccess = true;
                 }
             }
@@ -4054,6 +4071,7 @@ module.exports.getUXPContext = getUXPContext;
  */
 
 function init(context) {
+// coderstate: procedure
     let retVal;
 
     try {
@@ -4075,6 +4093,10 @@ function init(context) {
             }
         }
 
+        if (! crdtuxp.context.RUNPATH_ROOT) {
+            crdtuxp.context.RUNPATH_ROOT = "./";
+        }
+        
         retVal = true;
     }
     catch (err) {
@@ -4092,7 +4114,7 @@ module.exports.init = init;
  */
 
 function injectProxyPromiseClass() {
-
+// coderstate: procedure
     try {
         // Save the original Promise class
         const SystemPromise = global.Promise;
@@ -4260,7 +4282,7 @@ module.exports.injectProxyPromiseClass = injectProxyPromiseClass;
  */
 
 function intPow(i, intPower) {
-
+// coderstate: function
     let retVal;
 
     do {
@@ -4358,7 +4380,7 @@ module.exports.intPow = intPow;
  */
 
 function leftPad(s, padChar, len) {
-
+// coderstate: function
     let retVal = "";
 
     do {
@@ -4401,7 +4423,7 @@ module.exports.leftPad = leftPad;
 
 function logEntry(reportingFunctionArguments) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_ENTRY_EXIT) {
         retVal = logTrace(reportingFunctionArguments, "Entry");
@@ -4423,7 +4445,7 @@ module.exports.logEntry = logEntry;
  */
 function logError(reportingFunctionArguments, message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_LEVEL >= LOG_LEVEL_ERROR) {
         if (! message) {
@@ -4448,7 +4470,7 @@ module.exports.logError = logError;
 
 function logExit(reportingFunctionArguments) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_ENTRY_EXIT) {
         retVal = logTrace(reportingFunctionArguments, "Exit");
@@ -4471,7 +4493,7 @@ module.exports.logExit = logExit;
 
 function logMessage(reportingFunctionArguments, logLevel, message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     let savedInLogger = IN_LOGGER;
 
@@ -4615,7 +4637,7 @@ module.exports.logMessage = logMessage;
  */
 function logNote(reportingFunctionArguments, message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_LEVEL >= LOG_LEVEL_NOTE) {
         if (! message) {
@@ -4641,7 +4663,7 @@ module.exports.logNote = logNote;
  */
 function logTrace(reportingFunctionArguments, message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_LEVEL >= LOG_LEVEL_TRACE) {
         if (! message) {
@@ -4666,7 +4688,7 @@ module.exports.logTrace = logTrace;
  */
 function logWarning(reportingFunctionArguments, message) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     if (LOG_LEVEL >= LOG_LEVEL_WARNING) {
         if (! message) {
@@ -4691,7 +4713,7 @@ module.exports.logWarning = logWarning;
  */
 function machineGUID() {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -4753,7 +4775,7 @@ module.exports.machineGUID = machineGUID;
 
 function pluginInstaller() {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -4814,7 +4836,7 @@ module.exports.pluginInstaller = pluginInstaller;
  */
 
 function popLogLevel() {
-
+// coderstate: function
     let retVal;
 
     retVal = LOG_LEVEL;
@@ -4839,7 +4861,7 @@ module.exports.popLogLevel = popLogLevel;
  */
 
 function promisify(ftn) {
-
+// coderstate: function
    return (...args) => {
 
      return new Promise(
@@ -4871,7 +4893,7 @@ module.exports.promisify = promisify;
  */
 
 function promisifyWithContext(ftn, context) {
-
+// coderstate: function
    return (...args) => {
 
      return new Promise(
@@ -4903,7 +4925,7 @@ module.exports.promisifyWithContext = promisifyWithContext;
  */
 
 function pushLogLevel(newLogLevel) {
-
+// coderstate: function
     let retVal;
 
     retVal = LOG_LEVEL;
@@ -4923,7 +4945,7 @@ module.exports.pushLogLevel = pushLogLevel;
  * @returns {array|undefined} an array of bytes
  */
 function rawStringToByteArray(in_str) {
-
+// coderstate: function
     let retVal = [];
 
     try {
@@ -5022,7 +5044,7 @@ module.exports.rawStringToByteArray = rawStringToByteArray;
  */
 
 function readINI(in_text) {
-
+// coderstate: function
     let retVal = undefined;
 
     do {
@@ -5197,7 +5219,7 @@ module.exports.readINI = readINI;
  */
 
 function rightPad(s, padChar, len) {
-
+// coderstate: function
     let retVal = "";
 
     do {
@@ -5239,7 +5261,7 @@ module.exports.rightPad = rightPad;
  * @returns {string} a localized string. If the stringCode is not found, returns the stringCode itself.
  */
 function S(stringCode, locale) {
-
+// coderstate: function
     let retVal = stringCode;
 
     do {
@@ -5285,7 +5307,7 @@ module.exports.S = S;
  */
 function setIssuer(issuerGUID, issuerEmail) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -5355,7 +5377,7 @@ module.exports.setIssuer = setIssuer;
  * `let script = "a=b(" + sQ(somedata) + ");";`
  */
 function sQ(s_or_ByteArr) {
-
+// coderstate: function
     let retVal;
 
     try {
@@ -5384,7 +5406,7 @@ module.exports.sQ = sQ;
  */
 function setPersistData(issuer, attribute, password, data) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -5453,7 +5475,7 @@ module.exports.setPersistData = setPersistData;
  */
 
 function stripTrailingSeparator(filePath, separator) {
-
+// coderstate: function
     let retVal = filePath;
 
     do {
@@ -5485,6 +5507,7 @@ function stripTrailingSeparator(filePath, separator) {
 
     return retVal;
 }
+module.exports.stripTrailingSeparator = stripTrailingSeparator;
 
 /**
  * Encode a string into an byte array using UTF-8
@@ -5495,7 +5518,7 @@ function stripTrailingSeparator(filePath, separator) {
  * @returns {array|undefined} a byte array
  */
 function strToUTF8(in_s) {
-
+// coderstate: function
     let retVal = undefined;
 
     try {
@@ -5543,7 +5566,7 @@ module.exports.strToUTF8 = strToUTF8;
  */
 function sublicense(key, activation) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
 
@@ -5608,7 +5631,7 @@ let TO_HEX_BUNCH_OF_ZEROES = "";
  * @returns { string } hex-encoded integer
  */
 function toHex(i, numDigits) {
-
+// coderstate: function
     let retVal = "";
 
     do {
@@ -5670,7 +5693,7 @@ module.exports.toHex = toHex;
  */
 
 function unitToInchFactor(in_unit) {
-
+// coderstate: function
     let retVal = 1.0;
 
     try {
@@ -5719,7 +5742,7 @@ function waitForFile(
     interval = DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS, 
     timeout = DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS) {
 // coderstate: promisor
-    let retVal;
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     do {
         try {

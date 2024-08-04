@@ -34,10 +34,12 @@ const kDefaultShowElapsedTimeDialog = true;
 //
 const kDefaultDeletePreviousResult = true;
 
+const kDefaultRunCRDTUXPTests = false;
+
 const kSectionNameConfig = "indesignbrot";
 const kScriptLabel_FinishedSet = "Calculated_Mandelbrot";
 
-function main() {
+async function main() {
 
     crdtuxp.logEntry(arguments);
 
@@ -45,10 +47,10 @@ function main() {
         
         try {
 
-            const context = {};   
+            const context = crdtuxp.getContext();
 
             const config = {};
-            const doc = getTargetDoc(config);
+            const doc = getTargetDocAndConfig(config);
             if (! doc) {
                 crdtuxp.logError(arguments, "failed to get target doc");
                 break;
@@ -57,6 +59,11 @@ function main() {
             context.doc = doc;
             context.config = config;
 
+            if (config.runCRDTUXPTests) {
+                const crdtuxp_test = require(context.RUNPATH_ROOT + "CreativeDeveloperTools_UXP/crdtuxp_test");
+                await crdtuxp_test.run();
+            }
+        
             if (! configureInDesign(context)) {
                 crdtuxp.logError(arguments, "failed to configure InDesign");
                 break;
@@ -340,6 +347,7 @@ function createDefaultDocument(config) {
             configIniText += "num pixels =" + config.numPixels + "\n";
             configIniText += "show elapsed time dialog = " + (config.showElapsedTimeDialog ? "yes" : "no") + "\n";
             configIniText += "delete previous result = " + (config.deletePreviousResult ? "yes" : "no") + "\n";
+            configIniText += "run CRDT_UXP tests = " + (config.runcrdtuxptests ? "yes" : "no") + "\n";
 
             const configFrame = doc.textFrames.add();
 
@@ -387,6 +395,7 @@ function defaultConfig(config) {
             config.numPixels               = kDefaultNumPixels;
             config.showElapsedTimeDialog   = kDefaultShowElapsedTimeDialog;
             config.deletePreviousResult    = kDefaultDeletePreviousResult;
+            config.runCRDTUXPTests         = kDefaultRunCRDTUXPTests;
             
             retVal = true;
         }
@@ -459,6 +468,10 @@ function extractDocINIConfig(doc, config) {
                 config.deletePreviousResult = crdtuxp.getBooleanFromINI(docConfig.deletepreviousresult);
             }
 
+            if (docConfig.runcrdtuxptests) {
+                config.runCRDTUXPTests = crdtuxp.getBooleanFromINI(docConfig.runcrdtuxptests);
+            }
+
             retVal = true;
         }
         catch (err) {
@@ -510,7 +523,7 @@ function findINIConfig(doc) {
     return retVal;
 }
 
-function getTargetDoc(config) {
+function getTargetDocAndConfig(config) {
 
     let retVal = undefined;
 
