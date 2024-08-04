@@ -5,6 +5,44 @@ if (! module.exports) {
     module.exports = {};
 }
 
+async function testUXPContext() {
+
+    let retVal = true;
+
+    do {
+
+        try {
+
+            let uxpContext = crdtuxp.getUXPContext();
+            if (! uxpContext) {
+                crdtuxp.logError(arguments, "failed to get uxpContext");
+                retVal = false;
+                break;
+            }
+
+            let hasDirectFileAccess = crdtuxp.testDirectFileAccess();
+            if (hasDirectFileAccess != uxpContext.hasDirectFileAccess) {
+                crdtuxp.logError(arguments, "invalid value for uxpContext.hasDirectFileAccess");
+                retVal = false;
+            }
+
+            let hasNetworkAccess = await crdtuxp.testNetworkAccess();
+            if (hasNetworkAccess != uxpContext.hasNetworkAccess) {
+                crdtuxp.logError(arguments, "invalid value for uxpContext.hasNetworkAccess");
+                retVal = false;
+            }
+
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+            retVal = false;
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+
 async function testBase64() {
 
     let retVal = true;
@@ -591,6 +629,7 @@ async function testUTFRoundTrip() {
 }
 
 let tests = [
+    testUXPContext,
     testBase64,
     testDirs,
     testEncrypt,

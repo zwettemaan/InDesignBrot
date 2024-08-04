@@ -39,7 +39,7 @@
  */
 
 const DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS   = 1000;
-const DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS    = 6000000;
+const DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS    = 60000;
 
 const UXP_VARIANT_PHOTOSHOP_UXP                 = "UXP_VARIANT_PHOTOSHOP_UXP";
 const UXP_VARIANT_PHOTOSHOP_UXPSCRIPT           = "UXP_VARIANT_PHOTOSHOP_UXPSCRIPT";
@@ -56,11 +56,6 @@ const LENGTH_REQUEST_ID                         =  10;
 const RESOLVED_PROMISE_UNDEFINED                = Promise.resolve(undefined);
 const RESOLVED_PROMISE_FALSE                    = Promise.resolve(false);
 const RESOLVED_PROMISE_TRUE                     = Promise.resolve(true);
-
-// Some functions can be either resolved internally or via the daemon.
-// Choose what we prefer
-
-const DEFAULT_PREFER_DAEMON_OVER_INTERNAL      = false;
 
 function getPlatformGlobals() {
     return global;
@@ -505,7 +500,10 @@ module.exports.alert = alert;
  * @function base64decode
  *
  * @param {string} base64Str - base64 encoded string
- * @param {object=} options - options: { isBinary: true/false, default false }
+ * @param {object=} options - options: {
+ *   isBinary: true/false, default false,
+ *   forceNetworkAPI: true/false, default false
+ * }
  * @returns {Promise<string|array|undefined>} decoded string
  */
 function base64decode(base64Str, options) {
@@ -516,13 +514,12 @@ function base64decode(base64Str, options) {
 
         try {
 
-            let isBinary = options && options.isBinary;
-            let evalTQLOptions = {
-                isBinary: isBinary
-            };
+            let forceNetworkAPI = options && options.forceNetworkAPI;
+            let isBinary = options && options.isBinary;                        
 
             let uxpContext = getUXPContext();
-            if (! uxpContext.hasNetworkAccess || ! uxpContext.preferDaemonOverInternal) {
+
+            if (!  forceNetworkAPI) {
 
                 let rawString = window.atob(base64Str);
                 let byteArray = rawStringToByteArray(rawString);
@@ -534,6 +531,11 @@ function base64decode(base64Str, options) {
                 }
                 break;
             }
+
+            let evalTQLOptions = {
+                isBinary: isBinary,
+                forceNetworkAPI: forceNetworkAPI
+            };
 
             let responsePromise = 
                 evalTQL(
@@ -599,10 +601,13 @@ module.exports.base64decode = base64decode;
  * @function base64encode
  *
  * @param {string} s_or_ByteArr - either a string or an array containing bytes (0-255).
+ * @param {object=} options - options: {
+ *   forceNetworkAPI: true/false, default false
+ * }
  * @returns {Promise<string|undefined>} encoded string
  *
  */
-function base64encode(s_or_ByteArr) {
+function base64encode(s_or_ByteArr, options) {
 // coderstate: promisor
     let retVal = RESOLVED_PROMISE_UNDEFINED;
 
@@ -610,8 +615,9 @@ function base64encode(s_or_ByteArr) {
 
         try {
 
-            let uxpContext = getUXPContext();
-            if (! uxpContext.hasNetworkAccess || ! uxpContext.preferDaemonOverInternal) {
+            let forceNetworkAPI = options && options.forceNetworkAPI;
+
+            if (! forceNetworkAPI) {
 
                 let byteArray;
                 if ("string" == typeof s_or_ByteArr) {
@@ -628,9 +634,14 @@ function base64encode(s_or_ByteArr) {
                 break;
             }
 
+            let evalTQLOptions = {
+                forceNetworkAPI: forceNetworkAPI
+            };
+
             const responsePromise = 
                 evalTQL(
-                    "base64encode(" + dQ(s_or_ByteArr) + ")"
+                    "base64encode(" + dQ(s_or_ByteArr) + ")",
+                    evalTQLOptions
                 );
             if (! responsePromise) {
                 break;
@@ -641,12 +652,17 @@ function base64encode(s_or_ByteArr) {
                 let retVal;
 
                 do {
-                    if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
-                        break;
-                    }
+                    try {
+                        if (! response || response.error) {
+                            crdtuxp.logError(arguments, "bad response " + response?.error);
+                            break;
+                        }
 
-                    retVal = response.text;
+                        retVal = response.text;
+                    }
+                    catch (err) {
+                        crdtuxp.logError(arguments, "throws " + err);                        
+                    }
                 }
                 while (false);
 
@@ -1983,6 +1999,7 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * @param {object=} options - optional. 
  *   options.wait when false don't wait to resolve, default true
  *   options.isBinary default false
+ *   options.forceNetworkAPI default false; override uxpContext.hasNetworkAccess
  *   options.tqlScopeName default TQL_SCOPE_NAME_DEFAULT
  * or can be decoded as a string
  * @returns {Promise<any>} a string or a byte array
@@ -1997,23 +2014,26 @@ function evalTQL(tqlScript, options) {
 
             let resultIsRawBinary = false;
             let wait = true;
+            let forceNetworkAPI = false;
             let tqlScopeName = TQL_SCOPE_NAME_DEFAULT;
+
             if (options) {
                 resultIsRawBinary = !!options.isBinary;
                 wait = options.wait === undefined ? true : options.wait;
+                forceNetworkAPI = options.forceNetworkAPI || false;
                 tqlScopeName = options.tqlScopeName || TQL_SCOPE_NAME_DEFAULT;
             }
 
             let uxpContext = getUXPContext();
 
             if (! uxpContext.hasNetworkAccess && ! uxpContext.hasDirectFileAccess) {
-                crdtuxp.logError(arguments, "need direct file access or network access");
+                console.log("evalTQL need direct file access or network access");
                 // Need either network access or direct file access - cannot do
                 // without
                 break;
             }
 
-            if (! uxpContext.hasNetworkAccess) {
+            if (! uxpContext.hasNetworkAccess && ! forceNetworkAPI) {
 
                 let context = crdtuxp.getContext();
 
@@ -2021,7 +2041,7 @@ function evalTQL(tqlScript, options) {
 
                 if (! context?.PATH_EVAL_TQL) 
                 {
-                    crdtuxp.logError(arguments, "need context.PATH_EVAL_TQL to be set");
+                    console.log("evalTQL: need context.PATH_EVAL_TQL to be set");
                     // Need to know where to put the packet
                     break;
                 }
@@ -2088,7 +2108,7 @@ function evalTQL(tqlScript, options) {
                             responseText = response.result;
                         }
                         catch (err) {
-                            crdtuxp.logError(arguments, "throws " + err);
+                            console.log("evalTQL handleResponseData throws " + err);
                             break;
                         }
 
@@ -2118,7 +2138,7 @@ function evalTQL(tqlScript, options) {
                         delete uxpContext.tqlRequestsByID[tqlRequest.requestID];
 
                         if (! responseFileState) {
-                            crdtuxp.logError(arguments, "timed out waiting for file");
+                            console.log("evalTQL responseWaitResolveFtn timed out waiting for file");
                             break;
                         }
 
@@ -2131,7 +2151,7 @@ function evalTQL(tqlScript, options) {
 
                         function unlinkRejectFtn(reason) {
                             // coderstate: rejector
-                            crdtuxp.logError(arguments, "rejected for " + reason);
+                            console.log("evalTQL responseWaitResolveFtn rejected for " + reason);
                             return handleResponseData(replyByteArray);
                         };
 
@@ -2143,7 +2163,7 @@ function evalTQL(tqlScript, options) {
                             );
                         }
                         catch (err) {
-                            crdtuxp.logError(arguments, "throws " + err);
+                            console.log("evalTQL responseWaitResolveFtn throws " + err);
                         }
                     }
                     while (false);
@@ -2153,7 +2173,7 @@ function evalTQL(tqlScript, options) {
 
                 function responseWaitRejectFtn(reason) {
                     // coderstate: rejector
-                    crdtuxp.logError(arguments, "rejected for " + reason);
+                    console.log("evalTQL responseWaitRejectFtn rejected for " + reason);
                     delete uxpContext.tqlRequestsByID[tqlRequest.requestID];
                     return undefined;
                 };
@@ -2162,7 +2182,7 @@ function evalTQL(tqlScript, options) {
                     uxpContext.fs.writeFileSync(requestFilePath, new Uint8Array(tqlRequestByteArray));
                 }
                 catch (err) {
-                    crdtuxp.logError(arguments, "write failed " + err);
+                    console.log("evalTQL writeFileSync failed " + err);
                     break;
                 }
 
@@ -2217,7 +2237,7 @@ function evalTQL(tqlScript, options) {
                             }
                         }
                         catch (err) {
-                            crdtuxp.logError(arguments, "throws " + err);
+                            console.log("evalTQL responseTextResolveFtn throws " + err);
                             retVal = {
                                 error: err
                             };
@@ -2235,7 +2255,7 @@ function evalTQL(tqlScript, options) {
                 
                 function responseTextRejectFtn(reason) {
                     // coderstate: rejector
-                    crdtuxp.logError(arguments, "rejected for " + reason);
+                    console.log("evalTQL responseTextRejectFtn rejected for " + reason);
                     return { 
                         error: reason 
                     };
@@ -2249,7 +2269,7 @@ function evalTQL(tqlScript, options) {
             
             function evalTQLRejectFtn(reason) {
                 // coderstate: rejector
-                crdtuxp.logError(arguments, "rejected for " + reason);
+                console.log("evalTQL evalTQLRejectFtn rejected for " + reason);
                 return { 
                     error: reason 
                 };
@@ -2261,7 +2281,7 @@ function evalTQL(tqlScript, options) {
             );
         }
         catch (err) {
-            crdtuxp.logError(arguments, "throws " + err);
+            console.log("evalTQL throws " + err);
         } 
     } 
     while (false);
@@ -2279,7 +2299,9 @@ module.exports.evalTQL = evalTQL;
  *
  * @param {string} fileName - path to file
  * @param {string} appendStr - data to append. If a newline is needed it needs to be part of appendStr
- * @param {object=} options - options.wait = false means don't wait to resolve
+ * @param {object=} options - {
+ *      options.wait = false means don't wait to resolve
+ * }
  * @returns {Promise<boolean|undefined>} success or failure
  */
 
@@ -2298,9 +2320,11 @@ function fileAppendString(fileName, in_appendStr, options) {
             if (options && ! options.wait) {
                 waitForLogConfirmation = false;
             }
+
             let evalTQLOptions = {
                 wait: waitForLogConfirmation
             };
+
             const responsePromise = evalTQL(
                 "var retVal = true;" + 
                 "var handle = fileOpen(" + dQ(fileName) + ",'a');" +
@@ -2332,7 +2356,7 @@ function fileAppendString(fileName, in_appendStr, options) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        console.log("fileAppendString bad response " + response?.error);
                         break;
                     }
 
@@ -2345,7 +2369,7 @@ function fileAppendString(fileName, in_appendStr, options) {
 
             function evalTQLRejectFtn(reason) {
                 // coderstate: rejector
-                crdtuxp.logError(arguments, "rejected for " + reason);
+                console.log("fileAppendString rejected for " + reason);
                 return undefined;
             };
 
@@ -2355,7 +2379,7 @@ function fileAppendString(fileName, in_appendStr, options) {
             );
         }
         catch (err) {
-            crdtuxp.logError(arguments, "throws " + err);
+            console.log("fileAppendString throws " + err);
         }
     }
     while (false);
@@ -3993,8 +4017,6 @@ function getUXPContext() {
             let uxpContext = {};
             crdtuxp.uxpContext = uxpContext;
 
-            uxpContext.preferDaemonOverInternal = DEFAULT_PREFER_DAEMON_OVER_INTERNAL;
-
             uxpContext.fs = require("fs");
             uxpContext.os = require("os");
             uxpContext.uxp = require("uxp"); 
@@ -4019,7 +4041,7 @@ function getUXPContext() {
                     if (commandId == "scriptMainCommand") {
                         uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXPSCRIPT;
                         uxpContext.hasDirectFileAccess = true;
-                        uxpContext.hasNetworkAccess = false;
+                        uxpContext.hasNetworkAccess = true;
                     }
                     else {
                         uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXP;
@@ -4580,7 +4602,11 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
             if (uxpContext && uxpContext.hasNetworkAccess) {
                 waitForLogConfirmation = true;
             }
-            let evalTQLOptions = { wait: waitForLogConfirmation };
+
+            let evalTQLOptions = { 
+                wait: waitForLogConfirmation,
+                fromLogger: true
+            };
 
             let promises = [];
             if (LOG_TO_CRDT) {
@@ -4685,7 +4711,7 @@ module.exports.logTrace = logTrace;
  *
  * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
  * @param {any} message - the warning message to output
- */
+*/
 function logWarning(reportingFunctionArguments, message) {
 // coderstate: promisor
     let retVal = RESOLVED_PROMISE_UNDEFINED;
@@ -5618,7 +5644,79 @@ function sublicense(key, activation) {
 }
 module.exports.sublicense = sublicense;
 
-let TO_HEX_BUNCH_OF_ZEROES = "";
+/**
+ * Test if we can access the path-based file I/O APIs
+ *
+ * @function testDirectFileAccess
+ *
+ * @returns {boolean} whether APIs are accessible
+ */
+function testDirectFileAccess() {
+// coderstate: function
+    let retVal = false;
+
+    do {
+        try {
+            
+            let uxpContext = crdtuxp.getUXPContext();
+            if (! uxpContext) {
+                crdtuxp.logError(arguments, "failed to get uxpContext");
+                break;
+            }
+
+            let homeDir = uxpContext.os.homedir(); 
+            if (! homeDir) {
+                crdtuxp.logError(arguments, "failed to os.homedir()");
+                break;
+            }
+
+            // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
+            const stats = uxpContext.fs.lstatSync(homeDir);
+            if (stats && stats.isDirectory()) {
+                retVal = true;
+            }
+        }
+        catch (err) {
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.testDirectFileAccess = testDirectFileAccess;
+    
+/**
+ * Test if we can access the network APIs
+ *
+ * @function testNetworkAccess
+ *
+ * @returns {Promise<boolean|undefined>} whether APIs are accessible
+ */
+
+function testNetworkAccess() {
+// coderstate: promisor
+    let retVal = RESOLVED_PROMISE_FALSE;
+
+    try {
+
+        return crdtuxp.base64encode("abc", { forceNetworkAPI: true }).then(
+            function blowPipesResolveFtn(result) {
+                return result == "YWJj";
+            }
+        ).catch(
+            function blowPipesRejectFtn(reason) {
+                return false;
+            }
+        );
+
+    }
+    catch (err) {
+        crdtuxp.logError(arguments, "throws " + err);
+    }
+
+    return retVal;
+}
+module.exports.testNetworkAccess = testNetworkAccess;
 
 /**
  * Convert an integer into a hex representation with a fixed number of digits.
@@ -5630,6 +5728,8 @@ let TO_HEX_BUNCH_OF_ZEROES = "";
  * @param {number} numDigits - How many digits. Defaults to 4 if omitted.
  * @returns { string } hex-encoded integer
  */
+
+let TO_HEX_BUNCH_OF_ZEROES = "";
 function toHex(i, numDigits) {
 // coderstate: function
     let retVal = "";

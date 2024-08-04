@@ -24,4 +24,4 @@ crdtuxp.configLogger({
 let context = crdtuxp.getContext();
 global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
 //
-await Promise.finalizePromises();
+return Promise.finalizePromises();
