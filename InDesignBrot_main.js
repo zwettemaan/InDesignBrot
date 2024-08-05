@@ -60,7 +60,7 @@ async function main() {
             context.config = config;
 
             if (config.runCRDTUXPTests) {
-                const crdtuxp_test = require(context.RUNPATH_ROOT + "CreativeDeveloperTools_UXP/crdtuxp_test");
+                const crdtuxp_test = require("./CreativeDeveloperTools_UXP/crdtuxp_test");
                 await crdtuxp_test.run();
             }
         

@@ -3079,6 +3079,18 @@ function fileWrite(fileHandle, s_or_ByteArr) {
 module.exports.fileWrite = fileWrite;
 
 /**
+ * Terminate crdtuxp
+ *
+ * @function finalize
+ */
+
+function finalize() {
+    // coderstate: promisor
+    return Promise.finalizePromises();
+}
+module.exports.finalize = finalize;
+    
+/**
  * Extract the function name from its arguments
  *
  * @function functionNameFromArguments
