@@ -316,7 +316,6 @@ module.exports.LOCALE_STRINGS                  = LOCALE_STRINGS;
 // run can return different results. `HTTP_CACHE_BUSTER` will be incremented after each use.
 //
 let HTTP_CACHE_BUSTER         = Math.floor(Math.random() * 1000000);
-
 let LOG_LEVEL_STACK           = [];
 let LOG_ENTRY_EXIT            = false;
 let LOG_LEVEL                 = LOG_LEVEL_OFF;
@@ -324,6 +323,9 @@ let IN_LOGGER                 = false;
 let LOG_TO_UXPDEVTOOL_CONSOLE = true;
 let LOG_TO_CRDT               = false;
 let LOG_TO_FILEPATH           = undefined;
+
+// Inefficient logging using readSync/writeSync
+let SYNC_LOG_TO_FILEPATH      = undefined;
 
 let SYS_INFO;
 
@@ -919,10 +921,13 @@ function configLogger(logInfo) {
             if ("logToFilePath" in logInfo) {
                 LOG_TO_FILEPATH = logInfo.logToFilePath;
             }
+            if ("syncLogToFilePath" in logInfo) {
+                SYNC_LOG_TO_FILEPATH = logInfo.syncLogToFilePath;
+            }
             retVal = true;
         }
         catch (err) {
-            console.log("configLogger throws " + err);
+            consoleLog("configLogger throws " + err);
         }
     }
     while (false);
@@ -930,6 +935,24 @@ function configLogger(logInfo) {
     return retVal;
 }
 module.exports.configLogger = configLogger;
+
+/**
+ * Bottleneck for consoleLog
+ *
+ * @function consoleLog
+ *
+ * @param {...*} args - args for function
+ */
+function consoleLog(...args) {
+// coderstate: function
+    console.log(...args);
+
+    if (SYNC_LOG_TO_FILEPATH) {
+        fileAppend_(SYNC_LOG_TO_FILEPATH, args[0] + "\n");
+    }
+
+}
+module.exports.consoleLog = consoleLog;
 
 /**
  * Reverse the operation of the `encrypt()` function.
@@ -2034,7 +2057,7 @@ function evalTQL(tqlScript, options) {
             let uxpContext = getUXPContext();
 
             if (! uxpContext.hasNetworkAccess && ! uxpContext.hasDirectFileAccess) {
-                console.log("evalTQL need direct file access or network access");
+                consoleLog("evalTQL need direct file access or network access");
                 // Need either network access or direct file access - cannot do
                 // without
                 break;
@@ -2048,7 +2071,7 @@ function evalTQL(tqlScript, options) {
 
                 if (! context?.PATH_EVAL_TQL) 
                 {
-                    console.log("evalTQL: need context.PATH_EVAL_TQL to be set");
+                    consoleLog("evalTQL: need context.PATH_EVAL_TQL to be set");
                     // Need to know where to put the packet
                     break;
                 }
@@ -2115,7 +2138,7 @@ function evalTQL(tqlScript, options) {
                             responseText = response.result;
                         }
                         catch (err) {
-                            console.log("evalTQL handleResponseData throws " + err);
+                            consoleLog("evalTQL handleResponseData throws " + err);
                             break;
                         }
 
@@ -2145,7 +2168,7 @@ function evalTQL(tqlScript, options) {
                         delete uxpContext.tqlRequestsByID[tqlRequest.requestID];
 
                         if (! responseFileState) {
-                            console.log("evalTQL responseWaitResolveFtn timed out waiting for file");
+                            consoleLog("evalTQL responseWaitResolveFtn timed out waiting for file");
                             break;
                         }
 
@@ -2158,7 +2181,7 @@ function evalTQL(tqlScript, options) {
 
                         function unlinkRejectFtn(reason) {
                             // coderstate: rejector
-                            console.log("evalTQL responseWaitResolveFtn rejected for " + reason);
+                            consoleLog("evalTQL responseWaitResolveFtn rejected for " + reason);
                             return handleResponseData(replyByteArray);
                         };
 
@@ -2170,7 +2193,7 @@ function evalTQL(tqlScript, options) {
                             );
                         }
                         catch (err) {
-                            console.log("evalTQL responseWaitResolveFtn throws " + err);
+                            consoleLog("evalTQL responseWaitResolveFtn throws " + err);
                         }
                     }
                     while (false);
@@ -2180,7 +2203,7 @@ function evalTQL(tqlScript, options) {
 
                 function responseWaitRejectFtn(reason) {
                     // coderstate: rejector
-                    console.log("evalTQL responseWaitRejectFtn rejected for " + reason);
+                    consoleLog("evalTQL responseWaitRejectFtn rejected for " + reason);
                     delete uxpContext.tqlRequestsByID[tqlRequest.requestID];
                     return undefined;
                 };
@@ -2189,7 +2212,7 @@ function evalTQL(tqlScript, options) {
                     uxpContext.fs.writeFileSync(requestFilePath, new Uint8Array(tqlRequestByteArray));
                 }
                 catch (err) {
-                    console.log("evalTQL writeFileSync failed " + err);
+                    consoleLog("evalTQL writeFileSync failed " + err);
                     break;
                 }
 
@@ -2244,7 +2267,7 @@ function evalTQL(tqlScript, options) {
                             }
                         }
                         catch (err) {
-                            console.log("evalTQL responseTextResolveFtn throws " + err);
+                            consoleLog("evalTQL responseTextResolveFtn throws " + err);
                             retVal = {
                                 error: err
                             };
@@ -2262,7 +2285,7 @@ function evalTQL(tqlScript, options) {
                 
                 function responseTextRejectFtn(reason) {
                     // coderstate: rejector
-                    console.log("evalTQL responseTextRejectFtn rejected for " + reason);
+                    consoleLog("evalTQL responseTextRejectFtn rejected for " + reason);
                     return { 
                         error: reason 
                     };
@@ -2276,7 +2299,7 @@ function evalTQL(tqlScript, options) {
             
             function evalTQLRejectFtn(reason) {
                 // coderstate: rejector
-                console.log("evalTQL evalTQLRejectFtn rejected for " + reason);
+                consoleLog("evalTQL evalTQLRejectFtn rejected for " + reason);
                 return { 
                     error: reason 
                 };
@@ -2288,7 +2311,7 @@ function evalTQL(tqlScript, options) {
             );
         }
         catch (err) {
-            console.log("evalTQL throws " + err);
+            consoleLog("evalTQL throws " + err);
         } 
     } 
     while (false);
@@ -2296,6 +2319,59 @@ function evalTQL(tqlScript, options) {
     return retVal;
 }
 module.exports.evalTQL = evalTQL;
+
+/**
+ * (Internal) Inefficient file append, for debugging use
+ *
+ * @function fileAppend_
+ *
+ * @param {string} filePath - file to append to
+ * @param {string} data - string to append
+ */
+function fileAppend_(filePath, data) {
+// coderstate: function
+
+    do {
+        // This is a low-level function. Do not call consoleLog or crdtuxp.logError.
+
+        let uxpContext = getUXPContext();
+
+        if (! uxpContext.hasDirectFileAccess) {
+            break;
+        }
+
+        let fileExists;
+        try {
+            const stats = uxpContext.fs.lstatSync(filePath);
+            fileExists = stats && stats.isFile();
+        }
+        catch (err) {
+            if (err != FILE_NOT_EXIST_ERROR) {
+                console.log("fileAppend_ lstatSync throws " + err);
+            }
+        }
+
+        let oldData = "";
+        if (fileExists) {
+            try {
+                oldData = binaryUTF8ToStr(new Uint8Array(uxpContext.fs.readFileSync(filePath)));
+            }
+            catch (err) {
+                console.log("fileAppend_ readFileSync throws " + err);                
+            }
+        }
+
+        try {
+            uxpContext.fs.writeFileSync(filePath, oldData + data);
+        }
+        catch (err) {
+            console.log("fileAppend_ writeFileSync throws " + err);                
+        }
+
+    }
+    while (false);
+}
+module.exports.fileAppend_ = fileAppend_;
 
 /**
  * Append a string to a file (useful for logging)
@@ -2363,7 +2439,7 @@ function fileAppendString(fileName, in_appendStr, options) {
 
                 do {
                     if (! response || response.error) {
-                        console.log("fileAppendString bad response " + response?.error);
+                        consoleLog("fileAppendString bad response " + response?.error);
                         break;
                     }
 
@@ -2376,7 +2452,7 @@ function fileAppendString(fileName, in_appendStr, options) {
 
             function evalTQLRejectFtn(reason) {
                 // coderstate: rejector
-                console.log("fileAppendString rejected for " + reason);
+                consoleLog("fileAppendString rejected for " + reason);
                 return undefined;
             };
 
@@ -2386,7 +2462,7 @@ function fileAppendString(fileName, in_appendStr, options) {
             );
         }
         catch (err) {
-            console.log("fileAppendString throws " + err);
+            consoleLog("fileAppendString throws " + err);
         }
     }
     while (false);
@@ -4149,7 +4225,7 @@ function init(context) {
         }
     }
     catch (err) {
-        console.log("init throws " + err);
+        consoleLog("init throws " + err);
     }
 
     return retVal;
@@ -4312,7 +4388,7 @@ function injectProxyPromiseClass() {
         global.Promise = Promise;
     }
     catch (err) {
-        console.log("injectProxyPromiseClass throws " + err);
+        consoleLog("injectProxyPromiseClass throws " + err);
     }
 }
 module.exports.injectProxyPromiseClass = injectProxyPromiseClass;
@@ -4611,12 +4687,15 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
 
             let logLine = platformPrefix + timePrefix + "- " + logLevelPrefix + ": " + functionPrefix + message;
 
-            // Only wait for it to resolve if we have network access
-            // Otherwise logging slows down to a crawl because of the polling
-            // mechanism used to communicate with the daemon
+            let uxpContext = getUXPContext();
 
             if (LOG_TO_UXPDEVTOOL_CONSOLE) {
-                console.log(logLine);
+                consoleLog(logLine);
+            }
+            else {
+                if (SYNC_LOG_TO_FILEPATH) {
+                    fileAppend_(SYNC_LOG_TO_FILEPATH, logLine + "\n");
+                }
             }
 
             if (savedInLogger) {
@@ -4624,7 +4703,9 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
                 break;
             }
 
-            let uxpContext = getUXPContext();
+            // Only wait for it to resolve if we have network access
+            // Otherwise logging slows down to a crawl because of the polling
+            // mechanism used to communicate with the daemon
             let waitForLogConfirmation;
             if (uxpContext && uxpContext.hasNetworkAccess) {
                 waitForLogConfirmation = true;

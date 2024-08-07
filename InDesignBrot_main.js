@@ -347,7 +347,7 @@ function createDefaultDocument(config) {
             configIniText += "num pixels =" + config.numPixels + "\n";
             configIniText += "show elapsed time dialog = " + (config.showElapsedTimeDialog ? "yes" : "no") + "\n";
             configIniText += "delete previous result = " + (config.deletePreviousResult ? "yes" : "no") + "\n";
-            configIniText += "run CRDT_UXP tests = " + (config.runcrdtuxptests ? "yes" : "no") + "\n";
+            //configIniText += "run CRDT_UXP tests = " + (config.runcrdtuxptests ? "yes" : "no") + "\n";
 
             const configFrame = doc.textFrames.add();
 

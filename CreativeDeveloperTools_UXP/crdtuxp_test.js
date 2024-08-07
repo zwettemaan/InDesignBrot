@@ -1,5 +1,7 @@
-const crdtuxp = require("./crdtuxp");
-const os = require("os");
+if (! global.crdtuxp) {
+    global.crdtuxp = global.require("./crdtuxp.js");
+    crdtuxp.init();
+}
 
 if (! module.exports) {
     module.exports = {};
@@ -285,14 +287,12 @@ async function testEnvironment() {
         }
     
         let environmentHomeDirVariableName;
-        let separator;
+        let separator = crdtuxp.path.SEPARATOR;
         if (crdtuxp.IS_MAC) {
             environmentHomeDirVariableName = "HOME";
-            separator = "/";
         }
         else {
             environmentHomeDirVariableName = "USERPROFILE";
-            separator = "\\";
         }
         let environmentHomeDir = await crdtuxp.getEnvironment(environmentHomeDirVariableName);
     
@@ -305,6 +305,8 @@ async function testEnvironment() {
         let matchSucceeded = false;
         let matchFailed = false;
     
+        // On Windows, we are getting a mix of short 8.3 and long path segments. We only compare the
+        // first 5 chars of each segment to allow for that.
         while  (! matchSucceeded && ! matchFailed) {
     
             // Skip over empty segments in either path
@@ -327,9 +329,20 @@ async function testEnvironment() {
                 // If one has more non-empty segments than the other, it cannot be a match
                 matchFailed = true;
             }
-            else if (homeDirSplit[homeDirSegmentIdx] != environmentHomeDirSplit[environmentDirSegmentIdx]) {
-                // If we find a non-matching segment, it cannot be a match
-                matchFailed = true;
+            else {
+                debugger;
+                let homeSegment = homeDirSplit[homeDirSegmentIdx];
+                let envSegment = environmentHomeDirSplit[environmentDirSegmentIdx];
+                if (crdtuxp.IS_WINDOWS) {
+                    if (envSegment.length > 5) {
+                        envSegment = envSegment.substring(0,5).toUpperCase();
+                        homeSegment = homeSegment.substring(0,5).toUpperCase();
+                    }
+                }
+                if (homeSegment != envSegment) {
+                    // If we find a non-matching segment, it cannot be a match
+                    matchFailed = true;
+                }
             }
             // else, keep going, look at the next segment
         }
@@ -706,7 +719,7 @@ async function run() {
         crdtuxp.logError(arguments, "throws " + err);
     }
     
-    crdtuxp.logNote(arguments, "crdtuxp_test complete");
+    await crdtuxp.logNote(arguments, "crdtuxp_test complete");
 
     crdtuxp.popLogLevel();
 
