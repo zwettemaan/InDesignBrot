@@ -108,6 +108,13 @@ let crdtuxp = module.exports;
 
 module.exports.IS_MAC = require('os').platform() == PLATFORM_MAC_OS_X;
 module.exports.IS_WINDOWS = ! module.exports.IS_MAC;
+let FILE_NOT_EXIST_ERROR;
+if (module.exports.IS_MAC) {
+    FILE_NOT_EXIST_ERROR = -2;
+}
+else {
+    FILE_NOT_EXIST_ERROR = -4058;
+}
 
 module.exports.path = {};
 if (module.exports.IS_MAC) {
@@ -1243,7 +1250,7 @@ function dirCreate(filePath) {
                     } 
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                     break;
@@ -1257,7 +1264,7 @@ function dirCreate(filePath) {
                     }
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                 }
@@ -1367,7 +1374,7 @@ function dirDelete(filePath, recurse) {
                     }
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                     retVal = RESOLVED_PROMISE_FALSE;
@@ -1460,7 +1467,7 @@ function dirDelete(filePath, recurse) {
                         promises.push(deletePromise);
                     }
                     catch (err) {
-                        if (err != -2) {
+                        if (err != FILE_NOT_EXIST_ERROR) {
                             crdtuxp.logNote(arguments, "throws " + err);
                         }
                         promises = undefined;
@@ -1591,7 +1598,7 @@ function dirExists(dirPath) {
                     }
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                     retVal = RESOLVED_PROMISE_FALSE;
@@ -2495,7 +2502,7 @@ function fileDelete(filePath) {
                     } 
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                     break;
@@ -2601,7 +2608,7 @@ function fileExists(filePath) {
                     } 
                 }
                 catch (err) {
-                    if (err != -2) {
+                    if (err != FILE_NOT_EXIST_ERROR) {
                         crdtuxp.logNote(arguments, "throws " + err);
                     }
                     break;
@@ -2728,7 +2735,7 @@ function fileOpen(filePath, mode) {
                         } 
                     }
                     catch (err) {
-                        if (err != -2) {
+                        if (err != FILE_NOT_EXIST_ERROR) {
                             crdtuxp.logNote(arguments, "throws " + err);
                         }
                         break;
@@ -2753,7 +2760,7 @@ function fileOpen(filePath, mode) {
                         } 
                     }
                     catch (err) {
-                        if (err != -2) {
+                        if (err != FILE_NOT_EXIST_ERROR) {
                             crdtuxp.logNote(arguments, "throws " + err);
                         }
                         break;
@@ -5895,7 +5902,7 @@ function waitForFile(
                             }
                         } 
                         catch (err) {
-                            if (err != -2) {
+                            if (err != FILE_NOT_EXIST_ERROR) {
                                 crdtuxp.logNote(arguments, "throws " + err);
                             }
                             else {

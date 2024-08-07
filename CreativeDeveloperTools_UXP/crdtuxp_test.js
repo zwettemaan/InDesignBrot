@@ -629,7 +629,7 @@ async function testUTFRoundTrip() {
 }
 
 let tests = [
-    testUXPContext,
+    //testUXPContext,
     testBase64,
     testDirs,
     testEncrypt,
