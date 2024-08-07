@@ -4109,11 +4109,13 @@ module.exports.getUXPContext = getUXPContext;
  * Initialize crdtuxp
  *
  * @function init
+ * @returns {Promise<boolean|undefined>} when true: valid issuer has made CRDT_UXP extra features available
+ * 
  */
 
 function init(context) {
-// coderstate: procedure
-    let retVal;
+// coderstate: promisor
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
 
     try {
 
@@ -4132,13 +4134,19 @@ function init(context) {
             for (attr in context) {
                 crdtuxp.context[attr] = context[attr];
             }
+            context = crdtuxp.context;
         }
 
-        if (! crdtuxp.context.RUNPATH_ROOT) {
-            crdtuxp.context.RUNPATH_ROOT = "./";
+        if (! context.RUNPATH_ROOT) {
+            context.RUNPATH_ROOT = "./";
         }
-        
-        retVal = true;
+
+        if (context.ISSUER_GUID && context.ISSUER_EMAIL) {
+            retVal = crdtuxp.setIssuer(context.ISSUER_GUID, context.ISSUER_EMAIL);
+        }
+        else {
+            retVal = RESOLVED_PROMISE_TRUE;
+        }
     }
     catch (err) {
         console.log("init throws " + err);
@@ -4828,7 +4836,7 @@ function pluginInstaller() {
 
             const responsePromise = 
                 evalTQL(
-                    "pluginInstaller()"
+                    "pluginInstaller() ? \"true\" : \"false\""
                 );
             if (! responsePromise) {
                 break;
@@ -5359,7 +5367,7 @@ function setIssuer(issuerGUID, issuerEmail) {
         try {
             const responsePromise = 
                 evalTQL(
-                    "setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ")"
+                    "setIssuer(" + dQ(issuerGUID) + "," + dQ(issuerEmail) + ") ? \"true\" : \"false\""
                 );
             if (! responsePromise) {
                 break;
@@ -5619,7 +5627,7 @@ function sublicense(key, activation) {
 
             const responsePromise = 
                 evalTQL(
-                    "sublicense(" + dQ(key) + "," + dQ(activation) + ")"
+                    "sublicense(" + dQ(key) + "," + dQ(activation) + ") ? \"true\" : \"false\""
                 );
             if (! responsePromise) {
                 break;

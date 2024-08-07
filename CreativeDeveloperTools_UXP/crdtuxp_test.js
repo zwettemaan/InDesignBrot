@@ -229,41 +229,44 @@ async function testEncrypt() {
 
     let retVal = true;
 
-    try {
+    do {
+        try {
 
-        let context = crdtuxp.getContext();
-        if (! context.IS_VALID_ISSUER) {
-            crdtuxp.logError(arguments, "CRDT_UXP pay-for features not enabled");
-            retVal = false;
-            break;
-        }
+            let context = crdtuxp.getContext();
+            if (! context.HAS_VALID_ISSUER) {
+                crdtuxp.logError(arguments, "CRDT_UXP pay-for features not enabled");
+                retVal = false;
+                break;
+            }
 
-        let key = "my secret key";
-    
-        let s = "Hello World☜✿\x00\x7Féøo";
-        let s1 = await crdtuxp.encrypt(s, key);
-        let s2 = await crdtuxp.encrypt(s, key);
-        if (s1 == s2) {
-            crdtuxp.logError(arguments, "Encrypting the same string twice should give a different result");
+            let key = "my secret key";
+        
+            let s = "Hello World☜✿\x00\x7Féøo";
+            let s1 = await crdtuxp.encrypt(s, key);
+            let s2 = await crdtuxp.encrypt(s, key);
+            if (s1 == s2) {
+                crdtuxp.logError(arguments, "Encrypting the same string twice should give a different result");
+                retVal = false;
+            }
+        
+            let sRoundTrip1 = await crdtuxp.decrypt(s1, key);
+            if (sRoundTrip1 != s) {
+                crdtuxp.logError(arguments, "failed to decrypt s1");
+                retVal = false;
+            }
+        
+            let sRoundTrip2 = await crdtuxp.decrypt(s2, key);
+            if (sRoundTrip2 != s) {
+                crdtuxp.logError(arguments, "failed to decrypt s2");
+                retVal = false;
+            }
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
             retVal = false;
         }
-    
-        let sRoundTrip1 = await crdtuxp.decrypt(s1, key);
-        if (sRoundTrip1 != s) {
-            crdtuxp.logError(arguments, "failed to decrypt s1");
-            retVal = false;
-        }
-    
-        let sRoundTrip2 = await crdtuxp.decrypt(s2, key);
-        if (sRoundTrip2 != s) {
-            crdtuxp.logError(arguments, "failed to decrypt s2");
-            retVal = false;
-        }
-    }
-    catch (err) {
-        crdtuxp.logError(arguments, "throws " + err);
-        retVal = false;
-    }
+    } 
+    while (false);
 
     return retVal;
 }
@@ -530,10 +533,11 @@ async function testPersistData() {
     let retVal = true;
 
     do {
+        
         try {
 
             let context = crdtuxp.getContext();
-            if (! context.IS_VALID_ISSUER) {
+            if (! context.HAS_VALID_ISSUER) {
                 crdtuxp.logError(arguments, "CRDT_UXP pay-for features not enabled");
                 retVal = false;
                 break;
@@ -668,6 +672,14 @@ async function run() {
 
         // You need something similar to this to enable CRDT
         // await crdtuxp.setIssuer("1186cb861234567377c49d7eade","my@email.com");
+        // Checking if the context has a valid issuer to use for the tests
+        let context = crdtuxp.getContext();
+        if (context.HAS_VALID_ISSUER === undefined) {
+            context.HAS_VALID_ISSUER = false;
+            if (context.ISSUER_GUID && context.ISSUER_EMAIL) {
+                context.HAS_VALID_ISSUER = !! (await crdtuxp.setIssuer(context.ISSUER_GUID, context.ISSUER_EMAIL));
+            }
+        }
 
         let result;
 
