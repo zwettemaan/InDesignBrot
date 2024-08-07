@@ -231,6 +231,13 @@ async function testEncrypt() {
 
     try {
 
+        let context = crdtuxp.getContext();
+        if (! context.IS_VALID_ISSUER) {
+            crdtuxp.logError(arguments, "CRDT_UXP pay-for features not enabled");
+            retVal = false;
+            break;
+        }
+
         let key = "my secret key";
     
         let s = "Hello World☜✿\x00\x7Féøo";
@@ -524,6 +531,14 @@ async function testPersistData() {
 
     do {
         try {
+
+            let context = crdtuxp.getContext();
+            if (! context.IS_VALID_ISSUER) {
+                crdtuxp.logError(arguments, "CRDT_UXP pay-for features not enabled");
+                retVal = false;
+                break;
+            }
+            
             let sampleIssuerGUID = "3a0c0e2dfa2a4b24b4e5a6a97c2a4cdd";
             let sampleDataKey = "My Data";
             let key = "My" + "secret";
