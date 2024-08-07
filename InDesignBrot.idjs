@@ -16,10 +16,6 @@ const LOGLEVEL = 0;
 const LOGPATH = undefined // ... either/or:
 // const LOGPATH = context.PATH_DESKTOP + "InDesignBrot.log"; // or undefined
 
-// If this script was launched from a wrapper script in the InDesign Scripts folder then
-// crdtuxp will already be defined
-// If this script is launched directly, crdtuxp will not yet be defined
-
 crdtuxp.configLogger({
     logLevel: LOGLEVEL,
     logToUXPConsole: true,
@@ -29,7 +25,6 @@ crdtuxp.configLogger({
 // We need to refer to the main script relative to RUNPATH_ROOT which
 // varies depending on how this script was launched
 
-let context = crdtuxp.getContext();
 global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
 
 if (IS_STANDALONE_SCRIPT) {
