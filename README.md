@@ -8,7 +8,7 @@ https://PluginInstaller.com
 
 Once installed, click the following link:
 
-<a href="tightenercatalogentry:https%3A%2F%2Frorohiko.com%2Fdownloads%2FInDesignBrot_idjs.cate">InDesignBrot_idjs for InDesign sample script</a>
+![InDesignBrot_idjs for InDesign sample script](tightenercatalogentry:https%3A%2F%2Frorohiko.com%2Fdownloads%2FInDesignBrot_idjs.cate)
 
 Click the 'Download' button.
 
@@ -34,7 +34,7 @@ This is the source structure for the InDesignBrot script.
 
 This license covers the 'InDesignBrot' script.
 
-Copyright (c) 2015-2023 by Rorohiko Ltd. All rights reserved.
+Copyright (c) 2015-2024 by Rorohiko Ltd. All rights reserved.
 
 You may make as many copies of this software and documentation as you wish; 
 give exact copies of the original version to anyone; and distribute the
