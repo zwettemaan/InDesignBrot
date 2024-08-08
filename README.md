@@ -2,13 +2,21 @@
 
 ![screenshot_2023-05-04_at_8 41 22_am_360](https://user-images.githubusercontent.com/3396477/236360673-ed908a8e-4892-4a6e-a184-d77d6b739d45.png)
 
-To install, download the latest version of InDesignBrot here:
+To install, download the latest version of PluginInstaller here:
 
-https://github.com/zwettemaan/InDesignBrot/tree/main/build
+https://PluginInstaller.com
 
-Click the file name, then click the _Raw_ button.
+Once installed, click the following link:
 
-Follow the instructions in the read me file.
+<a href="tightenercatalogentry:https%3A%2F%2Frorohiko.com%2Fdownloads%2FInDesignBrot_idjs.cate">InDesignBrot_idjs for InDesign sample script</a>
+
+Click the 'Download' button.
+
+Pick the correct Install Target from the dropdown menu.
+
+Click the 'Install' button
+
+Switch to InDesign and bring up the Scripts panel.
 
 Precalculated sample .indd files (need InDesign 2023 to open them):
 
@@ -20,15 +28,7 @@ Precalculated sample .indd files (need InDesign 2023 to open them):
 
 # InDesignBrot
 
-This is the source structure for the InDesignBrot script. It was generated
-using UXPScriptSparker:
-
-https://github.com/zwettemaan/UXPScriptSparker
-
-Run the `Mac/build.command` or `Windows/build.bat` scripts to build a
-redistributable .zip file in the `build` folder.
-
-Read the `ReadMe for InDesignBrot.md` for more info.
+This is the source structure for the InDesignBrot script.
 
 # License
 
@@ -77,59 +77,22 @@ Start InDesign 2023 or higher
 
 Bring up the Scripts Panel (_Window - Utilities - Scripts_)
 
-Right-click the 'User' folder on this panel, and select 
-_Reveal in Finder_ or _Reveal in Explorer_
-
-A folder should open in the Finder or Explorer. 
-
-One more step: double click the _Scripts Panel_ folder icon
-to get _into_ the _Scripts Panel_ folder. 
-
-Once you have the _Scripts Panel_ folder open, drag the
-whole _InDesignBrot_ folder into it.
-
-Switch back to InDesign. _InDesignBrot_ should now appear on the 
-Scripts Panel in InDesign.
-
-You can now run the InDesignBrot script by either double-clicking
-_run\_as\_ExtendScript.jsx_ or _run\_as\_UXPScript.idjs_ on the Scripts Panel.
-
-These two 'wrappers' run the exact same script (_InDesignBrot.js_) as an 
-ExtendScript or as a UXPScript. 
-
-Note: in InDesign 18.2, running as UXPScript is many times slower 
-than running as ExtendScript.
+Double-click the _InDesignBrot_idjs_ script on the InDesign Scripts panel.
 
 # How to tweak
 
-_InDesignBrot_ is easy to tweak: open the `InDesignBrot.js` file in a
-proper text editor program and adjust the `kNumPixels` to a higher or lower
-value. 
-
-Do not use a word processor program to do this (see further for more info).
+You can tweak the parameters for InDesignBrot by editing the info on the
+pasteboard of the sample document.
 
 Don't go overboard - start with small increases first (e.g. add 5 or 10
-to the current value of `kNumPixels`).
+to the current value of `num pixels`).
 
 Take note that the execution time increases dramatically with increasing
-values of kNumPixels. E.g. a setting of `kNumPixels = 100` takes many 
+values of kNumPixels. E.g. a setting of `num pixels = 100` takes many 
 minutes to execute in ExtendScript.
 
-There is a sample .indd file provided in the download, which shows the 
-result with `kNumPixels = 100`, to save you from calculating it yourself.
-
-# Text Editors vs Word Processors
-
-Word processors often damage scripts on open/save. For example, word
-processors often try to 'improve' the script by changing quotes into
-curly quotes, which breaks the script.
-
-Do not open/save scripts with a word processor!
-
-Sample text editors: NotePad, NotePad++, BBEdit, Visual Studio Code,
-Sublime Text, Atom,... 
-
-Sample word processors: MS Word, TextEdit (Mac), WordPad (Windows),... 
+There are a few sample .indd file provided in the download, which shows the 
+result with `num pixels = 100`, to save you from calculating it yourself.
 
 # Disclaimer
 
@@ -144,7 +107,7 @@ all risks of using it.
 
 This license covers the 'InDesignBrot' script.
 
-Copyright (c) 2015-2023 by Rorohiko Ltd. All rights reserved.
+Copyright (c) 2015-2024 by Rorohiko Ltd. All rights reserved.
 
 You may make as many copies of this software and documentation as you wish; 
 give exact copies of the original version to anyone; and distribute the
