@@ -397,7 +397,6 @@ function alert(message) {
         try {
 
             var uxpContext = getUXPContext();
-
             if (uxpContext.uxpVariant == UXP_VARIANT_INDESIGN_SERVER_UXPSCRIPT) {
                 // We've lost access to the alert() function in InDesign Server, which writes
                 // to stdout.
@@ -510,8 +509,7 @@ module.exports.alert = alert;
  *
  * @param {string} base64Str - base64 encoded string
  * @param {object=} options - options: {
- *   isBinary: true/false, default false,
- *   forceNetworkAPI: true/false, default false
+ *   isBinary: true/false, default false
  * }
  * @returns {Promise<string|array|undefined>} decoded string
  */
@@ -523,12 +521,10 @@ function base64decode(base64Str, options) {
 
         try {
 
-            let forceNetworkAPI = options && options.forceNetworkAPI;
             let isBinary = options && options.isBinary;                        
 
-            let uxpContext = getUXPContext();
-
-            if (!  forceNetworkAPI) {
+            let context = getContext();
+            if (! context.IS_FORCE_USE_DAEMON) {
 
                 let rawString = window.atob(base64Str);
                 let byteArray = rawStringToByteArray(rawString);
@@ -542,8 +538,7 @@ function base64decode(base64Str, options) {
             }
 
             let evalTQLOptions = {
-                isBinary: isBinary,
-                forceNetworkAPI: forceNetworkAPI
+                isBinary: isBinary
             };
 
             let responsePromise = 
@@ -561,7 +556,7 @@ function base64decode(base64Str, options) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -610,13 +605,10 @@ module.exports.base64decode = base64decode;
  * @function base64encode
  *
  * @param {string} s_or_ByteArr - either a string or an array containing bytes (0-255).
- * @param {object=} options - options: {
- *   forceNetworkAPI: true/false, default false
- * }
  * @returns {Promise<string|undefined>} encoded string
  *
  */
-function base64encode(s_or_ByteArr, options) {
+function base64encode(s_or_ByteArr) {
 // coderstate: promisor
     let retVal = RESOLVED_PROMISE_UNDEFINED;
 
@@ -624,9 +616,8 @@ function base64encode(s_or_ByteArr, options) {
 
         try {
 
-            let forceNetworkAPI = options && options.forceNetworkAPI;
-
-            if (! forceNetworkAPI) {
+            let context = getContext();
+            if (! context.IS_FORCE_USE_DAEMON) {
 
                 let byteArray;
                 if ("string" == typeof s_or_ByteArr) {
@@ -643,14 +634,9 @@ function base64encode(s_or_ByteArr, options) {
                 break;
             }
 
-            let evalTQLOptions = {
-                forceNetworkAPI: forceNetworkAPI
-            };
-
             const responsePromise = 
                 evalTQL(
-                    "base64encode(" + dQ(s_or_ByteArr) + ")",
-                    evalTQLOptions
+                    "base64encode(" + dQ(s_or_ByteArr) + ")"
                 );
             if (! responsePromise) {
                 break;
@@ -663,7 +649,7 @@ function base64encode(s_or_ByteArr, options) {
                 do {
                     try {
                         if (! response || response.error) {
-                            crdtuxp.logError(arguments, "bad response " + response?.error);
+                            crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                             break;
                         }
 
@@ -996,7 +982,7 @@ function decrypt(s_or_ByteArr, aesKey, aesIV) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -1258,8 +1244,9 @@ function dirCreate(filePath) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 let parentPath = crdtuxp.path.dirName(filePath);
                 let baseName = crdtuxp.path.baseName(filePath);
@@ -1328,7 +1315,7 @@ function dirCreate(filePath) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -1383,9 +1370,9 @@ function dirDelete(filePath, recurse) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
 
@@ -1557,7 +1544,7 @@ function dirDelete(filePath, recurse) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -1610,8 +1597,10 @@ function dirExists(dirPath) {
     do {
 
         try {
+
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 try {
                     const stats = uxpContext.fs.lstatSync(dirPath);
@@ -1646,7 +1635,7 @@ function dirExists(dirPath) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -1752,8 +1741,9 @@ function dirScan(filePath) {
         try {
             // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 let entries = [];
                 try {
@@ -1782,7 +1772,7 @@ function dirScan(filePath) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -1918,7 +1908,7 @@ function encrypt(s_or_ByteArr, aesKey, aesIV) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -2029,7 +2019,6 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * @param {object=} options - optional. 
  *   options.wait when false don't wait to resolve, default true
  *   options.isBinary default false
- *   options.forceNetworkAPI default false; override uxpContext.hasNetworkAccess
  *   options.tqlScopeName default TQL_SCOPE_NAME_DEFAULT
  * or can be decoded as a string
  * @returns {Promise<any>} a string or a byte array
@@ -2042,30 +2031,27 @@ function evalTQL(tqlScript, options) {
 
         try {
 
+            let context = crdtuxp.getContext();
+
             let resultIsRawBinary = false;
             let wait = true;
-            let forceNetworkAPI = false;
             let tqlScopeName = TQL_SCOPE_NAME_DEFAULT;
 
             if (options) {
                 resultIsRawBinary = !!options.isBinary;
                 wait = options.wait === undefined ? true : options.wait;
-                forceNetworkAPI = options.forceNetworkAPI || false;
                 tqlScopeName = options.tqlScopeName || TQL_SCOPE_NAME_DEFAULT;
             }
 
             let uxpContext = getUXPContext();
-
             if (! uxpContext.hasNetworkAccess && ! uxpContext.hasDirectFileAccess) {
-                consoleLog("evalTQL need direct file access or network access");
+                consoleLog("evalTQL needs direct file access or network access");
                 // Need either network access or direct file access - cannot do
                 // without
                 break;
             }
 
-            if (! uxpContext.hasNetworkAccess && ! forceNetworkAPI) {
-
-                let context = crdtuxp.getContext();
+            if (! uxpContext.hasNetworkAccess || context.IS_FORCE_DAEMON_FILE_BASED_API) {
 
                 // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
 
@@ -2335,8 +2321,8 @@ function fileAppend_(filePath, data) {
         // This is a low-level function. Do not call consoleLog or crdtuxp.logError.
 
         let uxpContext = getUXPContext();
-
         if (! uxpContext.hasDirectFileAccess) {
+            console.log("fileAppend_ needs hasDirectFileAccess");
             break;
         }
 
@@ -2439,7 +2425,7 @@ function fileAppendString(fileName, in_appendStr, options) {
 
                 do {
                     if (! response || response.error) {
-                        consoleLog("fileAppendString bad response " + response?.error);
+                        consoleLog("fileAppendString bad response, error = " + response?.error);
                         break;
                     }
 
@@ -2490,8 +2476,9 @@ function fileClose(fileHandle) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
                 let fileInfo = uxpContext.fileInfoByFileHandle[fileHandle];
                 if (! fileInfo) {
                     break;
@@ -2515,7 +2502,7 @@ function fileClose(fileHandle) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -2566,8 +2553,9 @@ function fileDelete(filePath) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
                 try {
@@ -2619,7 +2607,7 @@ function fileDelete(filePath) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -2672,8 +2660,9 @@ function fileExists(filePath) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
                 try {
@@ -2708,7 +2697,7 @@ function fileExists(filePath) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -2792,8 +2781,9 @@ function fileOpen(filePath, mode) {
 
         try {
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
                 let parentPath = crdtuxp.path.dirName(filePath); 
                 let baseName = crdtuxp.path.baseName(filePath); 
                 if (! uxpContext.uniqueFileHandleID) {
@@ -2878,7 +2868,7 @@ function fileOpen(filePath, mode) {
                 do {
                     try {
                         if (! response || response.error) {
-                            crdtuxp.logError(arguments, "bad response " + response?.error);
+                            crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                             break;
                         }
 
@@ -2958,8 +2948,9 @@ function fileRead(fileHandle, options) {
                 };
             }
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 if (! uxpContext.fileInfoByFileHandle) {
                     break;
@@ -3009,7 +3000,7 @@ function fileRead(fileHandle, options) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3085,8 +3076,9 @@ function fileWrite(fileHandle, s_or_ByteArr) {
                 byteArray = s_or_ByteArr;
             }
 
+            let context = getUXPContext();
             let uxpContext = getUXPContext();
-            if (uxpContext.hasDirectFileAccess) {
+            if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
                 if (! uxpContext.fileInfoByFileHandle) {
                     break;
@@ -3129,7 +3121,7 @@ function fileWrite(fileHandle, s_or_ByteArr) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3266,7 +3258,7 @@ function getCapability(issuer, capabilityCode, encryptionKey) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3329,7 +3321,7 @@ function getCreativeDeveloperToolsLevel() {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3442,7 +3434,7 @@ function getDir(dirTag) {
 
                 do {
                     if (! sysInfo || sysInfo.error) {
-                        crdtuxp.logError(arguments, "bad response " + sysInfo?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + sysInfo?.error);
                         break;
                     }
 
@@ -3511,7 +3503,7 @@ function getEnvironment(envVarName) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3779,7 +3771,7 @@ function getPersistData(issuer, attribute, password) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3839,7 +3831,7 @@ function getPluginInstallerPath() {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -3906,7 +3898,7 @@ function getSysInfo__() {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -4867,7 +4859,7 @@ function machineGUID() {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -4929,7 +4921,7 @@ function pluginInstaller() {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -5460,7 +5452,7 @@ function setIssuer(issuerGUID, issuerEmail) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -5565,7 +5557,7 @@ function setPersistData(issuer, attribute, password, data) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -5720,7 +5712,7 @@ function sublicense(key, activation) {
 
                 do {
                     if (! response || response.error) {
-                        crdtuxp.logError(arguments, "bad response " + response?.error);
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
                         break;
                     }
 
@@ -5765,7 +5757,6 @@ function testDirectFileAccess() {
 
     do {
         try {
-            
             let uxpContext = crdtuxp.getUXPContext();
             if (! uxpContext) {
                 crdtuxp.logError(arguments, "failed to get uxpContext");
@@ -5807,16 +5798,36 @@ function testNetworkAccess() {
 
     try {
 
-        return crdtuxp.base64encode("abc", { forceNetworkAPI: true }).then(
-            function blowPipesResolveFtn(result) {
-                return result == "YWJj";
-            }
-        ).catch(
-            function blowPipesRejectFtn(reason) {
-                return false;
-            }
-        );
+        let context = crdtuxp.getContext();        
+        let savedForceUseDaemon = context.IS_FORCE_USE_DAEMON;
+        let savedForceDaemonFileBasedAPI = context.IS_FORCE_DAEMON_FILE_BASED_API;
 
+        let uxpContext = crdtuxp.getUXPContext();        
+        let savedHasNetworkAccess = uxpContext.hasNetworkAccess;
+
+        context.IS_FORCE_USE_DAEMON = true;
+        context.IS_FORCE_DAEMON_FILE_BASED_API = false;
+        uxpContext.hasNetworkAccess = true;
+
+        try {
+
+            return crdtuxp.base64encode("abc").then(
+                function blowPipesResolveFtn(result) {
+                    return result == "YWJj";
+                }
+            ).catch(
+                function blowPipesRejectFtn(reason) {
+                    return false;
+                }
+            );
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+
+        uxpContext.hasNetworkAccess = savedHasNetworkAccess;
+        context.IS_FORCE_USE_DAEMON = savedForceUseDaemon;
+        context.IS_FORCE_DAEMON_FILE_BASED_API = savedForceDaemonFileBasedAPI;
     }
     catch (err) {
         crdtuxp.logError(arguments, "throws " + err);

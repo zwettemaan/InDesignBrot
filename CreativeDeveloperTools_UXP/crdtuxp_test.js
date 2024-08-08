@@ -23,14 +23,20 @@ async function testUXPContext() {
             }
 
             let hasDirectFileAccess = crdtuxp.testDirectFileAccess();
-            if (hasDirectFileAccess != uxpContext.hasDirectFileAccess) {
+            if (!! hasDirectFileAccess != !! uxpContext.hasDirectFileAccess) {
                 crdtuxp.logError(arguments, "invalid value for uxpContext.hasDirectFileAccess");
+                if (uxpContext.hasDirectFileAccess) {
+                    uxpContext.hasDirectFileAccess = false;
+                }
                 retVal = false;
             }
 
             let hasNetworkAccess = await crdtuxp.testNetworkAccess();
-            if (hasNetworkAccess != uxpContext.hasNetworkAccess) {
+            if (!! hasNetworkAccess != !! uxpContext.hasNetworkAccess) {
                 crdtuxp.logError(arguments, "invalid value for uxpContext.hasNetworkAccess");
+                if (uxpContext.hasNetworkAccess) {
+                    uxpContext.hasNetworkAccess = false;
+                }
                 retVal = false;
             }
 
@@ -330,7 +336,6 @@ async function testEnvironment() {
                 matchFailed = true;
             }
             else {
-                debugger;
                 let homeSegment = homeDirSplit[homeDirSegmentIdx];
                 let envSegment = environmentHomeDirSplit[environmentDirSegmentIdx];
                 if (crdtuxp.IS_WINDOWS) {
