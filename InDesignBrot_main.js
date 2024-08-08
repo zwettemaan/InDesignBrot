@@ -47,6 +47,8 @@ async function main() {
         
         try {
 
+            crdtuxp.logNote(arguments, "start");
+
             const context = crdtuxp.getContext();
 
             const config = {};
@@ -78,6 +80,8 @@ async function main() {
                 crdtuxp.logError(arguments, "failed to calculate Mandelbrot");
                 break;
             }
+
+            crdtuxp.logNote(arguments, "done");            
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);
@@ -86,7 +90,6 @@ async function main() {
     while (false);
 
     crdtuxp.logExit(arguments);
-
 }
 module.exports.main = main;
 
