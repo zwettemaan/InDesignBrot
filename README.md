@@ -2,19 +2,7 @@
 
 ![screenshot_2023-05-04_at_8 41 22_am_360](https://user-images.githubusercontent.com/3396477/236360673-ed908a8e-4892-4a6e-a184-d77d6b739d45.png)
 
-To install, download the latest version of PluginInstaller here:
-
-https://PluginInstaller.com
-
-Once installed, click the following link:
-
-![InDesignBrot_idjs for InDesign sample script](tightenercatalogentry:https%3A%2F%2Frorohiko.com%2Fdownloads%2FInDesignBrot_idjs.cate)
-
-Click the 'Download' button.
-
-Pick the correct Install Target from the dropdown menu.
-
-Click the 'Install' button
+![Installation links and instructions](https://coppieters.nz/?p=1008)
 
 Switch to InDesign and bring up the Scripts panel.
 
