@@ -39,7 +39,6 @@ donations, for any such copies, however made; and from distributing
 the software and/or documentation with other products (commercial or 
 otherwise) without prior written permission. 
 
-
 # What it is
 
 _InDesignBrot_ has no practical purpose - it's more of a 'fun' thing.
@@ -47,17 +46,14 @@ _InDesignBrot_ has no practical purpose - it's more of a 'fun' thing.
 It visualizes the MandelBrot set in InDesign using small 
 frames arranged in a huge grid.
 
-_InDesignBrot_ is a sample of the scripts that can be created with 
-_UXPScriptSparker_ - it is one of the options in the 'Starter Code' 
-dropdown menu.
+The `num pixels` setting determines the size of the grid (default: 19x19).
 
-_UXPScriptSparker_ is a free and open source project to create 'starter' 
-projects to get your feet wet with InDesign and UXPScript. 
+The `max steps` setting determines the accuracy of the calculation. For higher
+grid sizes you want to increase max steps as well.
 
-https://github.com/zwettemaan/UXPScriptSparker
+The runtime of the script is roughly proportional to the square of `num pixels`.
 
-_InDesignBrot_ has a 'dual' nature - it can be run as an ExtendScript 
-as well as a UXPScript.
+The runtime of the script is roughly proportional to `max steps`.
 
 # How to install InDesignBrot
 
@@ -76,11 +72,11 @@ Don't go overboard - start with small increases first (e.g. add 5 or 10
 to the current value of `num pixels`).
 
 Take note that the execution time increases dramatically with increasing
-values of kNumPixels. E.g. a setting of `num pixels = 100` takes many 
+values of `num pixels`. E.g. a setting of `num pixels = 100` takes many 
 minutes to execute in ExtendScript.
 
 There are a few sample .indd file provided in the download, which shows the 
-result with `num pixels = 100`, to save you from calculating it yourself.
+result with higher pixel values, to save you from calculating it yourself.
 
 # Disclaimer
 
