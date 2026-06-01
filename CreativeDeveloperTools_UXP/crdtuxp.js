@@ -1,3 +1,7 @@
+// Copyright (c) 2024–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: Elastic-2.0
+// https://github.com/zwettemaan/CRDT_UXP
+
 /**
  * Creative Developer Tools (CRDT) is a growing suite of tools aimed at script developers and plug-in<br>
  * developers for the Adobe Creative Cloud eco-system.<br>

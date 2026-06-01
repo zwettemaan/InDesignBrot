@@ -2,16 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
 // https://github.com/zwettemaan/InDesignBrot
 
-const indesign = require("indesign");
 const localFileSystem = require("uxp").storage.localFileSystem;
 
-const app = indesign.app;
 const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
-const BRIDGE_STATUS_REQUEST = "Request";
-const BRIDGE_STATUS_STARTED = "Started";
-const BRIDGE_STATUS_POLL_INTERVAL_MS = 100;
-const BRIDGE_STATUS_REQUEST_TIMEOUT_MS = 5000;
-const BRIDGE_STATUS_COMPLETION_TIMEOUT_MS = 300000;
 const RESULT_GROUP_LABEL = "Calculated_Mandelbrot";
 const TITLE_FRAME_LABEL = "InDesignBrotComparisonTitle";
 const TITLE_FRAME_NAME = "InDesignBrotComparisonTitle";
@@ -24,13 +17,79 @@ const state = {
     busy: false,
     initPromise: null,
     runtimeFolder: null,
-    crdtuxp: null,
-    crdtuxpIDSN: null
+    crdtuxp: null
 };
 
 const directButton = document.getElementById("run-direct");
 const bridgeButton = document.getElementById("run-bridge");
 const statusNode = document.getElementById("status");
+
+function getRuntimeInDesignModule() {
+    try {
+        return require("./runtime/InDesignBrot_main.js");
+    }
+    catch (err) {
+    }
+
+    return undefined;
+}
+
+function getInDesignApp() {
+    const currentApp = tryGetInDesignApp();
+
+    if (! currentApp) {
+        throw new Error("InDesign app is unavailable in this panel runtime.");
+    }
+
+    return currentApp;
+}
+
+function tryGetInDesignApp() {
+    const runtimeModule = getRuntimeInDesignModule();
+    if (runtimeModule && typeof runtimeModule.getInDesignApp == "function") {
+        const runtimeApp = runtimeModule.getInDesignApp();
+        if (runtimeApp) {
+            return runtimeApp;
+        }
+    }
+
+    const currentHost = require("indesign");
+    return currentHost ? currentHost.app : undefined;
+}
+
+async function waitForInDesignApp() {
+    const deadline = Date.now() + 2000;
+
+    while (Date.now() <= deadline) {
+        const currentApp = tryGetInDesignApp();
+        if (currentApp) {
+            return currentApp;
+        }
+
+        await sleep(25);
+    }
+
+    throw new Error("InDesign app is unavailable in this panel runtime.");
+}
+
+function getUXPScriptLanguage() {
+    const runtimeModule = getRuntimeInDesignModule();
+    if (runtimeModule && typeof runtimeModule.getUXPScriptLanguage == "function") {
+        const runtimeLanguage = runtimeModule.getUXPScriptLanguage();
+        if (runtimeLanguage) {
+            return runtimeLanguage;
+        }
+    }
+
+    const currentHost = require("indesign");
+    const scriptLanguage = currentHost && currentHost.ScriptLanguage && currentHost.ScriptLanguage.UXPSCRIPT;
+
+    if (! scriptLanguage) {
+        throw new Error("InDesign UXPSCRIPT language is unavailable in this panel runtime.");
+    }
+
+    return scriptLanguage;
+}
 
 function setButtonsDisabled(disabled) {
     directButton.disabled = disabled;
@@ -45,6 +104,22 @@ function setStatus(message, kind) {
     else {
         delete statusNode.dataset.kind;
     }
+}
+
+function getAppLabelFromApp(app, key) {
+    if (! app || typeof app.extractLabel != "function") {
+        throw new Error("Application labels are not available in this InDesign runtime.");
+    }
+
+    return String(app.extractLabel(key) || "");
+}
+
+function setAppLabelOnApp(app, key, value) {
+    if (! app || typeof app.insertLabel != "function") {
+        throw new Error("Application labels are not available in this InDesign runtime.");
+    }
+
+    app.insertLabel(key, String(value));
 }
 
 function formatError(err) {
@@ -82,33 +157,13 @@ function waitForStatusPaint() {
     });
 }
 
-function setAppLabel(key, value) {
-    if (typeof app.insertLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
-
-    app.insertLabel(key, String(value));
-}
-
-function getAppLabel(key) {
-    if (typeof app.extractLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
-
-    return String(app.extractLabel(key) || "");
-}
-
-function isElapsedLabelValue(value) {
-    return /^\d+(\.\d+)?$/.test(String(value || ""));
-}
-
 function getCollectionItems(collection) {
     return collection.everyItem().getElements().slice(0);
 }
 
 function getActiveDocument() {
     try {
-        const doc = app.activeDocument;
+        const doc = getInDesignApp().activeDocument;
         if (doc && doc.isValid && doc.constructor.name == "Document") {
             return doc;
         }
@@ -213,7 +268,6 @@ async function getRuntimeFolder() {
 
     const crdtFolder = await runtimeFolder.getEntry("CreativeDeveloperTools_UXP");
     await crdtFolder.getEntry("crdtuxp.js");
-    await crdtFolder.getEntry("crdtuxpIDSN.js");
 
     state.runtimeFolder = runtimeFolder;
     return runtimeFolder;
@@ -231,8 +285,6 @@ async function initializeRuntime() {
             globalThis.crdtuxp = state.crdtuxp;
 
             await state.crdtuxp.init();
-
-            state.crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
             return state;
         })().catch(function handleInitFailure(err) {
             state.initPromise = null;
@@ -263,66 +315,36 @@ async function runDirectInPanel() {
     };
 }
 
-async function waitForBridgeResult(onStarted) {
-    const requestDeadline = Date.now() + BRIDGE_STATUS_REQUEST_TIMEOUT_MS;
-    const completionDeadline = Date.now() + BRIDGE_STATUS_COMPLETION_TIMEOUT_MS;
-    let didReportStart = false;
-
-    while (true) {
-        const statusValue = getAppLabel(BRIDGE_STATUS_LABEL);
-
-        if (isElapsedLabelValue(statusValue)) {
-            return {
-                elapsedMilliseconds: Math.round(parseFloat(statusValue) * 1000)
-            };
-        }
-
-        if (statusValue == BRIDGE_STATUS_STARTED) {
-            if (! didReportStart) {
-                didReportStart = true;
-                if (typeof onStarted == "function") {
-                    onStarted();
-                }
-            }
-        }
-        else if (statusValue && statusValue != BRIDGE_STATUS_REQUEST) {
-            throw new Error(statusValue);
-        }
-
-        if (! didReportStart && Date.now() > requestDeadline) {
-            throw new Error("Bridge request stayed pending for more than 5 seconds.");
-        }
-
-        if (didReportStart && Date.now() > completionDeadline) {
-            throw new Error("Bridge run did not finish within 300 seconds.");
-        }
-
-        await sleep(BRIDGE_STATUS_POLL_INTERVAL_MS);
-    }
-}
-
-async function runViaBridge() {
-    const runtime = await initializeRuntime();
+async function runViaUXPScript() {
+    await initializeRuntime();
     const runtimeFolder = await getRuntimeFolder();
     const launcherEntry = await runtimeFolder.getEntry("InDesignBrot_bridge_runner.idjs");
-    const launcherText = await launcherEntry.read();
 
-    setAppLabel(BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
+    const app = await waitForInDesignApp();
+    const pendingValue = "pending:" + Date.now();
 
-    await runtime.crdtuxpIDSN.doUXPScriptFile(launcherEntry.nativePath, {
-        sourceText: launcherText,
-        requireSourceInspection: true,
-        clearPending: true
-    });
+    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, pendingValue);
 
-    const result = await waitForBridgeResult(function handleBridgeStarted() {
-        setStatus(
-            "Bridged UXPScript started.",
-            "note"
-        );
-    });
+    const rawResult = await Promise.resolve(app.doScript(
+        launcherEntry.nativePath,
+        getUXPScriptLanguage()
+    ));
 
-    updateDocumentPresentation("Bridged UXPScript", result.elapsedMilliseconds);
+    const labelResult = getAppLabelFromApp(app, BRIDGE_STATUS_LABEL);
+    const resultValue = labelResult && labelResult != pendingValue
+        ? labelResult
+        : rawResult;
+
+    const elapsedSeconds = parseFloat(String(resultValue || ""));
+    if (! Number.isFinite(elapsedSeconds)) {
+        throw new Error(resultValue ? String(resultValue) : "UXPScript returned no elapsed time.");
+    }
+
+    const result = {
+        elapsedMilliseconds: Math.round(elapsedSeconds * 1000)
+    };
+
+    updateDocumentPresentation("UXPScript", result.elapsedMilliseconds);
     return result;
 }
 
@@ -362,10 +384,10 @@ directButton.addEventListener("click", function handleDirectClick() {
 
 bridgeButton.addEventListener("click", function handleBridgeClick() {
     runAction(
-        "Running InDesignBrot via bridged UXPScript...",
-        runViaBridge,
+        "Running InDesignBrot via UXPScript...",
+        runViaUXPScript,
         function buildBridgeSuccessMessage(result) {
-            return "Bridged UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
+            return "UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
         }
     );
 });

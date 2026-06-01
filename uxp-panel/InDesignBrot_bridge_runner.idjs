@@ -4,50 +4,108 @@
 
 const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
 const BRIDGE_STATUS_STARTED = "Started";
+const BRIDGE_APP_WAIT_TIMEOUT_MS = 2000;
+const BRIDGE_APP_WAIT_INTERVAL_MS = 25;
+const originalAlert = global.crdtuxp && global.crdtuxp.alert;
 
 if (! global.crdtuxp) {
     global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
     crdtuxp.init();
 }
 
-function setBridgeStatus(value) {
-    const indesign = require("indesign");
-    indesign.app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
+function tryGetInDesignApp() {
+    try {
+        const indesign = require("indesign");
+        const currentApp = indesign && indesign.app;
+
+        if (! currentApp || typeof currentApp.insertLabel != "function") {
+            return undefined;
+        }
+
+        return currentApp;
+    }
+    catch (err) {
+    }
+
+    return undefined;
+}
+
+function waitForInDesignApp() {
+    return new Promise(function waitForInDesignAppExecutor(resolve, reject) {
+        const deadline = Date.now() + BRIDGE_APP_WAIT_TIMEOUT_MS;
+
+        function checkForApp() {
+            const currentApp = tryGetInDesignApp();
+
+            if (currentApp) {
+                resolve(currentApp);
+                return;
+            }
+
+            if (Date.now() > deadline) {
+                reject(new Error("InDesign app is unavailable in UXPScript."));
+                return;
+            }
+
+            setTimeout(checkForApp, BRIDGE_APP_WAIT_INTERVAL_MS);
+        }
+
+        checkForApp();
+    });
+}
+
+function setBridgeStatus(app, value) {
+    if (! app) {
+        return;
+    }
+
+    app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
+}
+
+function restoreAlert() {
+    crdtuxp.alert = originalAlert;
+}
+
+function finalizeWithValue(app, value) {
+    setBridgeStatus(app, value);
+    restoreAlert();
+    return crdtuxp.finalize().then(function handleFinalizeResolve() {
+        return value;
+    });
+}
+
+function finalizeWithError(app, err) {
+    const message = "UXPScript run failed: " + err;
+    setBridgeStatus(app, message);
+    restoreAlert();
+    return crdtuxp.finalize().then(function handleFinalizeReject() {
+        throw new Error(message);
+    });
 }
 
 function main() {
-    const startMilliseconds = new Date().getTime();
-    let resultPromise = Promise.resolve(undefined);
-    const originalAlert = crdtuxp.alert;
+    const startMilliseconds = Date.now();
 
-    setBridgeStatus(BRIDGE_STATUS_STARTED);
     crdtuxp.alert = function noopBridgeAlert() {
     };
 
-    try {
-        resultPromise = global.require("./InDesignBrot.idjs").main();
-    }
-    catch (err) {
-        crdtuxp.alert = originalAlert;
-        setBridgeStatus("Bridge launcher failed: " + err);
-        return crdtuxp.finalize();
-    }
+    return waitForInDesignApp().then(function handleAppReady(app) {
+        setBridgeStatus(app, BRIDGE_STATUS_STARTED);
 
-    return resultPromise.then(
-        function handleBridgeResolve() {
-            const elapsedSeconds = ((new Date().getTime() - startMilliseconds) / 1000).toFixed(3);
-            crdtuxp.alert = originalAlert;
-            return crdtuxp.finalize().then(function handleBridgeFinalize() {
-                setBridgeStatus(elapsedSeconds);
-            });
-        },
-        function handleBridgeReject(err) {
-            crdtuxp.alert = originalAlert;
-            return crdtuxp.finalize().then(function handleBridgeRejectFinalize() {
-                setBridgeStatus("Bridge run failed: " + err);
-            });
-        }
-    );
+        return Promise.resolve().then(function runBridgeMain() {
+            return global.require("./InDesignBrot.idjs").main();
+        }).then(
+            function handleBridgeResolve() {
+                const elapsedSeconds = ((Date.now() - startMilliseconds) / 1000).toFixed(3);
+                return finalizeWithValue(app, elapsedSeconds);
+            },
+            function handleBridgeReject(err) {
+                return finalizeWithError(app, err);
+            }
+        );
+    }, function handleAppUnavailable(err) {
+        return finalizeWithError(undefined, err);
+    });
 }
 
 module.exports.main = main;
