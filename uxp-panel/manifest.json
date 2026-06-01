@@ -15,6 +15,12 @@
       "domains": [
         "localhost.tgrg.net"
       ]
+    },
+    "launchProcess": {
+      "schemes": [
+        "https"
+      ],
+      "extensions": []
     }
   },
   "entrypoints": [
@@ -39,7 +45,39 @@
       "preferredFloatingSize": {
         "width": 320,
         "height": 210
-      }
+      },
+      "icons": [
+        {
+          "width": 24,
+          "height": 24,
+          "path": "icons/icon-dark.png",
+          "scale": [1, 2],
+          "theme": ["darkest", "dark", "medium"]
+        },
+        {
+          "width": 24,
+          "height": 24,
+          "path": "icons/icon-light.png",
+          "scale": [1, 2],
+          "theme": ["lightest", "light"]
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "width": 24,
+      "height": 24,
+      "path": "icons/icon-dark.png",
+      "scale": [1, 2],
+      "theme": ["darkest", "dark", "medium"]
+    },
+    {
+      "width": 24,
+      "height": 24,
+      "path": "icons/icon-light.png",
+      "scale": [1, 2],
+      "theme": ["lightest", "light"]
     }
   ]
 }

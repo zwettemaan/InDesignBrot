@@ -16,6 +16,7 @@ const runtimeItems = [
   'manifest.json',
   'index.html',
   'main.js',
+  'icons',
   'runtime',
 ];
 

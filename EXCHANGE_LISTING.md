@@ -51,6 +51,7 @@ A full write-up of the findings and what they mean for real-world InDesign autom
 **Requirements**
 
 - Adobe InDesign 2024 (version 19.0) or later
+- No sign-in, subscription, or third-party account required
 
 **About the author**
 
@@ -61,6 +62,7 @@ Kris has 25+ years of experience building InDesign automation systems for enterp
 Get in touch if your InDesign, Illustrator, Photoshop, Acrobat workflows need serious automation, or if you are stuck migrating legacy ExtendScript to UXP:
 
 - Web: https://rorohiko.com
+- Blog: https://coppieters.nz
 - Email: kris@rorohiko.com
 - LinkedIn: https://www.linkedin.com/in/kristiaan/
 - CRDT_UXP (the bridge library): https://github.com/zwettemaan/CRDT_UXP
@@ -79,15 +81,21 @@ https://rorohiko.com
 
 ## Privacy Policy URL
 
-https://rorohiko.com/privacy
-
-*(Create a minimal privacy policy page at this URL before submission. The plugin collects no personal data and makes no network requests, so the policy can be a simple one-liner.)*
+https://rorohiko.com/wordpress/indesignbrot-privacy-policy/
 
 ---
 
-## Category
+## Terms of Service URL
 
-Developer Tools
+https://rorohiko.com/wordpress/indesignbrot-terms-of-service/
+
+
+---
+
+## Categories
+
+- Tools & Automation
+- Usability & Testing
 
 ---
 
@@ -103,25 +111,74 @@ First Exchange release. Compares panel UXP vs UXPScript bridge execution time by
 
 ---
 
+## Package To Upload
+
+`uxp-panel/build/InDesignBrot-uxp-panel-1.0.0.5.ccx`
+
+Built from repo root with:
+
+`zsh ./uxp-panel/build.command`
+
+Current tracked version state:
+
+- `version=1.0.0`
+- `build=5`
+
+---
+
+## Reviewer Notes
+
+- The plugin is free.
+- The plugin does not require any external account, license key, or companion app.
+- The manifest declares network access only for `localhost.tgrg.net`, which resolves to local loopback and is used solely for the bundled CRDT_UXP UXPScript bridge.
+- The plugin opens external links to `https://rorohiko.com`, `https://coppieters.nz`, LinkedIn, and the CRDT_UXP GitHub repo from the panel footer.
+
+---
+
+## Where To Find It
+
+Do not submit this field with vague wording. Adobe specifically rejects unclear install/open instructions.
+
+Use wording based on the final installed Creative Cloud build and confirm the exact menu breadcrumb in InDesign before submission.
+
+Minimum accurate wording:
+
+1. Install InDesignBrot from the Creative Cloud Desktop app.
+2. Launch Adobe InDesign.
+3. Open the `InDesignBrot` panel from Plugins - InDesignBrot UXP Panel - InDesignBrot
+
+---
+
 ## Visual Assets Needed Before Submission
 
 Adobe Exchange requires these assets to be uploaded via the submission form — they are **not** bundled in the .ccx:
 
 | Asset | Spec | Notes |
 |---|---|---|
-| Plugin icon | 512 × 512 px PNG, square, transparent background | Shown in InDesign panel list and Exchange search results |
-| Screenshot 1 | 1280 × 800 px PNG | Panel visible alongside an InDesign document showing rendered Mandelbrot |
-| Screenshot 2 (optional) | 1280 × 800 px PNG | Close-up of the timing result text on the document page |
-| Banner image (optional) | 1920 × 400 px PNG | Exchange listing header graphic |
+| Plugin icon | 512 × 512 px PNG, square | `Developer/exchange-assets/icon-exchange-512.png` |
+| Screenshot 1 | 1280 × 800 px PNG | `Developer/exchange-assets/exchange-screenshot-1-1280x800.png` |
+| Screenshot 2 (optional) | 1280 × 800 px PNG | `Developer/exchange-assets/exchange-screenshot-2-1280x800.png` |
+| Banner image (optional) | 1920 × 400 px PNG | `Developer/exchange-assets/exchange-banner-1920x400.png` |
 
 ---
 
 ## Submission Checklist
 
 - [ ] Privacy policy page live at https://rorohiko.com/privacy
+- [ ] Terms of service page live at https://rorohiko.com/terms
 - [ ] Blog post published at coppieters.nz (Exchange listing links to it)
-- [ ] Plugin icon created (512 × 512 PNG)
-- [ ] At least one 1280 × 800 screenshot ready
-- [ ] CCX rebuilt at version 1.0.0 (`zsh ./uxp-panel/build.command` from repo root)
-- [ ] Adobe Developer Console: publisher profile complete with Rorohiko Ltd / rorohiko.com
+- [x] Plugin icon created (`Developer/exchange-assets/icon-exchange-512.png`)
+- [x] At least one 1280 × 800 screenshot ready (`Developer/exchange-assets/exchange-screenshot-1-1280x800.png`)
+- [x] CCX rebuilt at version 1.0.0 build 5 (`zsh ./uxp-panel/build.command` from repo root)
+- [ ] Adobe Developer Distribution public profile complete with Rorohiko Ltd / rorohiko.com
+- [ ] If EU distribution matters: trader details completed in Adobe Developer Distribution
+- [ ] Confirm exact InDesign menu breadcrumb for opening the panel and paste that into the listing's "Where to find it" field
 - [ ] Plugin submitted for review via https://developer.adobe.com/developer-distribution/
+
+---
+
+## Remaining Submission Blockers
+
+1. Publish live privacy and terms pages on `rorohiko.com`.
+2. Complete the Adobe Developer Distribution public profile.
+3. Confirm the exact installed-menu path for opening the panel in InDesign.
