@@ -1,9 +1,10 @@
 // Mandelbrot set visualization in Adobe InDesign 
 //
-// (c) 2015-2024 Kris Coppieters, kris@rorohiko.com
+// Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+// https://github.com/zwettemaan/InDesignBrot
 //
-// No rhyme nor reason - no practical value, just for fun. Free to use for educational
-// purposes.
+// No rhyme nor reason - no practical value, just for fun. See LICENSE for terms.
 //
 // Start Adobe InDesign, run the script. Go get coffee.
 //

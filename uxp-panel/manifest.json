@@ -1,7 +1,7 @@
 {
   "id": "indesignbrot-uxp-panel",
   "name": "InDesignBrot UXP Panel",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "main": "index.html",
   "host": [
     {
@@ -30,15 +30,15 @@
       },
       "maximumSize": {
         "width": 420,
-        "height": 280
+        "height": 320
       },
       "preferredDockedSize": {
         "width": 320,
-        "height": 180
+        "height": 210
       },
       "preferredFloatingSize": {
         "width": 320,
-        "height": 180
+        "height": 210
       }
     }
   ]

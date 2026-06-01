@@ -11,6 +11,7 @@ const panelRoot = path.dirname(scriptPath);
 const buildRoot = path.join(panelRoot, 'build');
 const stageRoot = path.join(buildRoot, 'ccx-stage');
 const ccxStageDir = path.join(stageRoot, 'indesignbrot-uxp-panel');
+const versionFilePath = path.join(panelRoot, 'version.txt');
 const runtimeItems = [
   'manifest.json',
   'index.html',
@@ -55,6 +56,89 @@ function loadManifest() {
   return JSON.parse(fs.readFileSync(path.join(panelRoot, 'manifest.json'), 'utf8'));
 }
 
+function parseVersionState(rawText) {
+  const state = {
+    version: undefined,
+    build: undefined,
+  };
+
+  for (const rawLine of String(rawText).split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex < 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim().toLowerCase();
+    const value = line.slice(separatorIndex + 1).trim();
+
+    if (key === 'version') {
+      state.version = value;
+      continue;
+    }
+
+    if (key === 'build') {
+      state.build = value;
+    }
+  }
+
+  return state;
+}
+
+function readVersionState(defaultVersion) {
+  if (!fs.existsSync(versionFilePath)) {
+    return {
+      version: defaultVersion,
+      build: 0,
+    };
+  }
+
+  const parsedState = parseVersionState(fs.readFileSync(versionFilePath, 'utf8'));
+  const version = parsedState.version || defaultVersion;
+  const build = Number.parseInt(parsedState.build || '0', 10);
+
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`Invalid version in ${versionFilePath}: ${version}`);
+  }
+
+  if (!Number.isInteger(build) || build < 0) {
+    throw new Error(`Invalid build number in ${versionFilePath}: ${parsedState.build}`);
+  }
+
+  return {
+    version,
+    build,
+  };
+}
+
+function writeVersionState(versionState) {
+  fs.writeFileSync(
+    versionFilePath,
+    `version=${versionState.version}\nbuild=${versionState.build}\n`,
+    'utf8'
+  );
+}
+
+function getNextBuildVersion(defaultVersion) {
+  const versionState = readVersionState(defaultVersion);
+  const nextState = {
+    version: versionState.version,
+    build: versionState.build + 1,
+  };
+
+  writeVersionState(nextState);
+
+  return {
+    baseVersion: nextState.version,
+    buildNumber: nextState.build,
+    fullVersion: `${nextState.version}.${nextState.build}`,
+  };
+}
+
 function buildProductionManifest(manifest) {
   if (Array.isArray(manifest.host) && manifest.host.length > 0) {
     return {
@@ -68,9 +152,11 @@ function buildProductionManifest(manifest) {
 
 function main() {
   const manifest = buildProductionManifest(loadManifest());
-  const version = manifest.version || '0.0.0';
-  const sanitizedVersion = sanitizeVersion(version);
+  const buildVersion = getNextBuildVersion(manifest.version || '0.0.0');
+  const sanitizedVersion = sanitizeVersion(buildVersion.fullVersion);
   const ccxPath = path.join(buildRoot, `InDesignBrot-uxp-panel-${sanitizedVersion}.ccx`);
+
+  manifest.version = buildVersion.fullVersion;
 
   fs.rmSync(stageRoot, { recursive: true, force: true });
   fs.rmSync(ccxPath, { force: true });
@@ -94,6 +180,7 @@ function main() {
   fs.mkdirSync(buildRoot, { recursive: true });
   zipContents(ccxStageDir, ccxPath);
 
+  console.log(`Built version: ${buildVersion.fullVersion}`);
   console.log(`Created CCX archive: ${ccxPath}`);
 }
 

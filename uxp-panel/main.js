@@ -1,3 +1,7 @@
+// Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+// https://github.com/zwettemaan/InDesignBrot
+
 const indesign = require("indesign");
 const localFileSystem = require("uxp").storage.localFileSystem;
 
@@ -313,7 +317,7 @@ async function runViaBridge() {
 
     const result = await waitForBridgeResult(function handleBridgeStarted() {
         setStatus(
-            "Bridged UXPScript started. In this host-owned path InDesign honors enableRedraw = false, so you should not expect progressive visuals while the render runs.",
+            "Bridged UXPScript started.",
             "note"
         );
     });
@@ -348,7 +352,7 @@ async function runAction(startMessage, action, buildSuccessMessage) {
 
 directButton.addEventListener("click", function handleDirectClick() {
     runAction(
-        "Running InDesignBrot in the panel UXP runtime. The script's elapsed-time dialog is suppressed here; the panel will report elapsed time when the run finishes.",
+        "Running InDesignBrot in panel UXP...",
         runDirectInPanel,
         function buildDirectSuccessMessage(result) {
             return "Panel UXP run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
@@ -358,10 +362,25 @@ directButton.addEventListener("click", function handleDirectClick() {
 
 bridgeButton.addEventListener("click", function handleBridgeClick() {
     runAction(
-        "Queueing a host-owned UXPScript run. The panel is waiting for the app label to change from Request to Started, then to the final elapsed time.",
+        "Running InDesignBrot via bridged UXPScript...",
         runViaBridge,
         function buildBridgeSuccessMessage(result) {
-            return "Bridged UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s. In this path InDesign honors enableRedraw = false, so the finished result appears at the end rather than painting progressively.";
+            return "Bridged UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
         }
     );
+});
+
+document.querySelectorAll("a.ext-link").forEach(function attachExtLink(a) {
+    a.addEventListener("click", function handleExtLinkClick(e) {
+        e.preventDefault();
+        const url = a.dataset.url;
+        if (url) {
+            try {
+                require("uxp").shell.openExternal(url);
+            }
+            catch (err) {
+                setStatus("Visit: " + url, "note");
+            }
+        }
+    });
 });

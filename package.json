@@ -1,4 +1,5 @@
 {
+  "license": "LicenseRef-RorohikoSourceAvailable",
   "dependencies": {
     "@types/node": "^20.2.5",
     "types-for-adobe": "^7.0.12"
