@@ -131,7 +131,7 @@ Current tracked version state:
 - The plugin is free.
 - The plugin does not require any external account, license key, or companion app.
 - The manifest declares network access only for `localhost.tgrg.net`, which resolves to local loopback and is used solely for the bundled CRDT_UXP UXPScript bridge.
-- The plugin opens external links to `https://rorohiko.com`, `https://coppieters.nz`, LinkedIn, and the CRDT_UXP GitHub repo from the panel footer.
+- The plugin opens external links to `https://rorohiko.com`, `https://tur.nz`, LinkedIn, and the CRDT_UXP GitHub repo from the panel footer.
 
 ---
 
@@ -164,16 +164,17 @@ Adobe Exchange requires these assets to be uploaded via the submission form — 
 
 ## Submission Checklist
 
-- [ ] Privacy policy page live at https://rorohiko.com/privacy
-- [ ] Terms of service page live at https://rorohiko.com/terms
-- [ ] Blog post published at coppieters.nz (Exchange listing links to it)
+- [x] Privacy policy page live at https://rorohiko.com/privacy
+- [x] Terms of service page live at https://rorohiko.com/terms
+- [x] Blog post published (Exchange listing links to it) https://tur.nz/uxpspeed
 - [x] Plugin icon created (`Developer/exchange-assets/icon-exchange-512.png`)
 - [x] At least one 1280 × 800 screenshot ready (`Developer/exchange-assets/exchange-screenshot-1-1280x800.png`)
 - [x] CCX rebuilt at version 1.0.0 build 5 (`zsh ./uxp-panel/build.command` from repo root)
-- [ ] Adobe Developer Distribution public profile complete with Rorohiko Ltd / rorohiko.com
-- [ ] If EU distribution matters: trader details completed in Adobe Developer Distribution
-- [ ] Confirm exact InDesign menu breadcrumb for opening the panel and paste that into the listing's "Where to find it" field
+- [x] Adobe Developer Distribution public profile complete with Rorohiko Ltd / rorohiko.com
+- [x] If EU distribution matters: trader details completed in Adobe Developer Distribution
+- [x] Confirm exact InDesign menu breadcrumb for opening the panel and paste that into the listing's "Where to find it" field
 - [ ] Plugin submitted for review via https://developer.adobe.com/developer-distribution/
+Plugin ID: ae4cbc17
 
 ---
 
@@ -182,3 +183,5 @@ Adobe Exchange requires these assets to be uploaded via the submission form — 
 1. Publish live privacy and terms pages on `rorohiko.com`.
 2. Complete the Adobe Developer Distribution public profile.
 3. Confirm the exact installed-menu path for opening the panel in InDesign.
+
+

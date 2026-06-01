@@ -136,7 +136,7 @@ function getNextBuildVersion(defaultVersion) {
   return {
     baseVersion: nextState.version,
     buildNumber: nextState.build,
-    fullVersion: `${nextState.version}.${nextState.build}`,
+    packageVersion: `${nextState.version}.${nextState.build}`,
   };
 }
 
@@ -154,10 +154,10 @@ function buildProductionManifest(manifest) {
 function main() {
   const manifest = buildProductionManifest(loadManifest());
   const buildVersion = getNextBuildVersion(manifest.version || '0.0.0');
-  const sanitizedVersion = sanitizeVersion(buildVersion.fullVersion);
+  const sanitizedVersion = sanitizeVersion(buildVersion.packageVersion);
   const ccxPath = path.join(buildRoot, `InDesignBrot-uxp-panel-${sanitizedVersion}.ccx`);
 
-  manifest.version = buildVersion.fullVersion;
+  manifest.version = buildVersion.baseVersion;
 
   fs.rmSync(stageRoot, { recursive: true, force: true });
   fs.rmSync(ccxPath, { force: true });
@@ -181,7 +181,8 @@ function main() {
   fs.mkdirSync(buildRoot, { recursive: true });
   zipContents(ccxStageDir, ccxPath);
 
-  console.log(`Built version: ${buildVersion.fullVersion}`);
+  console.log(`Built version: ${buildVersion.baseVersion}`);
+  console.log(`Build number: ${buildVersion.buildNumber}`);
   console.log(`Created CCX archive: ${ccxPath}`);
 }
 
