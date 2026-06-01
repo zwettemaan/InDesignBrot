@@ -72,25 +72,6 @@ async function waitForInDesignApp() {
     throw new Error("InDesign app is unavailable in this panel runtime.");
 }
 
-function getUXPScriptLanguage() {
-    const runtimeModule = getRuntimeInDesignModule();
-    if (runtimeModule && typeof runtimeModule.getUXPScriptLanguage == "function") {
-        const runtimeLanguage = runtimeModule.getUXPScriptLanguage();
-        if (runtimeLanguage) {
-            return runtimeLanguage;
-        }
-    }
-
-    const currentHost = require("indesign");
-    const scriptLanguage = currentHost && currentHost.ScriptLanguage && currentHost.ScriptLanguage.UXPSCRIPT;
-
-    if (! scriptLanguage) {
-        throw new Error("InDesign UXPSCRIPT language is unavailable in this panel runtime.");
-    }
-
-    return scriptLanguage;
-}
-
 function setButtonsDisabled(disabled) {
     directButton.disabled = disabled;
     bridgeButton.disabled = disabled;
@@ -320,6 +301,7 @@ async function runViaUXPScript() {
     const runtimeFolder = await getRuntimeFolder();
     const launcherEntry = await runtimeFolder.getEntry("InDesignBrot_bridge_runner.idjs");
 
+    const indesign = require("indesign");
     const app = await waitForInDesignApp();
     const pendingValue = "pending:" + Date.now();
 
@@ -327,7 +309,7 @@ async function runViaUXPScript() {
 
     const rawResult = await Promise.resolve(app.doScript(
         launcherEntry.nativePath,
-        getUXPScriptLanguage()
+        indesign.ScriptLanguage.UXPSCRIPT
     ));
 
     const labelResult = getAppLabelFromApp(app, BRIDGE_STATUS_LABEL);

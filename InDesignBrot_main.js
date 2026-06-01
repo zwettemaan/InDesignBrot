@@ -16,10 +16,6 @@ function getInDesignApp() {
     return app;
 }
 
-function getUXPScriptLanguage() {
-    return indesign.ScriptLanguage.UXPSCRIPT;
-}
-
 // The following defaults can be overridden by settings in a document text frame in INI format
 
 //
@@ -99,7 +95,6 @@ async function main() {
 }
 module.exports.main = main;
 module.exports.getInDesignApp = getInDesignApp;
-module.exports.getUXPScriptLanguage = getUXPScriptLanguage;
 
 function calculateMandelbrot(context) {
 
