@@ -24,44 +24,21 @@ const directButton = document.getElementById("run-direct");
 const bridgeButton = document.getElementById("run-bridge");
 const statusNode = document.getElementById("status");
 
-function getRuntimeInDesignModule() {
-    try {
-        return require("./runtime/InDesignBrot_main.js");
-    }
-    catch (err) {
-    }
-
-    return undefined;
-}
-
 function getInDesignApp() {
-    const currentApp = tryGetInDesignApp();
-
-    if (! currentApp) {
-        throw new Error("InDesign app is unavailable in this panel runtime.");
+    if (global.app) {
+        return global.app;
     }
-
+    const indesign = require("indesign");
+    const currentApp = indesign.app;
+    global.app = currentApp;
     return currentApp;
-}
-
-function tryGetInDesignApp() {
-    const runtimeModule = getRuntimeInDesignModule();
-    if (runtimeModule && typeof runtimeModule.getInDesignApp == "function") {
-        const runtimeApp = runtimeModule.getInDesignApp();
-        if (runtimeApp) {
-            return runtimeApp;
-        }
-    }
-
-    const currentHost = require("indesign");
-    return currentHost ? currentHost.app : undefined;
 }
 
 async function waitForInDesignApp() {
     const deadline = Date.now() + 2000;
 
     while (Date.now() <= deadline) {
-        const currentApp = tryGetInDesignApp();
+        const currentApp = getInDesignApp();
         if (currentApp) {
             return currentApp;
         }
