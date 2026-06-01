@@ -1,45 +1,48 @@
 /**
- * Creative Developer Tools (CRDT) is a growing suite of tools aimed at script developers and plug-in developers for the Adobe Creative Cloud eco-system.
- *
- * There are two different versions of CRDT: one for UXP/UXPScript and another for ExtendScript.
- *
- * For downloading and installation info, visit
- *
+ * Creative Developer Tools (CRDT) is a growing suite of tools aimed at script developers and plug-in<br>
+ * developers for the Adobe Creative Cloud eco-system.<br>
+ * <br>
+ * There are two different versions of CRDT: one for UXP/UXPScript and another for ExtendScript.<br>
+ * <br>
+ * For downloading and installation info, visit<br>
+ * <br>
  * https://CreativeDeveloperTools.com
- *
- *  `crdtuxp` contains a number of useful functions. Some of these functions
- * are implemented in JavaScript in `crdtux.js` and are synchronous.
- *
- * Other functions are delegated to a daemon process, and are always asynchronous.
- *
- * The list of endpoints is further down
- *
- * `crdtuxp` steps out of the UXP security sandbox - which means that as a developer,
- * you need to be judicious when using this.
- *
- * Every solution operates in a unique context. The UXP security measures are
- * helpful in keeping things secure, but in many situations, they are a massive overkill.
- *
- * It should be up to the user/developer/IT department to decide how to handle security.
- *
- * Sometimes the whole workflow can live inside walled garden, on a disconnected network, 
- * without any contact with the outside world and not be allowed to run any
- * unvetted software.
- *
- * Or sometimes the OS security is safe enough for the workflow at hand.
- *
- * In those cases, the UXP security measures are counter-productive: they represent
- * unnessary hurdles to the software development, or make the user interace clunky and
- * user-unfriendly.
- *
- * Using the UXP sandboxing should be a developer-selectable option, not an enforced requirement, and it should
- * be up to the developer and/or the IT department to decide what is appropriate and what not.
- *
+ * <br>
+ *  <code>crdtuxp</code> contains a number of useful functions. Some of these functions are implemented in JavaScript<br>
+ * in <code>crdtux.js</code> and are synchronous.<br>
+ * <br>
+ * Other functions are delegated to a daemon process, and are always asynchronous.<br>
+ * <br>
+ * The list of endpoints is further down<br>
+ * <br>
+ * <code>crdtuxp</code> steps out of the UXP security sandbox - which means that as a developer, you need to be<br>
+ * judicious when using this.<br>
+ * <br>
+ * Every solution operates in a unique context. The UXP security measures are helpful in keeping things<br>
+ * secure, but in many situations, they are a massive overkill.<br>
+ * <br>
+ * It should be up to the user/developer/IT department to decide how to handle security.<br>
+ * <br>
+ * Sometimes the whole workflow can live inside walled garden, on a disconnected network, without any<br>
+ * contact with the outside world and not be allowed to run any unvetted software.<br>
+ * <br>
+ * Or sometimes the OS security is safe enough for the workflow at hand.<br>
+ * <br>
+ * In those cases, the UXP security measures are counter-productive: they represent unnessary hurdles to<br>
+ * the software development, or make the user interace clunky and user-unfriendly.<br>
+ * <br>
+ * Using the UXP sandboxing should be a developer-selectable option, not an enforced requirement, and it<br>
+ * should be up to the developer and/or the IT department to decide what is appropriate and what not.<br>
+ *<br>
  * @module crdtuxp
+ * @namespace crdtuxp
  */
 
-const DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS   = 1000;
+const DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS   =  1000;
 const DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS    = 60000;
+
+const RESPONSE_CHECK_FILE_INTERVAL_MILLISECONDS =   500;
+const RESPONSE_CHECK_FILE_TIMEOUT_MILLISECONDS  =  1000;
 
 const UXP_VARIANT_PHOTOSHOP_UXP                 = "UXP_VARIANT_PHOTOSHOP_UXP";
 const UXP_VARIANT_PHOTOSHOP_UXPSCRIPT           = "UXP_VARIANT_PHOTOSHOP_UXPSCRIPT";
@@ -71,8 +74,8 @@ platformGlobals.defineGlobalObject = function defineGlobalObject(globalName) {
 }
 
 /**
- * `localhost.tgrg.net` resolves to `127.0.0.1`
- *
+ * <code>localhost.tgrg.net</code> resolves to <code>127.0.0.1</code><br>
+ * <br>
  * The Tightener daemon manages the necessary certificate for https
  *
  * @constant {string} DNS_NAME_FOR_LOCALHOST
@@ -81,7 +84,7 @@ platformGlobals.defineGlobalObject = function defineGlobalObject(globalName) {
 const DNS_NAME_FOR_LOCALHOST = "localhost.tgrg.net";
 
 /**
- * The Tightener daemon listens for HTTPS connections on port `18888`.
+ * The Tightener daemon listens for HTTPS connections on port <code>18888</code>.
  *
  * @constant {number} PORT_TIGHTENER_DAEMON
  */
@@ -90,9 +93,9 @@ const PORT_TIGHTENER_DAEMON = 18888;
 const LOCALHOST_URL = "https://" + DNS_NAME_FOR_LOCALHOST+ ":" + PORT_TIGHTENER_DAEMON;
 
 /**
- * The Tightener daemon provides persistent named scopes (similar to persistent ExtendScript engines).
- *
- * When executing multiple TQL scripts in succession a named scope will retain any globals that
+ * The Tightener daemon provides persistent named scopes (similar to persistent ExtendScript engines).<br>
+ * <br>
+ * When executing multiple TQL scripts in succession a named scope will retain any globals that<br>
  * were defined by a previous script.
  *
  * @constant {string} TQL_SCOPE_NAME_DEFAULT
@@ -116,6 +119,11 @@ else {
     FILE_NOT_EXIST_ERROR = -4058;
 }
 
+
+/**
+ * @namespace path
+ * @memberof crdtuxp
+ */
 module.exports.path = {};
 if (module.exports.IS_MAC) {
     module.exports.path.SEPARATOR = "/";
@@ -127,15 +135,16 @@ else {
 }
 
 /**
- * Setting log level to `LOG_LEVEL_OFF` causes all log output to be suppressed.
+ * Setting log level to <code>crdtuxp.LOG_LEVEL_OFF</code> causes all log output to be suppressed.
  *
  * @constant {number} LOG_LEVEL_OFF
+ * 
  */
 const LOG_LEVEL_OFF = 0;
 module.exports.LOG_LEVEL_OFF = LOG_LEVEL_OFF;
 
 /**
- * Setting log level to `LOG_LEVEL_ERROR` causes all log output to be suppressed,
+ * Setting log level to <code>crdtuxp.LOG_LEVEL_ERROR</code> causes all log output to be suppressed,<br>
  * except for errors.
  *
  * @constant {number} LOG_LEVEL_ERROR
@@ -144,7 +153,7 @@ const LOG_LEVEL_ERROR = 1;
 module.exports.LOG_LEVEL_ERROR = LOG_LEVEL_ERROR;
 
 /**
- * Setting log level to `LOG_LEVEL_WARNING` causes all log output to be suppressed,
+ * Setting log level to <code>crdtuxp.LOG_LEVEL_WARNING</code> causes all log output to be suppressed,<br>
  * except for errors and warnings.
  *
  * @constant {number} LOG_LEVEL_WARNING
@@ -153,7 +162,7 @@ const LOG_LEVEL_WARNING = 2;
 module.exports.LOG_LEVEL_WARNING = LOG_LEVEL_WARNING;
 
 /**
- * Setting log level to `LOG_LEVEL_NOTE` causes all log output to be suppressed,
+ * Setting log level to <code>crdtuxp.LOG_LEVEL_NOTE</code> causes all log output to be suppressed,<br>
  * except for errors, warnings and notes.
  *
  * @constant {number} LOG_LEVEL_NOTE
@@ -162,103 +171,103 @@ const LOG_LEVEL_NOTE = 3;
 module.exports.LOG_LEVEL_NOTE = LOG_LEVEL_NOTE;
 
 /**
- * Setting log level to `LOG_LEVEL_TRACE` causes all log output to be output.
+ * Setting log level to <code>crdtuxp.LOG_LEVEL_TRACE</code> causes all log output to be output.
  *
  * @constant {number} LOG_LEVEL_TRACE
  */
 const LOG_LEVEL_TRACE = 4;
 module.exports.LOG_LEVEL_TRACE = LOG_LEVEL_TRACE;
 
-// Symbolic params to `getDir()`
+// Symbolic params to <code>getDir()</code>
 
 /**
- * Pass `DESKTOP_DIR` into `getDir()` to get the path of the user's Desktop folder.
+ * Pass <code>crdtuxp.DESKTOP_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the user's Desktop folder.
  *
  * @constant {string} DESKTOP_DIR
  */
 module.exports.DESKTOP_DIR    = "DESKTOP_DIR";
 
 /**
- * Pass `DOCUMENTS_DIR` into `getDir()` to get the path of the user's Documents folder.
+ * Pass <code>crdtuxp.DOCUMENTS_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the user's Documents folder.
  *
  * @constant {string} DOCUMENTS_DIR
  */
 module.exports.DOCUMENTS_DIR  = "DOCUMENTS_DIR";
 
 /**
- * Pass `HOME_DIR` into `getDir()` to get the path of the user's home folder.
+ * Pass <code>crdtuxp.HOME_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the user's home folder.
  *
  * @constant {string} HOME_DIR
  */
 module.exports.HOME_DIR       = "HOME_DIR";
 
 /**
- * Pass `LOG_DIR` into `getDir()` to get the path of the Tightener logging folder.
+ * Pass <code>crdtuxp.LOG_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the Tightener logging folder.
  *
  * @constant {string} LOG_DIR
  */
 module.exports.LOG_DIR        = "LOG_DIR";
 
 /**
- * Pass `SYSTEMDATA_DIR` into `getDir()` to get the path of the system data folder
- * (`%PROGRAMDATA%` or `/Library/Application Support`).
+ * Pass <code>crdtuxp.SYSTEMDATA_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the system data folder<br>
+ * (<code>%PROGRAMDATA%</code> or <code>/Library/Application Support</code>).
  *
  * @constant {string} SYSTEMDATA_DIR
  */
 module.exports.SYSTEMDATA_DIR = "SYSTEMDATA_DIR";
 
 /**
- * Pass `TMP_DIR` into `getDir()` to get the path of the temporary folder.
+ * Pass <code>crdtuxp.TMP_DIR</code> into <code>crdtuxp.getDir()</code> to get the path of the temporary folder.
  *
  * @constant {string} TMP_DIR
  */
 module.exports.TMP_DIR        = "TMP_DIR";
 
 /**
- * Pass `USERDATA_DIR` into `getDir()` to get the path to the user data folder
- * (`%APPDATA%` or `~/Library/Application Support`).
+ * Pass <code>crdtuxp.USERDATA_DIR</code> into <code>crdtuxp.getDir()</code> to get the path to the user data folder<br>
+ * (<code>%APPDATA%</code> or <code>~/Library/Application Support</code>).
  *
  * @constant {string} USERDATA_DIR
  */
 module.exports.USERDATA_DIR   = "USERDATA_DIR";
 
 /**
- * `UNIT_NAME_NONE` represents unit-less values.
+ * <code>crdtuxp.UNIT_NAME_NONE</code> represents unit-less values.
  */
 module.exports.UNIT_NAME_NONE     = "NONE";
 
 /**
- * `UNIT_NAME_INCH` for inches.
+ * <code>crdtuxp.UNIT_NAME_INCH</code> for inches.
  */
 module.exports.UNIT_NAME_INCH     = "\"";
 
 /**
- * `UNIT_NAME_CM` for centimeters
+ * <code>crdtuxp.UNIT_NAME_CM</code> for centimeters
  */
 module.exports.UNIT_NAME_CM       = "cm";
 
 /**
- * `UNIT_NAME_MM` for millimeters
+ * <code>crdtuxp.UNIT_NAME_MM</code> for millimeters
  */
 module.exports.UNIT_NAME_MM       = "mm";
 
 /**
- * `UNIT_NAME_CICERO` for ciceros
+ * <code>crdtuxp.UNIT_NAME_CICERO</code> for ciceros
  */
 module.exports.UNIT_NAME_CICERO   = "cicero";
 
 /**
- * `UNIT_NAME_PICA` for picas
+ * <code>crdtuxp.UNIT_NAME_PICA</code> for picas
  */
 module.exports.UNIT_NAME_PICA     = "pica";
 
 /**
- * `UNIT_NAME_PIXEL` for pixels
+ * <code>crdtuxp.UNIT_NAME_PIXEL</code> for pixels
  */
 module.exports.UNIT_NAME_PIXEL    = "px";
 
 /**
- * `UNIT_NAME_POINT` for points
+ * <code>crdtuxp.UNIT_NAME_POINT</code> for points
  */
 module.exports.UNIT_NAME_POINT    = "pt";
 
@@ -310,10 +319,11 @@ let LOCALE_STRINGS                             = {
 
 module.exports.LOCALE                          = DEFAULT_LOCALE;
 module.exports.LOCALE_STRINGS                  = LOCALE_STRINGS;
+module.exports.LOCALE_EN_US                    = LOCALE_EN_US;
 
 //
 // UXP internally caches responses from the server - we need to avoid this as each script
-// run can return different results. `HTTP_CACHE_BUSTER` will be incremented after each use.
+// run can return different results. <code>HTTP_CACHE_BUSTER</code> will be incremented after each use.
 //
 let HTTP_CACHE_BUSTER         = Math.floor(Math.random() * 1000000);
 let LOG_LEVEL_STACK           = [];
@@ -322,10 +332,13 @@ let LOG_LEVEL                 = LOG_LEVEL_OFF;
 let IN_LOGGER                 = false;
 let LOG_TO_UXPDEVTOOL_CONSOLE = true;
 let LOG_TO_CRDT               = false;
-let LOG_TO_FILEPATH           = undefined;
+let LOG_TO_FILE_PATH          = undefined;
 
 // Inefficient logging using readSync/writeSync
-let SYNC_LOG_TO_FILEPATH      = undefined;
+let SYNC_LOG_TO_FILE_PATH     = undefined;
+
+// Set to false to suppress calls to consoleLog 
+let LOG_TO_CONSOLE            = true;
 
 let SYS_INFO;
 
@@ -333,10 +346,10 @@ let SYS_INFO;
  * Make sure a path ends in a trailing separator (helps identify directory paths)
  *
  * @function addTrailingSeparator
- *
+ * @memberof crdtuxp.path
+ * 
  * @param {string} filePath - a file path 
- * @param {string=} separator - the separator to use. If omitted, will try 
- * guess the separator.
+ * @param {string=} separator - the separator to use. If omitted, will try to guess the separator.
  * @returns file path with a terminating separator
  */
 
@@ -383,6 +396,7 @@ module.exports.path.addTrailingSeparator = addTrailingSeparator;
  * Show an alert.
  *
  * @function alert
+ * @memberof crdtuxp
  *
  * @param {string} message - string to display
  * @returns {Promise<any>}
@@ -404,7 +418,7 @@ function alert(message) {
                 uxpContext.app.doScript(
                     "alert(" + crdtuxp.dQ(message) + ")", 
                     uxpContext.indesign.ScriptLanguage.JAVASCRIPT);
-                retVal = true;
+                retVal = RESOLVED_PROMISE_TRUE;
                 break;
             }
 
@@ -420,7 +434,7 @@ function alert(message) {
                 dlg.canCancel = false;
                 dlg.show();
                 dlg.destroy(); 
-                retVal = true;
+                retVal = RESOLVED_PROMISE_TRUE;
                 break;
             }
 
@@ -497,19 +511,19 @@ function alert(message) {
 module.exports.alert = alert;
 
 /**
- * Decode a string that was encoded using base64.
- *
- * The evalTQL variant of the function has not been speed-tested; it's mainly for 
- * testing things.
- *
- * I suspect it might only be beneficial for very large long strings, if that. 
+ * Decode a string that was encoded using base64.<br>
+ * <br>
+ * The evalTQL variant of the function has not been speed-tested; it's mainly for testing things.<br>
+ * <br>
+ * I suspect it might only be beneficial for very large long strings, if that.<br>
  * The overheads might be larger than the speed benefit.
  *
  * @function base64decode
+ * @memberof crdtuxp
  *
  * @param {string} base64Str - base64 encoded string
- * @param {object=} options - options: {
- *   isBinary: true/false, default false
+ * @param {object=} options - options: {<br>
+ *   isBinary: true/false, default false<br>
  * }
  * @returns {Promise<string|array|undefined>} decoded string
  */
@@ -528,11 +542,13 @@ function base64decode(base64Str, options) {
 
                 let rawString = window.atob(base64Str);
                 let byteArray = rawStringToByteArray(rawString);
-                if (isBinary) {
-                    retVal = byteArray;
-                }
-                else {
-                    retVal = binaryUTF8ToStr(byteArray);
+                if (byteArray) {
+                    if (isBinary) {
+                        retVal = Promise.resolve(byteArray);
+                    }
+                    else {
+                        retVal = Promise.resolve(binaryUTF8ToStr(byteArray));
+                    }
                 }
                 break;
             }
@@ -594,15 +610,16 @@ function base64decode(base64Str, options) {
 module.exports.base64decode = base64decode;
 
 /**
- * Encode a string or an array of bytes using Base 64 encoding.
- *
- * The evalTQL variant of the function has not been speed-tested; it's mainly for 
- * testing things.
- *
- * I suspect it might only be beneficial for very large long strings, if that. 
+ * Encode a string or an array of bytes using Base 64 encoding.<br>
+ * <br>
+ * The evalTQL variant of the function has not been speed-tested; it's mainly for testing things.<br>
+ * <br>
+ * I suspect it might only be beneficial for very large long strings, if that.<br>
+ * <br>
  * The overheads might be larger than the speed benefit.
  *
  * @function base64encode
+ * @memberof crdtuxp
  *
  * @param {string} s_or_ByteArr - either a string or an array containing bytes (0-255).
  * @returns {Promise<string|undefined>} encoded string
@@ -689,10 +706,10 @@ module.exports.base64encode = base64encode;
  * Get the last segment of a path
  *
  * @function baseName
+ * @memberof crdtuxp.path
  *
  * @param {string} filePath - a file path 
- * @param {string=} separator - the separator to use. If omitted, will try 
- * guess the separator.
+ * @param {string=} separator - the separator to use. If omitted, will try to guess the separator.
  * @returns {string} the last segment of the path
  */
 
@@ -724,9 +741,9 @@ module.exports.path.baseName = baseName;
  * Decode an array of bytes that contains a UTF-8 encoded string.
  *
  * @function binaryUTF8ToStr
+ * @memberof crdtuxp
  *
- * @param {array} in_byteArray - an array containing bytes (0-255)
- * for a string using UTF-8 encoding.
+ * @param {array} in_byteArray - an array containing bytes (0-255) for a string using UTF-8 encoding.
  * @returns {string|undefined} a string or undefined if the UTF-8 is not valid
  */
 function binaryUTF8ToStr(in_byteArray) {
@@ -799,8 +816,9 @@ module.exports.binaryUTF8ToStr = binaryUTF8ToStr;
  * Make a byte array into a 'fake string'. Not UTF8-aware
  *
  * @function byteArrayToRawString
+ * @memberof crdtuxp
  *
- * @param {string} in_byteArray - a byte array
+ * @param {array} in_array - a byte array
  * @returns {string|undefined} a string with the exact same bytes
  */
 function byteArrayToRawString(in_array) {
@@ -871,13 +889,15 @@ function charCodeToUTF8__(in_charCode) {
  * Configure the logger
  *
  * @function configLogger
+ * @memberof crdtuxp
  *
- * @param {object} logInfo - object with logger setup info
- *     logLevel: 0-4
- *     logEntryExit: boolean
- *     logToUXPConsole: boolean
- *     logToCRDT: boolean
- *     logToFilePath: undefined or a file path for logging
+ * @param {object} logInfo - object with logger setup info<br>
+ *     <code>logLevel: 0-4<br>
+ *     logEntryExit: boolean<br>
+ *     logToUXPConsole: boolean<br>
+ *     logToCRDT: boolean<br>
+ *     logToFilePath: undefined or a file path for logging through the daemon<br>
+ *     syncLogToFilePath: undefined or a file path for direct synchronous append logging<br></code>
  * 
  * @returns {boolean} success/failure
  */
@@ -905,10 +925,10 @@ function configLogger(logInfo) {
                 LOG_TO_CRDT = logInfo.logToCRDT;
             }
             if ("logToFilePath" in logInfo) {
-                LOG_TO_FILEPATH = logInfo.logToFilePath;
+                LOG_TO_FILE_PATH = logInfo.logToFilePath;
             }
             if ("syncLogToFilePath" in logInfo) {
-                SYNC_LOG_TO_FILEPATH = logInfo.syncLogToFilePath;
+                SYNC_LOG_TO_FILE_PATH = logInfo.syncLogToFilePath;
             }
             retVal = true;
         }
@@ -923,29 +943,36 @@ function configLogger(logInfo) {
 module.exports.configLogger = configLogger;
 
 /**
- * Bottleneck for consoleLog
+ * Bottleneck for <code>console.log</code>. Only call this function for when <code>crdtuxp.log...</code> is not<br>
+ * available, e.g. before <code>crdtux</code> has loaded or from within functions used by the logging<br>
+ * functionaly like <code>crdtuxp.evalTQL()</code><br>
  *
  * @function consoleLog
+ * @memberof crdtuxp
  *
  * @param {...*} args - args for function
  */
-function consoleLog(...args) {
+function consoleLog(...args) {    
 // coderstate: function
-    console.log(...args);
 
-    if (SYNC_LOG_TO_FILEPATH) {
-        fileAppend_(SYNC_LOG_TO_FILEPATH, args[0] + "\n");
+    if (LOG_TO_CONSOLE) {
+        console.log(...args);
+    }
+
+    if (SYNC_LOG_TO_FILE_PATH) {
+        fileAppend_(SYNC_LOG_TO_FILE_PATH, args[0] + "\n");
     }
 
 }
 module.exports.consoleLog = consoleLog;
 
 /**
- * Reverse the operation of the `encrypt()` function.
- *
+ * Reverse the operation of the <code>crdtuxp.encrypt()</code> function.<br>
+ * <br>
  * Only available to paid developer accounts
  *
  * @function decrypt
+ * @memberof crdtuxp
  *
  * @param {string} s_or_ByteArr - a string or an array of bytes
  * @param {string} aesKey - a string or an array of bytes
@@ -1018,6 +1045,7 @@ module.exports.decrypt = decrypt;
  * Delayed execution of a function
  *
  * @function delayFunction
+ * @memberof crdtuxp
  *
  * @param {number} delayTimeMilliseconds - a delay in milliseconds
  * @param {function} ftn - a function
@@ -1068,12 +1096,13 @@ function delayFunction(delayTimeMilliseconds, ftn, ...args) {
 module.exports.delayFunction = delayFunction;
 
 /**
- * Reverse the operation of `dQ()` or `sQ()`.
+ * Reverse the operation of <code>crdtuxp.dQ()</code> or <code>crdtuxp.sQ()</code>.
  *
  * @function deQuote
+ * @memberof crdtuxp
  *
  * @param {string} quotedString - a quoted string
- * @returns {array} a byte array. If the quoted string contains any `\uHHHH`` codes,
+ * @returns {array} a byte array. If the quoted string contains any <code>\uHHHH</code> codes,<br>
  * these are first re-encoded using UTF-8 before storing them into the byte array.
  */
 function deQuote(quotedString) {
@@ -1089,19 +1118,19 @@ function deQuote(quotedString) {
 
             let qLen = quotedString.length;
             if (qLen < 2) {
-                retVal = quotedString;
+                retVal = strToUTF8(quotedString);
                 break;
             }
 
             const quoteChar = quotedString.charAt(0);
             qLen -= 1;
             if (quoteChar != quotedString.charAt(qLen)) {
-                retVal = quotedString;
+                retVal = strToUTF8(quotedString);
                 break;
             }
 
             if (quoteChar != '"' && quoteChar != "'") {
-                retVal = quotedString;
+                retVal = strToUTF8(quotedString);
                 break;
             }
 
@@ -1226,11 +1255,12 @@ function deQuote(quotedString) {
 module.exports.deQuote = deQuote;
 
 /**
- * Create a directory.
- *
+ * Create a directory.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function dirCreate
+ * @memberof crdtuxp
  *
  * @param {string} filePath
  * @returns {Promise<boolean|undefined>} success or failure
@@ -1244,7 +1274,7 @@ function dirCreate(filePath) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -1255,7 +1285,7 @@ function dirCreate(filePath) {
                 try {
                     const stats = uxpContext.fs.lstatSync(parentPath);
                     if (! stats || ! stats.isDirectory()) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     } 
                 }
@@ -1269,7 +1299,7 @@ function dirCreate(filePath) {
                 try {
                     const stats = uxpContext.fs.lstatSync(filePath);
                     if (stats) {
-                        retVal = false;
+                        retVal = RESOLVED_PROMISE_FALSE;
                         break;
                     }
                 }
@@ -1348,14 +1378,14 @@ function dirCreate(filePath) {
 module.exports.dirCreate = dirCreate;
 
 /**
- * Delete a directory.
- *
- * Not restricted by the UXP security sandbox.
- *
- * Be very careful with the `recurse` parameter! It is very easy to delete the wrong 
- * directory.
+ * Delete a directory.<br>
+ * <br>
+ * Not restricted by the UXP security sandbox.<br>
+ * <br>
+ * Be very careful with the <code>recurse</code> parameter! It is very easy to delete the wrong directory.
  *
  * @function dirDelete
+ * @memberof crdtuxp
  *
  * @param {string} filePath
  * @param {boolean} recurse
@@ -1370,7 +1400,7 @@ function dirDelete(filePath, recurse) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -1577,14 +1607,15 @@ function dirDelete(filePath, recurse) {
 module.exports.dirDelete = dirDelete;
 
 /**
- * Verify whether a directory exists. Will return `false` if the path points to a file 
- * (instead of a directory).
- *
- * Also see `fileExists()`.
- *
+ * Verify whether a directory exists. Will return <code>false</code> if the path points to a file<br>
+ * (instead of a directory).<br>
+ * <br>
+ * Also see <code>crdtuxp.fileExists()</code>.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function dirExists
+ * @memberof crdtuxp
  *
  * @param {string} dirPath - a path to a directory
  * @returns {Promise<boolean|undefined>} success or failure
@@ -1598,7 +1629,7 @@ function dirExists(dirPath) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -1671,14 +1702,15 @@ module.exports.dirExists = dirExists;
  * Get the parent directory of a path
  *
  * @function dirName
+ * @memberof crdtuxp.path
  *
  * @param {string} filePath - a file path 
- * @param {object=} options - options: 
- * { 
- *   addTrailingSeparator: true/false, default false,
- *   separator: separatorchar. the separator to use. If omitted, will try to guess the 
- *   separator.
- * }
+ * @param {object=} options - options:<br> 
+ * <code>{<br>
+ *   addTrailingSeparator: true/false, default false,<br>
+ *   separator: separatorchar. the separator to use. If omitted, will try to guess the <br>
+ *   separator.<br>
+ * }</code>
  * @param {string=} separator - 
  * @returns the parent of the path
  */
@@ -1722,11 +1754,12 @@ function dirName(filePath, options) {
 module.exports.path.dirName = dirName;
 
 /**
- * Scan a directory.
- *
+ * Scan a directory.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function dirScan
+ * @memberof crdtuxp
  *
  * @param {string} filePath
  * @returns {Promise<Array|undefined>} list of items in directory
@@ -1741,7 +1774,7 @@ function dirScan(filePath) {
         try {
             // https://developer.adobe.com/photoshop/uxp/2022/uxp-api/reference-js/Modules/fs/
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -1751,7 +1784,7 @@ function dirScan(filePath) {
                 }
                 catch (err) {
                     crdtuxp.logError(arguments, "throws " + err);
-                    retVal = false;
+                    retVal = RESOLVED_PROMISE_FALSE;
                     break;
                 }
                 retVal = Promise.resolve(entries);
@@ -1830,23 +1863,22 @@ function dirScan(filePath) {
 module.exports.dirScan = dirScan;
 
 /**
- * Wrap a string or a byte array into double quotes, encoding any
- * binary data as a string. Knows how to handle Unicode characters
- * or binary zeroes.
- *
- * When the input is a string, high Unicode characters are
- * encoded as `\uHHHH`.
- *
- * When the input is a byte array, all bytes are encoded
- * as characters or as `\xHH` escape sequences.
+ * Wrap a string or a byte array into double quotes, encoding any binary data as a string.<br>
+ * Knows how to handle Unicode characters or binary zeroes.<br>
+ * <br>
+ * When the input is a string, high Unicode characters are encoded as <code>\uHHHH</code>.<br>
+ * <br>
+ * When the input is a byte array, all bytes are encoded as characters or as <code>\xHH</code><br>
+ * escape sequences.
  *
  * @function dQ
+ * @memberof crdtuxp
  *
  * @param {string|Array} s_or_ByteArr - a Unicode string or an array of bytes
- * @returns {string} a string enclosed in double quotes. This string is pure 7-bit
- * ASCII and can be used into generated script code
- * Example:
- * `let script = "a=b(" + dQ(somedata) + ");";`
+ * @returns {string|undefined} a string enclosed in double quotes. This string is pure 7-bit<br>
+ * ASCII and can be used into generated script code<br>
+ * Example:<br>
+ * <code>let script = "a=b(" + crdtuxp.dQ(somedata) + ");";</code>
  */
 function dQ(s_or_ByteArr) {
 // coderstate: function
@@ -1864,13 +1896,13 @@ function dQ(s_or_ByteArr) {
 module.exports.dQ = dQ;
 
 /**
- * Encrypt a string or array of bytes using a key. A random salt
- * is added into the mix, so even when passing in the same parameter values, the result will
- * be different every time.
- *
+ * Encrypt a string or array of bytes using a key. A random salt is added into the mix,<br>
+ * so even when passing in the same parameter values, the result will be different every time.<br>
+ * <br>
  * Only available to paid developer accounts
  *
  * @function encrypt
+ * @memberof crdtuxp
  *
  * @param {string} s_or_ByteArr - a string or an array of bytes
  * @param {string} aesKey - a string or an array of bytes, key
@@ -1940,9 +1972,16 @@ function encrypt(s_or_ByteArr, aesKey, aesIV) {
 }
 module.exports.encrypt = encrypt;
 
-//
-// enQuote__: Internal helper function. Escape and wrap a string in quotes
-//
+/**
+ * Internal: Escape and wrap a string in quotes
+ *
+ * @function enQuote__
+ *
+ * @param {string|Array} s_or_ByteArr - a string or a byte array
+ * @param {string} quoteChar - a string with a single character to use for quoting (<code>"'"</code> or <code>'"'</code>)
+ * @returns {string} an string
+ */
+
 function enQuote__(s_or_ByteArr, quoteChar) {
 // coderstate: function
     let retVal = "";
@@ -2011,15 +2050,15 @@ function enQuote__(s_or_ByteArr, quoteChar) {
  * Send a TQL script to the daemon and wait for the result
  *
  * @function evalTQL
+ * @memberof crdtuxp
  *
  * @param {string} tqlScript - a script to run
- * @param {string=} tqlScopeName - a scope name to use. Scopes are persistent for the 
- * duration of the daemon process and can be used to pass data between different 
- * processes
- * @param {object=} options - optional. 
- *   options.wait when false don't wait to resolve, default true
- *   options.isBinary default false
- *   options.tqlScopeName default TQL_SCOPE_NAME_DEFAULT
+ * @param {object=} options - optional. <br>
+ *   <code>options.wait</code> when <code>false</code> don't wait to resolve, default <code>true</code><br>
+ *   <code>options.isBinary</code> default <code>false</code><br>
+ *   <code>options.tqlScopeName</code> default <code>TQL_SCOPE_NAME_DEFAULT</code><br>
+ *   <code>options.waitFileTimeout</code> default <code>DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS</code><br>
+ *   <code>options.waitFileCheckInterval</code> default <code>DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS</code><br>
  * or can be decoded as a string
  * @returns {Promise<any>} a string or a byte array
  */
@@ -2036,11 +2075,15 @@ function evalTQL(tqlScript, options) {
             let resultIsRawBinary = false;
             let wait = true;
             let tqlScopeName = TQL_SCOPE_NAME_DEFAULT;
+            let waitFileTimeout = DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS;
+            let waitFileCheckInterval = DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS;
 
             if (options) {
                 resultIsRawBinary = !!options.isBinary;
                 wait = options.wait === undefined ? true : options.wait;
                 tqlScopeName = options.tqlScopeName || TQL_SCOPE_NAME_DEFAULT;
+                waitFileTimeout = options.waitFileTimeout || DEFAULT_WAIT_FILE_TIMEOUT_MILLISECONDS;
+                waitFileCheckInterval = options.waitFileCheckInterval || DEFAULT_WAIT_FILE_INTERVAL_MILLISECONDS;
             }
 
             let uxpContext = getUXPContext();
@@ -2105,9 +2148,19 @@ function evalTQL(tqlScript, options) {
                     let retVal = undefined;
 
                     let responseText;
+                    let responseTextUnwrapped;
+
                     do {
                         try {
+
+                            if (! replyByteArray) {
+                                break;
+                            }
+
                             let jsonResponse = binaryUTF8ToStr(replyByteArray);
+                            if (jsonResponse == "undefined") {
+                                break;
+                            }
 
                             let response;
                             try {
@@ -2134,7 +2187,7 @@ function evalTQL(tqlScript, options) {
                     if (resultIsRawBinary) {
                         responseTextUnwrapped = responseText;
                     }
-                    else {
+                    else if (responseText) {
                         responseTextUnwrapped = binaryUTF8ToStr(deQuote(responseText));
                     }
 
@@ -2207,9 +2260,14 @@ function evalTQL(tqlScript, options) {
                     break;
                 }
 
-                retVal = crdtuxp.waitForFile(responseFilePath).then(
-                    responseWaitResolveFtn,
-                    responseWaitRejectFtn
+                retVal = 
+                    crdtuxp.waitForFile(
+                        responseFilePath,
+                        waitFileCheckInterval,
+                        waitFileTimeout
+                    ).then(
+                        responseWaitResolveFtn,
+                        responseWaitRejectFtn
                 );
 
                 break;
@@ -2244,6 +2302,14 @@ function evalTQL(tqlScript, options) {
 
                     do {
                         let responseTextUnwrapped;
+                        if (! responseText) {
+                            break;
+                        }
+
+                        if (responseText == "undefined") {
+                            break;
+                        }
+
                         try {
                             if (resultIsRawBinary) {
                                 responseTextUnwrapped = responseText;
@@ -2360,17 +2426,18 @@ function fileAppend_(filePath, data) {
 module.exports.fileAppend_ = fileAppend_;
 
 /**
- * Append a string to a file (useful for logging)
- *
+ * Append a string to a file (useful for logging).<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileAppendString
+ * @memberof crdtuxp
  *
  * @param {string} fileName - path to file
  * @param {string} appendStr - data to append. If a newline is needed it needs to be part of appendStr
- * @param {object=} options - {
- *      options.wait = false means don't wait to resolve
- * }
+ * @param {object=} options - <code>{<br>
+ *     options.wait = false means don't wait to resolve<br>
+ * }</code>
  * @returns {Promise<boolean|undefined>} success or failure
  */
 
@@ -2458,13 +2525,14 @@ function fileAppendString(fileName, in_appendStr, options) {
 module.exports.fileAppendString = fileAppendString;
 
 /**
- * Close a currently open file
- *
+ * Close a currently open file.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileClose
+ * @memberof crdtuxp
  *
- * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
+ * @param {number} fileHandle - a file handle as returned by <code>crdtuxp.fileOpen()</code>.
  * @returns {Promise<boolean|undefined>} success or failure
  */
 
@@ -2476,7 +2544,7 @@ function fileClose(fileHandle) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
                 let fileInfo = uxpContext.fileInfoByFileHandle[fileHandle];
@@ -2535,11 +2603,79 @@ function fileClose(fileHandle) {
 module.exports.fileClose = fileClose;
 
 /**
- * Delete a file
+ * Copy a file.<br>
+ * <br>
+ * Not restricted by the UXP security sandbox.
  *
+ * @function fileCopy
+ * @memberof crdtuxp
+ *
+ * @param {string} fileFromPath - file to copy
+ * @param {string} fileToPath - where to copy to
+ * @returns {Promise<boolean|undefined>} success or failure
+ */
+
+function fileCopy(fileFromPath, fileToPath) {
+// coderstate: promisor
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
+
+    do {
+
+        try {
+
+            const responsePromise = 
+                evalTQL(
+                    "fileCopy(" + dQ(fileFromPath) + "," + dQ(fileToPath) + ") ? \"true\" : \"false\""
+                );
+            if (! responsePromise) {
+                break;
+            }
+
+            function evalTQLResolveFtn(response) {
+                // coderstate: resolver
+                let retVal;
+
+                do {
+                    if (! response || response.error) {
+                        crdtuxp.logError(arguments, "bad response, error = " + response?.error);
+                        break;
+                    }
+
+                    retVal = response.text == "true";
+                }
+                while (false);
+
+                return retVal;
+            };
+
+            function evalTQLRejectFtn(reason) {
+                // coderstate: rejector
+                crdtuxp.logError(arguments, "rejected for " + reason);
+                return undefined;
+            };
+            
+            retVal = responsePromise.then(
+                evalTQLResolveFtn,
+                evalTQLRejectFtn
+            );
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.fileCopy = fileCopy;
+
+/**
+ * Delete a file.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileDelete
+ * @memberof crdtuxp
  *
  * @param {string} filePath
  * @returns {Promise<boolean|undefined>} success or failure
@@ -2553,7 +2689,7 @@ function fileDelete(filePath) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -2640,13 +2776,14 @@ function fileDelete(filePath) {
 module.exports.fileDelete = fileDelete;
 
 /**
- * Check if a file exists. Will return `false` if the file path points to a directory.
- *
- * Also see `dirExists()`.
- *
- * Not restricted by the UXP security sandbox.
+ * Check if a file exists. Will return <code>false</code> if the file path points to a directory.<br>
+ * <br>
+ * Also see <code>crdtuxp.dirExists()</code>.<br>
+ * <br>
+ * Not restricted by the UXP security sandbox. 
  *
  * @function fileExists
+ * @memberof crdtuxp
  *
  * @param {string} filePath
  * @returns {Promise<boolean|undefined>} existence of file
@@ -2660,7 +2797,7 @@ function fileExists(filePath) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -2733,10 +2870,10 @@ module.exports.fileExists = fileExists;
  * Get the file name extension of a path
  *
  * @function fileNameExtension
+ * @memberof crdtuxp.path
  *
  * @param {string} filePath - a file path 
- * @param {string=} separator - the separator to use. If omitted, will try 
- * guess the separator.
+ * @param {string=} separator - the separator to use. If omitted, will try to guess the separator.
  * @returns the lowercased file name extension, without leading period
  */
 
@@ -2762,14 +2899,15 @@ function fileNameExtension(filePath, separator) {
 module.exports.path.fileNameExtension = fileNameExtension;
 
 /**
- * Open a binary file and return a handle
- *
+ * Open a binary file and return a handle.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileOpen
+ * @memberof crdtuxp
  *
  * @param {string} filePath - a native full file path to the file
- * @param {string} mode - one of `'a'`, `'r'`, `'w'` (append, read, write)
+ * @param {string} mode - one of <code>'a'</code>, <code>'r'</code>, <code>'w'</code> (append, read, write)
  * @returns {Promise<Number|undefined>} file handle
  */
 
@@ -2781,7 +2919,7 @@ function fileOpen(filePath, mode) {
 
         try {
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
                 let parentPath = crdtuxp.path.dirName(filePath); 
@@ -2923,14 +3061,15 @@ function fileOpen(filePath, mode) {
 module.exports.fileOpen = fileOpen;
 
 /**
- * Read a file into memory
- *
+ * Read a file into memory.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileRead
+ * @memberof crdtuxp
  *
- * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
- * @param {boolean|object=} options - options: { isBinary: true/false, default false }
+ * @param {number} fileHandle - a file handle as returned by <code>crdtuxp.fileOpen()</code>.
+ * @param {boolean|object=} options - <code>{ isBinary: true/false, default false }</code>
  * @returns {Promise<any>} either a byte array or a string
  */
 
@@ -2948,7 +3087,7 @@ function fileRead(fileHandle, options) {
                 };
             }
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -3050,13 +3189,14 @@ function fileRead(fileHandle, options) {
 module.exports.fileRead = fileRead;
 
 /**
- * Binary write to a file. Strings are written as UTF-8
- *
+ * Binary write to a file. Strings are written as UTF-8.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function fileWrite
+ * @memberof crdtuxp
  *
- * @param {number} fileHandle - a file handle as returned by `fileOpen()`.
+ * @param {number} fileHandle - a file handle as returned by <code>crdtuxp.fileOpen()</code>.
  * @param {string|Array} s_or_ByteArr - data to write to the file
  * @returns {Promise<boolean|undefined>} success or failure
  */
@@ -3076,7 +3216,7 @@ function fileWrite(fileHandle, s_or_ByteArr) {
                 byteArray = s_or_ByteArr;
             }
 
-            let context = getUXPContext();
+            let context = getContext();
             let uxpContext = getUXPContext();
             if (uxpContext.hasDirectFileAccess && ! context.IS_FORCE_USE_DAEMON) {
 
@@ -3154,9 +3294,16 @@ function fileWrite(fileHandle, s_or_ByteArr) {
 module.exports.fileWrite = fileWrite;
 
 /**
- * Terminate crdtuxp
+ * Terminate crdtuxp.<br>
+ * <br>
+ * In UXPScript this is the call that drains any still-pending tracked promises before the
+ * top-level script returns. For bridged or standalone InDesign launchers, end the launcher with
+ * <code>return crdtuxp.finalize();</code> if you need fire-and-forget CRDT promises such as logging
+ * to finish before the host tears the script down.
  *
  * @function finalize
+ * @memberof crdtuxp
+ * @returns {Promise<any>} resolves when tracked promises have settled
  */
 
 function finalize() {
@@ -3169,8 +3316,9 @@ module.exports.finalize = finalize;
  * Extract the function name from its arguments
  *
  * @function functionNameFromArguments
+ * @memberof crdtuxp
  *
- * @param {object} functionArguments - pass in the current `arguments` to the function. This is used to determine the function's name
+ * @param {object} functionArguments - pass in the current <code>arguments</code> to the function. This is used to determine the function's name
  * @returns {string} function name
  */
 
@@ -3190,24 +3338,35 @@ function functionNameFromArguments(functionArguments) {
 module.exports.functionNameFromArguments = functionNameFromArguments;
 
 /**
- * Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
+ * Interpret a value extracted from some INI data as a boolean. Things like <code>y, n, yes, no, true, false, t, f, 0, 1</code><br>
+ * Default if missing is <code>false</code>
  *
  * @function getBooleanFromINI
+ * @memberof crdtuxp
  *
  * @param {string} in_value - ini value
+ * @param {string} in_default - value to use if <code>undefined</code> or <code>""</code>
  * @returns {boolean} value
  */
 
-function getBooleanFromINI(in_value) {
+function getBooleanFromINI(in_value, in_default) {
 // coderstate: function
     let retVal = false;
 
     try {
-        if (in_value) {
+        if (! in_value) {
+            retVal = in_default ? true : false;
+        }
+        else {
             const value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-            const firstChar = value.charAt(0).toLowerCase();
-            const firstValue = parseInt(firstChar, 10);
-            retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
+            if (! value) {
+                retVal = in_default ? true : false;
+            }
+            else {
+                const firstChar = value.charAt(0).toLowerCase();
+                const firstValue = parseInt(firstChar, 10);
+                retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
+            }
         }
     }
     catch (err) {
@@ -3222,15 +3381,20 @@ module.exports.getBooleanFromINI = getBooleanFromINI;
  * Query the daemon to see whether some software is currently activated or not
  *
  * @function getCapability
+ * @memberof crdtuxp
  *
  * @param {string} issuer - a GUID identifier for the developer account as seen in the PluginInstaller
- * @param {string} capabilityCode - a code for the software features to be activated (as determined by the developer who owns the account).
- * `capabilityCode` is not the same as `orderProductCode` - there can be multiple `orderProductCode` associated with 
- * a single `capabilityCode` (e.g. `capabilityCode` 'XYZ', `orderProductCode` 'XYZ_1YEAR', 'XYZ_2YEAR'...).
- * @param {string} encryptionKey - the secret encryption key (created by the developer) needed to decode the capability data. You want to make
- * sure this password is obfuscated and contained within encrypted script code.
- * @returns {Promise<string|undefined>} a JSON-encoded object with meta object (containing customer GUID, seatIndex, decrypted developer-provided data from the activation file).
- * The decrypted developer data is embedded as a string, so might be two levels of JSON-encoding to be dealt with to get to any JSON-encoded decrypted data
+ * @param {string} capabilityCode - a code for the software features to be activated (as determined by<br>
+ * the developer who owns the account).<br>
+ * <code>capabilityCode</code> is not the same as <code>orderProductCode</code> - there can be multiple<br>
+ * <code>orderProductCode</code> associated with a single <code>capabilityCode</code><br>
+ * (e.g. <code>capabilityCode</code> 'XYZ', <code>orderProductCode</code> 'XYZ_1YEAR', 'XYZ_2YEAR'...).
+ * @param {string} encryptionKey - the secret encryption key (created by the developer) needed to decode<br>
+ * the capability data. You want to make sure this password is obfuscated and contained within encrypted script code.
+ * @returns {Promise<string|undefined>} a JSON-encoded object with meta object (containing customer GUID, seatIndex,<br>
+ * decrypted developer-provided data from the activation file).<br>
+ * The decrypted developer data is embedded as a string, so might be two levels of JSON-encoding to be dealt with <br>
+ * to get to any JSON-encoded decrypted data
  */
 function getCapability(issuer, capabilityCode, encryptionKey) {
 // coderstate: promisor
@@ -3257,8 +3421,12 @@ function getCapability(issuer, capabilityCode, encryptionKey) {
                 let retVal;
 
                 do {
-                    if (! response || response.error) {
+                    if (response && response.error) {
                         crdtuxp.logError(arguments, "bad response, error = " + response?.error);
+                        break;
+                    }
+
+                    if (! response) {
                         break;
                     }
 
@@ -3291,12 +3459,13 @@ function getCapability(issuer, capabilityCode, encryptionKey) {
 module.exports.getCapability = getCapability;
 
 /**
- * Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full
- *
- * Some functions, marked with "Only available to paid developer accounts" 
- * will only work with level 2. Licensing function only work with level 1
+ * Determine the license level for CRDT: 0 = not, 1 = basic, 2 = full<br>
+ * <br>
+ * Some functions, marked with "Only available to paid developer accounts" <br>
+ * will only work with level 2. Licensing function only work with level 1<br>
  *
  * @function getCreativeDeveloperToolsLevel
+ * @memberof crdtuxp
  *
  * @returns {Promise<Number|undefined>} - 0, 1 or 2. -1 means: error
  */
@@ -3359,22 +3528,58 @@ function getCreativeDeveloperToolsLevel() {
 module.exports.getCreativeDeveloperToolsLevel = getCreativeDeveloperToolsLevel;
 
 /**
- * Get the path of a system directory
+ * Get the path of the current script of the caller (<i>not</i> the path of this file).<br>
+ * <br>
+ * Not restricted by the UXP security sandbox.
  *
+ * @function getCurrentScriptPath
+ * @memberof crdtuxp
+ *
+ * @returns {string|undefined} file path of the script file containing the caller of <code>crdtuxp.getCurrentScriptPath()</code>
+ */
+
+function getCurrentScriptPath() {
+
+    let retVal = undefined;
+
+    try {
+        // Intentionally throw an error to capture the stack trace
+        throw new Error();
+    } catch (err) {
+        // Parse the stack trace to extract the script path
+        const stackLines = err.stack.split("\n");
+
+        // We are interested in the script path for the caller of this function, not the path for crdtuxp.js::getCurrentScriptPath
+        const NUM_STEPS_FROM_STACK_TOP = 2;
+        const scriptPathLine = stackLines[NUM_STEPS_FROM_STACK_TOP];
+        const scriptPathMatch = scriptPathLine.match(/(\/.*?|[A-Za-z]:\\.*?|\\\\.*?\\.*?):\d+:\d+/); 
+        if (scriptPathMatch) {
+            retVal = scriptPathMatch[1];
+        }
+    }
+        
+    return retVal;
+}
+module.exports.getCurrentScriptPath = getCurrentScriptPath;
+
+/**
+ * Get the path of a system directory.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function getDir
+ * @memberof crdtuxp
  *
  * @param {string} dirTag - a tag representing the dir:
- * ```
- *    DESKTOP_DIR
- *    DOCUMENTS_DIR
- *    HOME_DIR
- *    LOG_DIR
- *    SYSTEMDATA_DIR
- *    TMP_DIR
- *    USERDATA_DIR
- * ```
+ * <code><br>
+ *    crdtuxp.DESKTOP_DIR<br>
+ *    crdtuxp.DOCUMENTS_DIR<br>
+ *    crdtuxp.HOME_DIR<br>
+ *    crdtuxp.LOG_DIR<br>
+ *    crdtuxp.SYSTEMDATA_DIR<br>
+ *    crdtuxp.TMP_DIR<br>
+ *    crdtuxp.USERDATA_DIR<br>
+ * </code>
  * @returns {Promise<string|undefined>} file path of dir or undefined. Directory paths include a trailing slash or backslash.
  */
 function getDir(dirTag) {
@@ -3472,11 +3677,12 @@ function getDir(dirTag) {
 module.exports.getDir = getDir;
 
 /**
- * Access the environment as available to the daemon program
- *
+ * Access the environment as available to the daemon program.<br>
+ * <br>
  * Not restricted by the UXP security sandbox.
  *
  * @function getEnvironment
+ * @memberof crdtuxp
  *
  * @param {string} envVarName - name of environment variable
  * @returns {Promise<string>} environment variable value
@@ -3536,10 +3742,11 @@ function getEnvironment(envVarName) {
 module.exports.getEnvironment = getEnvironment;
 
 /**
- * Interpret a string extracted from some INI data as a floating point value, followed by an optional unit
+ * Interpret a string extracted from some INI data as a floating point value, followed by an optional unit<br>
  * If there is no unit, then no conversion is performed.
  *
  * @function getFloatWithUnitFromINI
+ * @memberof crdtuxp
  *
  * @param {string} in_valueStr - ini value
  * @param {string=} in_convertToUnit - default to use if no match is found
@@ -3628,9 +3835,10 @@ function getFloatWithUnitFromINI(in_valueStr, in_convertToUnit) {
 module.exports.getFloatWithUnitFromINI = getFloatWithUnitFromINI;
 
 /**
- * Interpret a string extracted from some INI data as an array with float values (e.g. "[ 255, 128.2, 1.7]" )
+ * Interpret a string extracted from some INI data as an array with float values (e.g. <code>"[ 255, 128.2, 1.7]"</code> )
  *
  * @function getFloatValuesFromINI
+ * @memberof crdtuxp
  *
  * @param {string} in_valueStr - ini value
  * @returns {array|undefined} array of numbers or undefined
@@ -3680,9 +3888,10 @@ function getFloatValuesFromINI(in_valueStr) {
 module.exports.getFloatValuesFromINI = getFloatValuesFromINI;
 
 /**
- * Interpret a string extracted from some INI data as an array with int values (e.g. "[ 255, 128, 1]" )
+ * Interpret a string extracted from some INI data as an array with int values (e.g. <code>"[ 255, 128, 1]"</code> )
  *
  * @function getIntValuesFromINI
+ * @memberof crdtuxp
  *
  * @param {string} in_valueStr - ini value
  * @returns {array|undefined} array of ints or undefined
@@ -3734,11 +3943,12 @@ function getIntValuesFromINI(in_valueStr) {
 module.exports.getIntValuesFromINI = getIntValuesFromINI;
 
 /**
- * Query the daemon for persisted data
- *
- * Only available to paid developer accounts
+ * Query the daemon for persisted data<br>
+ * <br>
+ * Only available to paid developer accounts<br>
  *
  * @function getPersistData
+ * @memberof crdtuxp
  *
  * @param {string} issuer - a GUID identifier for the developer account as seen in the PluginInstaller
  * @param {string} attribute - an attribute name for the data
@@ -3807,6 +4017,8 @@ module.exports.getPersistData = getPersistData;
  * Get file path to PluginInstaller if it is installed
  *
  * @function getPluginInstallerPath
+ * @memberof crdtuxp
+ * 
  * @returns {Promise<string>} file path
 */
 function getPluginInstallerPath() {
@@ -3952,6 +4164,7 @@ function getSysInfo__() {
  * Interpret a string extracted from some INI data as a unit name
  *
  * @function getUnitFromINI
+ * @memberof crdtuxp
  *
  * @param {string} in_value - ini value
  * @param {string} in_defaultUnit - default to use if no match is found
@@ -4001,6 +4214,7 @@ module.exports.getUnitFromINI = getUnitFromINI;
  * Get our bearings and figure out what operating system context we're operating in. 
  *
  * @function getContext
+ * @memberof crdtuxp
  *
  * @returns {object} context
  */
@@ -4080,10 +4294,11 @@ function getContext() {
 module.exports.getContext = getContext;
 
 /**
- * Get our bearings and figure out what context we're operating in. Depending on the context
+ * Get our bearings and figure out what context we're operating in. Depending on the context<br>
  * we will or won't have access to certain features
  *
  * @function getUXPContext
+ * @memberof crdtuxp
  *
  * @returns {object} context
  */
@@ -4124,6 +4339,11 @@ function getUXPContext() {
                 }
                 else {
                     uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXPSCRIPT;
+                    if ("evalTQL" in uxpContext.app)
+                    {
+                        uxpContext.hasAPIDToolAssistant = true;
+                    }
+                    
                     let commandId = uxpContext.uxp?.script?.executionContext?.commandInfo?._manifestCommand?.commandId;
                     if (commandId == "scriptMainCommand") {
                         uxpContext.uxpVariant = UXP_VARIANT_INDESIGN_UXPSCRIPT;
@@ -4174,9 +4394,41 @@ function getUXPContext() {
 module.exports.getUXPContext = getUXPContext;
 
 /**
+ * Hash some text
+ * 
+ * Not cryptographic
+ *
+ * @function hashStringFNV1a
+ * @memberof crdtuxp
+ * 
+ * @param {string} s - text to hash
+ * @returns a hash for the input
+ * 
+ */
+
+function hashStringFNV1a(s) {
+
+    const fnv1a = (str) => {
+        let hash = 0x811c9dc5; // 32-bit FNV-1a offset basis
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0; // Ensure 32-bit unsigned
+    };
+
+    var hash = fnv1a(s.toString()).toString(16); // Hexadecimal hash
+
+    return hash;
+}
+module.exports.hashStringFNV1a = hashStringFNV1a;
+
+/**
  * Initialize crdtuxp
  *
  * @function init
+ * @memberof crdtuxp
+ *
  * @returns {Promise<boolean|undefined>} when true: valid issuer has made CRDT_UXP extra features available
  * 
  */
@@ -4185,49 +4437,132 @@ function init(context) {
 // coderstate: promisor
     let retVal = RESOLVED_PROMISE_UNDEFINED;
 
-    try {
+    do {
+        try {
 
-        if (! crdtuxp.isProxyPromiseInjected) {
-            injectProxyPromiseClass();
-        }
-
-        if (! context) {
-            context = {};
-        }
-
-        if (! crdtuxp.context) {
-            crdtuxp.context = context;
-        }
-        else {
-            for (attr in context) {
-                crdtuxp.context[attr] = context[attr];
+            if (! crdtuxp.isProxyPromiseInjected) {
+                injectProxyPromiseClass();
             }
-            context = crdtuxp.context;
-        }
 
-        if (! context.RUNPATH_ROOT) {
-            context.RUNPATH_ROOT = "./";
-        }
+            if (! context) {
+                context = {};
+            }
 
-        if (context.ISSUER_GUID && context.ISSUER_EMAIL) {
-            retVal = crdtuxp.setIssuer(context.ISSUER_GUID, context.ISSUER_EMAIL);
+            if (! crdtuxp.context) {
+                crdtuxp.context = context;
+            }
+            else {
+                for (attr in context) {
+                    crdtuxp.context[attr] = context[attr];
+                }
+                context = crdtuxp.context;
+            }
+
+            // Use crdtuxp.js as a reference point
+            // FILE_PATH_CRDT_UXP_JS is the path to crdtuxp.js
+            if (! context.FILE_PATH_CRDT_UXP_JS) {
+                context.FILE_PATH_CRDT_UXP_JS = crdtuxp.getCurrentScriptPath();
+                if (! context.FILE_PATH_CRDT_UXP_JS) {
+                    consoleLog("context.FILE_PATH_CRDT_UXP_JS is not defined");
+                    break;
+                }
+            }
+
+            // FILE_PATH_CRDT_UXP_FOLDER is the folder containing crdtuxp.js
+            if (! context.FILE_PATH_CRDT_UXP_FOLDER) {
+                context.FILE_PATH_CRDT_UXP_FOLDER = 
+                    crdtuxp.path.dirName(
+                        context.FILE_PATH_CRDT_UXP_JS,
+                        { addTrailingSeparator: true }
+                    );
+                if (! context.FILE_PATH_CRDT_UXP_FOLDER) {
+                    consoleLog("context.FILE_PATH_CRDT_UXP_FOLDER is not defined");
+                    break;
+                }
+            }
+
+            // FILE_PATH_PROJECT_FOLDER is the folder containing the project
+            if (! context.FILE_PATH_PROJECT_FOLDER) {
+                if (context.PATH_LAUNCHER_SCRIPT_PARENT) {
+                    context.FILE_PATH_PROJECT_FOLDER = context.PATH_LAUNCHER_SCRIPT_PARENT;
+                }
+                else {
+                    context.FILE_PATH_PROJECT_FOLDER = 
+                        crdtuxp.path.dirName(
+                            context.FILE_PATH_CRDT_UXP_FOLDER,
+                            { addTrailingSeparator: true }
+                        );
+                    if (! context.FILE_PATH_PROJECT_FOLDER) {
+                        consoleLog("context.FILE_PATH_PROJECT_FOLDER is not defined");
+                        break;
+                    }
+                }
+            }
+            
+            // RUNPATH_ROOT is the path of the parent folder for the main script file, 
+            // not of the PluginInstaller-generated wrapper launcher script file that 
+            // might live in another folder
+            //
+            // FILE_PATH_ROOT is the absolute path that corresponds to RUNPATH_ROOT
+            //
+            // RUNPATH_ROOT can be used with require()
+            //
+            // FILE_PATH_ROOT can be used for crdtuxp.file... operations; it cannot be used with require()
+
+            if (! context.FILE_PATH_ROOT) {
+                context.FILE_PATH_ROOT = context.FILE_PATH_PROJECT_FOLDER;
+            }
+
+            //
+            // RUNPATH_ROOT is used with 'require' which in UXP does not accept absolute 
+            // paths
+            //
+            if (! context.RUNPATH_ROOT) {
+                // Use slash separator - it's needed for require()
+                if (
+                    context.FILE_PATH_ROOT
+                && 
+                    context.FILE_PATH_PROJECT_FOLDER 
+                &&
+                    context.FILE_PATH_ROOT != context.FILE_PATH_PROJECT_FOLDER
+                ) {
+                    let slashedFilePathRootResolved = context.FILEPath_ROOT.replace(/\\/g,"/");
+                    let slashedFilePathProjectFolder = context.FILEPath_PROJECT_FOLDER.replace(/\\/g,"/");
+                    context.RUNPATH_ROOT = crdtuxp.path.relativeTo(slashedFilePathRootResolved, slashedFilePathProjectFolder, "/")
+                }
+                else {
+                    // If the two folder are the same, or one of them is not defined yet, 
+                    // use the current folder
+                    context.RUNPATH_ROOT = "./";
+                }
+            }
+
+            if (! context.RUNPATH_CRDT_UXP) {
+                context.RUNPATH_CRDT_UXP = context.RUNPATH_ROOT + "/" + crdtuxp.path.baseName(context.FILE_PATH_CRDT_UXP_FOLDER);
+            }
+
+            if (context.ISSUER_GUID && context.ISSUER_EMAIL) {
+                retVal = crdtuxp.setIssuer(context.ISSUER_GUID, context.ISSUER_EMAIL);
+            }
+            else {
+                retVal = RESOLVED_PROMISE_TRUE;
+            }
         }
-        else {
-            retVal = RESOLVED_PROMISE_TRUE;
+        catch (err) {
+            consoleLog("init throws " + err);
         }
     }
-    catch (err) {
-        consoleLog("init throws " + err);
-    }
+    while (false);
 
     return retVal;
 }
 module.exports.init = init;
 
 /**
- * Wrap the system Promise with a new Promise class that allows us to track pending promises
+ * Wrap the system <code>Promise</code> with a new <code>Promise</code> class that allows us to track pending promises
  *
  * @function injectProxyPromiseClass
+ * @memberof crdtuxp
  */
 
 function injectProxyPromiseClass() {
@@ -4386,12 +4721,12 @@ function injectProxyPromiseClass() {
 module.exports.injectProxyPromiseClass = injectProxyPromiseClass;
 
 /**
- * Calculate an integer power of an int value. Avoids using floating point, so
- * should not have any floating-point round-off errors. `Math.pow()` will probably
- * give the exact same result, but I am doubtful that some implementations might internally use `log` and `exp`
- * to handle `Math.pow()`
+ * Calculate an integer power of an int value. Avoids using floating point, so should not have any floating-point<br>
+ * round-off errors. <code>Math.pow()</code> will probably give the exact same result, but I am doubtful that some<br>
+ * implementations might internally use <code>log</code> and <code>exp</code> to handle <code>Math.pow()</code>
  *
  * @function intPow
+ * @memberof crdtuxp
  *
  * @param {number} i - Integer base
  * @param {number} intPower - integer power
@@ -4486,9 +4821,79 @@ function intPow(i, intPower) {
 module.exports.intPow = intPow;
 
 /**
- * Extend or shorten a string to an exact length, adding `padChar` as needed
+ * Check if the daemon is running.
+ *
+ * @function isDaemonResponsive
+ * @memberof crdtuxp
+ *
+ * @returns {Promise<boolean|undefined>} is the Creative Developer Tools daemon responsive? 
+ */
+
+function isDaemonResponsive() {
+// coderstate: promisor
+    let retVal = RESOLVED_PROMISE_UNDEFINED;
+
+    do {
+
+        try {
+           
+            const options = {
+                waitFileTimeout: RESPONSE_CHECK_FILE_TIMEOUT_MILLISECONDS,
+                waitFileCheckInterval: RESPONSE_CHECK_FILE_INTERVAL_MILLISECONDS
+            };
+
+            const isDaemonResponsivePromise = 
+                evalTQL(
+                    "'OK'", 
+                    options);
+
+            if (! isDaemonResponsivePromise) {
+                break;
+            }
+
+            function evalTQLResolveFtn(response) {
+                // coderstate: resolver
+                let retVal;
+
+                do {
+                    if (! response || response.error) {
+                        retVal = false;
+                        break;
+                    }
+
+                    retVal = response.text == "OK";
+                }
+                while (false);
+
+                return retVal;
+            };
+
+            function evalTQLRejectFtn(reason) {
+                // coderstate: rejector
+                consoleLog(arguments, "rejected for " + reason);
+                return false;
+            };
+
+            retVal = isDaemonResponsivePromise.then(
+                evalTQLResolveFtn,
+                evalTQLRejectFtn
+            );
+        }
+        catch (err) {
+            consoleLog(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.isDaemonResponsive = isDaemonResponsive;
+    
+/**
+ * Extend or shorten a string to an exact length, adding <code>padChar</code> as needed
  *
  * @function leftPad
+ * @memberof crdtuxp
  *
  * @param {string} s - string to be extended or shortened
  * @param {string} padChar - string to append repeatedly if length needs to extended
@@ -4530,11 +4935,12 @@ function leftPad(s, padChar, len) {
 module.exports.leftPad = leftPad;
 
 /**
- * Make a log entry of the call of a function. Pass in the `arguments` keyword as a parameter.
+ * Make a log entry of the call of a function. Pass in the <code>arguments</code> keyword as a parameter.
  *
  * @function logEntry
+ * @memberof crdtuxp
  *
- * @param {array} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {array} reportingFunctionArguments - pass in the current <code>arguments</code> to the function. This is used to determine the function's name for the log
  * @returns {Promise} - a promise that can be used to await the log call completion
  */
 
@@ -4551,12 +4957,14 @@ function logEntry(reportingFunctionArguments) {
 module.exports.logEntry = logEntry;
 
 /**
- * Make a log entry of an error message. Pass in the `arguments` keyword as the first parameter
- * If the error level is below `LOG_LEVEL_ERROR` nothing happens
+ * Make a log entry of an error message. Pass in the <code>arguments</code> keyword as the first parameter<br>
+ * If the error level is below <code>crdtuxp.LOG_LEVEL_ERROR</code> nothing happens
  *
  * @function logError
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function.<br>
+ * This is used to determine the function's name for the log
  * @param {any} message - error message
  * @returns {Promise} - a promise that can be used to await the log call completion
  */
@@ -4577,11 +4985,13 @@ function logError(reportingFunctionArguments, message) {
 module.exports.logError = logError;
 
 /**
- * Make a log entry of the exit of a function. Pass in the `arguments` keyword as a parameter.
+ * Make a log entry of the exit of a function. Pass in the <code>arguments</code> keyword as a parameter.
  *
  * @function logExit
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function. <br>
+ * This is used to determine the function's name for the log
  * @returns {Promise} - a promise that can be used to await the log call completion
  */
 
@@ -4598,11 +5008,13 @@ function logExit(reportingFunctionArguments) {
 module.exports.logExit = logExit;
 
 /**
- * Output a log message. Pass in the `arguments` keyword as the first parameter.
+ * Output a log message. Pass in the <code>arguments</code> keyword as the first parameter.
  * 
  * @function logMessage
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function.<br>
+ * This is used to determine the function's name for the log
  * @param {number} logLevel - log level 0 - 4
  * @param {string} message - the note to output
  * @returns {Promise} - a promise that can be used to await the log call completion
@@ -4685,8 +5097,8 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
                 consoleLog(logLine);
             }
             else {
-                if (SYNC_LOG_TO_FILEPATH) {
-                    fileAppend_(SYNC_LOG_TO_FILEPATH, logLine + "\n");
+                if (SYNC_LOG_TO_FILE_PATH) {
+                    fileAppend_(SYNC_LOG_TO_FILE_PATH, logLine + "\n");
                 }
             }
 
@@ -4724,10 +5136,10 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
                 }
             }
 
-            if (LOG_TO_FILEPATH) {
+            if (LOG_TO_FILE_PATH) {
                 let appendPromise = 
                     fileAppendString(
-                        LOG_TO_FILEPATH, 
+                        LOG_TO_FILE_PATH, 
                         logLine + "\n",
                         evalTQLOptions);
                 if (waitForLogConfirmation) {
@@ -4752,12 +5164,14 @@ function logMessage(reportingFunctionArguments, logLevel, message) {
 module.exports.logMessage = logMessage;
 
 /**
- * Make a log entry of a note. Pass in the `arguments` keyword as the first parameter.
- * If the error level is below `LOG_LEVEL_NOTE` nothing happens
+ * Make a log entry of a note. Pass in the <code>arguments</code> keyword as the first parameter.<br>
+ * If the error level is below <code>crdtuxp.LOG_LEVEL_NOTE</code> nothing happens
  *
  * @function logNote
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function.<br>
+ * This is used to determine the function's name for the log
  * @param {any} message - the note to output
  * @returns {Promise} - a promise that can be used to await the log call completion
  */
@@ -4778,12 +5192,14 @@ function logNote(reportingFunctionArguments, message) {
 module.exports.logNote = logNote;
 
 /**
- * Emit a trace messsage into the log. Pass in the `arguments` keyword as the first parameter.
- * If the error level is below `LOG_LEVEL_TRACE` nothing happens
+ * Emit a trace messsage into the log. Pass in the <code>arguments</code> keyword as the first parameter.<br>
+ * If the error level is below <code>crdtuxp.LOG_LEVEL_TRACE</code> nothing happens
  *
  * @function logTrace
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function.<br>
+ * This is used to determine the function's name for the log
  * @param {any} message - the trace message to output
  * @returns {Promise} - a promise that can be used to await the log call completion
  */
@@ -4804,12 +5220,14 @@ function logTrace(reportingFunctionArguments, message) {
 module.exports.logTrace = logTrace;
 
 /**
- * Emit a warning messsage into the log. Pass in the `arguments` keyword as the first parameter.
- * If the error level is below `LOG_LEVEL_WARNING` nothing happens
+ * Emit a warning messsage into the log. Pass in the <code>arguments</code> keyword as the first parameter.<br>
+ * If the error level is below <code>crdtuxp.LOG_LEVEL_WARNING</code> nothing happens
  *
  * @function logWarning
+ * @memberof crdtuxp
  *
- * @param {any} reportingFunctionArguments - pass in the current `arguments` to the function. This is used to determine the function's name for the log
+ * @param {any} reportingFunctionArguments - pass in the current <code>arguments</code> to the function.<br>
+ * This is used to determine the function's name for the log
  * @param {any} message - the warning message to output
 */
 function logWarning(reportingFunctionArguments, message) {
@@ -4829,13 +5247,14 @@ function logWarning(reportingFunctionArguments, message) {
 module.exports.logWarning = logWarning;
 
 /**
- * The unique `GUID` of this computer
- *
+ * The unique <code>GUID</code> of this computer<br>
+ * <br>
  * Only available to paid developer accounts
  * 
  * @function machineGUID
+ * @memberof crdtuxp
  *
- * @returns {Promise<string | undefined>} a `GUID` string
+ * @returns {Promise<string | undefined>} a <code>GUID</code> string
  */
 function machineGUID() {
 // coderstate: promisor
@@ -4895,6 +5314,7 @@ module.exports.machineGUID = machineGUID;
  * Launch the PluginInstaller if it is installed and configured
  *
  * @function pluginInstaller
+ * @memberof crdtuxp
  * 
  * @returns {Promise<boolean|undefined>} success or failure
 */
@@ -4957,6 +5377,7 @@ module.exports.pluginInstaller = pluginInstaller;
  * Restore the log level to what it was when pushLogLevel was called
  *
  * @function popLogLevel
+ * @memberof crdtuxp
  *
  * @returns {number} log level that was popped off the stack
  */
@@ -4981,6 +5402,7 @@ module.exports.popLogLevel = popLogLevel;
  * Convert a callback-based function into a Promise
  *
  * @function promisify
+ * @memberof crdtuxp
  *
  * @param {function} ftn - callback-based function
  * @returns {function} promisified function
@@ -5013,8 +5435,10 @@ module.exports.promisify = promisify;
  * Convert a callback-based member function into a Promise
  *
  * @function promisifyWithContext
+ * @memberof crdtuxp
  *
  * @param {function} ftn - callback-based function
+ * @param {object} context - A context for the callback
  * @returns {function} promisified function
  */
 
@@ -5045,6 +5469,7 @@ module.exports.promisifyWithContext = promisifyWithContext;
  * Save the previous log level and set a new log level
  *
  * @function pushLogLevel
+ * @memberof crdtuxp
  *
  * @param {number} newLogLevel - new log level to set
  * @returns {number} previous log level
@@ -5066,6 +5491,7 @@ module.exports.pushLogLevel = pushLogLevel;
  * Make a 'fake string' into a byte array. Not UTF8-aware
  *
  * @function rawStringToByteArray
+ * @memberof crdtuxp
  *
  * @param {string} in_str - a raw string (possibly invalid UTF-8)
  * @returns {array|undefined} an array of bytes
@@ -5095,78 +5521,81 @@ function rawStringToByteArray(in_str) {
 module.exports.rawStringToByteArray = rawStringToByteArray;
 
 /**
- * Read a bunch of text and try to extract structured information in .INI format
- *
- * This function is lenient and is able to extract slightly mangled INI data from the text frame
- * content of an InDesign text frame.
- *
- * This function knows how to handle curly quotes should they be present.
- *
- * The following flexibilities have been built-in:
- *
- * - Attribute names are case-insensitive and anything not `a-z 0-9` is ignored.
- * Entries like `this or that = ...` or `thisOrThat = ...` or `this'orThat = ...` are
- * all equivalent. Only letters and digits are retained, and converted to lowercase.
- *
- * - Attribute values can be quoted with either single, double, curly quotes.
- * This often occurs because InDesign can be configured to convert normal quotes into
- * curly quotes automatically.
- * Attribute values without quotes are trimmed (e.g. `bla =    x  ` is the same as `bla=x`)
- * Spaces are retained in quoted attribute values.
- *
- * - Any text will be ignore if not properly formatted as either a section name or an attribute-value
- * pair with an equal sign
- *
- * - Hard and soft returns are equivalent
- *
- * The return value is an object with the section names at the top level, and attribute names
- * below that. The following .INI
- * ```
- * [My data]
- * this is = " abc "
- * that =      abc
- * ```
- * returns
- * ```
- * {
- *   "mydata": {
- *      "__rawSectionName": "My data",
- *      "thisis": " abc ",
- *      "that": "abc"
- *   }
- * }
- * ```
- *
- * Duplicated sections and entries are automatically suffixed with a counter suffix - e.g.
- * 
- * [main]
- * a=1
- * a=2
- * a=3
- * 
- * is equivalent with 
- * 
- * [main]
- * a=1
- * a_2=2
- * a_3=3
- * 
- * [a]
- * a=1
- * [a]
- * a=2
- * 
+ * Read a bunch of text and try to extract structured information in .INI format<br>
+ * <br>
+ * This function is lenient and is able to extract slightly mangled INI data from the text frame<br>
+ * content of an InDesign text frame.<br>
+ * <br>
+ * This function knows how to handle curly quotes should they be present.<br>
+ * <br>
+ * The following flexibilities have been built-in:<br>
+ * <br>
+ * - Attribute names are case-insensitive and anything not <code>a-z 0-9</code> is ignored.<br>
+ * Entries like <code>this or that = ...</code> or <code>thisOrThat = ...</code> or <code>this'orThat = ...</code> are<br>
+ * all equivalent. Only letters and digits are retained, and converted to lowercase.<br>
+ * <br>
+ * - Attribute values can be quoted with either single, double, curly quotes.<br>
+ * This often occurs because InDesign can be configured to convert normal quotes into<br>
+ * curly quotes automatically.<br>
+ * Attribute values without quotes are trimmed (e.g. <code>bla =    x  </code> is the same as <code>bla=x</code>)<br>
+ * Spaces are retained in quoted attribute values.<br>
+ * <br>
+ * - Any text will be ignore if not properly formatted as either a section name or an attribute-value<br>
+ * pair with an equal sign<br>
+ * <br>
+ * - Hard and soft returns are equivalent<br>
+ * <br>
+ * The return value is an object with the section names at the top level, and attribute names<br>
+ * below that. The following .INI<br>
+ * <code><br>
+ * [My data]<br>
+ * this is = " abc "<br>
+ * that =      abc<br>
+ * </code><br>
+ * returns<br>
+ * <code><br>
+ * {<br>
+ *   "mydata": {<br>
+ *      "__rawSectionName": "My data",<br>
+ *      "thisis": " abc ",<br>
+ *      "that": "abc"<br>
+ *   }<br>
+ * }<br>
+ * </code><br>
+ * Duplicated sections and entries are automatically suffixed with a counter suffix - e.g.<br>
+ * <code><br>
+ * [main]<br>
+ * a=1<br>
+ * a=2<br>
+ * a=3<br>
+ * </code><br>
+ * is equivalent with<br>
+ * <code><br>
+ * [main]<br>
+ * a=1<br>
+ * a_2=2<br>
+ * a_3=3<br>
+ * </code><br>
+ * and<br>
+ * <code><br>
+ * [a]<br>
+ * a=1<br>
+ * [a]<br>
+ * a=2<br>
+ * </code><br>
  * is equivalent with
- * 
- * [a]
- * a=1
- * [a_2]
- * a=2
+ * <code><br>
+ * [a]<br>
+ * a=1<br>
+ * [a_2]<br>
+ * a=2<br>
+ * </code><br>
  * 
  * @function readINI
+ * @memberof crdtuxp
  *
  * @param {string} in_text - raw text, which might or might not contain some INI-formatted data mixed with normal text
- * @returns {object} either the ini data or `undefined`.
+ * @returns {object} either the ini data or <code>undefined</code>.
  */
 
 function readINI(in_text) {
@@ -5334,9 +5763,85 @@ function readINI(in_text) {
 module.exports.readINI = readINI;
 
 /**
- * Extend or shorten a string to an exact length, adding `padChar` as needed
+ * Calculate the relative path to go from a root path to a target path
+ *
+ * @function relativeTo
+ * @memberof crdtuxp.path
+ *
+ * @param {string} rootPath - the base path to relate to
+ * @param {string} targetPath - the base path to reach from the root path
+ * @param {string=} pathSeparator - optional: the separator to use. Defaults to the system separator
+ * @returns {string|undefined} relative path
+ */
+
+function relativeTo(rootPath, targetPath, pathSeparator) {
+// coderstate: function
+    let retVal = undefined;
+
+    do {
+
+        try {
+
+            if (! pathSeparator) {
+                pathSeparator = module.exports.path.SEPARATOR
+            }
+            
+            let splitRootPath = rootPath.split(pathSeparator);
+            let splitTargetPath = targetPath.split(pathSeparator);
+            
+            let relativePath = "";
+            let rootIdx = 0;
+            let targetIdx = 0;
+            while (rootIdx < splitRootPath.length || targetIdx < splitTargetPath.length) {
+                
+                // Skip empty segments
+                let rootSegment = undefined;
+                while (! rootSegment && rootIdx < splitRootPath.length) {
+                    rootSegment = splitRootPath[rootIdx];
+                    rootIdx++;
+                }    
+                
+                let targetSegment = undefined;
+                while (! targetSegment && targetIdx < splitTargetPath.length) {
+                    targetSegment = splitTargetPath[targetIdx];
+                    targetIdx++;
+                }
+
+                if (rootSegment && targetSegment) {
+                    if (rootSegment != targetSegment) {
+                        if (! relativePath) {
+                            relativePath = ".." + pathSeparator + targetSegment;
+                        }
+                        else {
+                            relativePath = ".." + pathSeparator + relativePath + pathSeparator + targetSegment;
+                        }
+                    }
+                }
+                else if (rootSegment) {
+                    relativePath = ".." + pathSeparator + relativePath;
+                }
+                else if (targetSegment) {
+                    relativePath = relativePath + pathSeparator + targetSegment;
+                }
+            }
+
+            retVal = relativePath;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+module.exports.path.relativeTo = relativeTo;
+
+/**
+ * Extend or shorten a string to an exact length, adding <code>padChar</code> as needed
  *
  * @function rightPad
+ * @memberof crdtuxp
  *
  * @param {string} s - string to be extended or shortened
  * @param {string} padChar - string to append repeatedly if length needs to extended
@@ -5380,7 +5885,8 @@ module.exports.rightPad = rightPad;
 /**
  * Fetch a localized string.
  *
- * @function s
+ * @function S
+ * @memberof crdtuxp
  *
  * @param {string} stringCode - a token for the string to be localized (e.g. BTN_OK)
  * @param {string=} locale - a locale. Optional - defaults to "en_US"
@@ -5421,11 +5927,12 @@ function S(stringCode, locale) {
 module.exports.S = S;
 
 /**
- * Send in activation data so the daemon can determine whether some software is currently activated or not.
- *
- * Needs to be followed by a `sublicense()` call
+ * Send in activation data so the daemon can determine whether some software is currently activated or not.<br>
+ * <br>
+ * Needs to be followed by a <code>crdtuxp.sublicense()</code> call
  *
  * @function setIssuer
+ * @memberof crdtuxp
  *
  * @param {string} issuerGUID - a GUID identifier for the developer account as seen in the PluginInstaller
  * @param {string} issuerEmail - the email for the developer account as seen in the PluginInstaller
@@ -5485,22 +5992,21 @@ function setIssuer(issuerGUID, issuerEmail) {
 module.exports.setIssuer = setIssuer;
 
 /**
- * Wrap a string or a byte array into single quotes, encoding any
- * binary data as a string. Knows how to handle Unicode characters
- * or binary zeroes.
- *
- * When the input is a string, high Unicode characters are
- * encoded as `\uHHHH`
- *
- * When the input is a byte array, all bytes are encoded as `\xHH` escape sequences.
+ * Wrap a string or a byte array into single quotes, encoding any binary data as a string.<br>
+ * Knows how to handle Unicode characters or binary zeroes.<br>
+ * <br>
+ * When the input is a string, high Unicode characters are encoded as <code>\uHHHH</code><br>
+ * <br>
+ * When the input is a byte array, all bytes are encoded as <code>\xHH</code> escape sequences.<br>
  *
  * @function sQ
+ * @memberof crdtuxp
  *
  * @param {string} s_or_ByteArr - a Unicode string or an array of bytes
- * @returns {string} a string enclosed in double quotes. This string is pure 7-bit
- * ASCII and can be used into generated script code
- * Example:
- * `let script = "a=b(" + sQ(somedata) + ");";`
+ * @returns {string} a string enclosed in double quotes. This string is pure 7-bit ASCII and can<br>
+ * be used into generated script code<br>
+ * Example:<br>
+ * <code>let script = "a=b(" + crdtuxp.sQ(somedata) + ");";</code>
  */
 function sQ(s_or_ByteArr) {
 // coderstate: function
@@ -5518,11 +6024,12 @@ function sQ(s_or_ByteArr) {
 module.exports.sQ = sQ;
 
 /**
- * Store some persistent data (e.g. a time stamp to determine a demo version lapsing)
- *
+ * Store some persistent data (e.g. a time stamp to determine a demo version lapsing)<br>
+ * <br>
  * Only available to paid developer accounts
  *
  * @function setPersistData
+ * @memberof crdtuxp
  *
  * @param {string} issuer - a GUID identifier for the developer account as seen in the PluginInstaller
  * @param {string} attribute - an attribute name for the data
@@ -5593,10 +6100,10 @@ module.exports.setPersistData = setPersistData;
  * Remove a trailing separator, if any, from a path
  *
  * @function stripTrailingSeparator
+ * @memberof crdtuxp
  *
  * @param {string} filePath - a file path 
- * @param {string=} separator - the separator to use. If omitted, will try 
- * guess the separator.
+ * @param {string=} separator - the separator to use. If omitted, will try to guess the separator.
  * @returns the file path without trailing separator
  */
 
@@ -5639,6 +6146,7 @@ module.exports.stripTrailingSeparator = stripTrailingSeparator;
  * Encode a string into an byte array using UTF-8
  *
  * @function strToUTF8
+ * @memberof crdtuxp
  *
  * @param {string} in_s - a string
  * @returns {array|undefined} a byte array
@@ -5680,11 +6188,13 @@ function strToUTF8(in_s) {
 module.exports.strToUTF8 = strToUTF8;
 
 /**
- * Send in sublicense info generated in the PluginInstaller so the daemon can determine whether some software is currently activated or not.
- *
- * Needs to be preceded by a `setIssuer()` call.
+ * Send in sublicense info generated in the PluginInstaller so the daemon can determine whether some<br>
+ * software is currently activated or not.<br>
+ * <br>
+ * Needs to be preceded by a <code>crdtuxp.setIssuer()</code> call.
  *
  * @function sublicense
+ * @memberof crdtuxp
  *
  * @param {string} key - key needed to decode activation data
  * @param {string} activation - encrypted activation data
@@ -5748,6 +6258,7 @@ module.exports.sublicense = sublicense;
  * Test if we can access the path-based file I/O APIs
  *
  * @function testDirectFileAccess
+ * @memberof crdtuxp
  *
  * @returns {boolean} whether APIs are accessible
  */
@@ -5788,6 +6299,7 @@ module.exports.testDirectFileAccess = testDirectFileAccess;
  * Test if we can access the network APIs
  *
  * @function testNetworkAccess
+ * @memberof crdtuxp
  *
  * @returns {Promise<boolean|undefined>} whether APIs are accessible
  */
@@ -5838,10 +6350,11 @@ function testNetworkAccess() {
 module.exports.testNetworkAccess = testNetworkAccess;
 
 /**
- * Convert an integer into a hex representation with a fixed number of digits.
- * Negative numbers are converted using 2-s complement (so `-15` results in `0x01`)
+ * Convert an integer into a hex representation with a fixed number of digits.<br>
+ * Negative numbers are converted using 2-s complement (so <code>-15</code> results in <code>0x01</code>)
  *
  * @function toHex
+ * @memberof crdtuxp
  *
  * @param {number} i - integer to convert to hex
  * @param {number} numDigits - How many digits. Defaults to 4 if omitted.
@@ -5906,8 +6419,9 @@ module.exports.toHex = toHex;
  * Conversion factor from a length unit into inches
  *
  * @function unitToInchFactor
+ * @memberof crdtuxp
  *
- * @param {string} in_unit - unit name (`crdtes.UNIT_NAME...`)
+ * @param {string} in_unit - unit name (<code>crdtuxp.UNIT_NAME...</code>)
  * @returns {number} conversion factor or 1.0 if unknown/not applicable
  */
 
@@ -5949,6 +6463,7 @@ module.exports.unitToInchFactor = unitToInchFactor;
  * Wait for a file to appear. Only works in UXP contexts with direct file access
  *
  * @function waitForFile
+ * @memberof crdtuxp
  *
  * @param {string} filePath - file that needs to appear
  * @param {number=} interval - how often to check for file (milliseconds)

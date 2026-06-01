@@ -114,6 +114,9 @@ async function testDirs() {
     
         let testFileName3 = "testFile3.txt";
         let testFilePath3 = testDirPath + testFileName3;
+
+        let testFileNameCopy = "testFileCopy.txt";
+        let testFilePathCopy = testDirPath + testFileNameCopy;
     
         let fileContentAsString = "Hello World☜✿\x00\x7Féøo";
         let fileContentAsUTF8 = crdtuxp.strToUTF8(fileContentAsString);
@@ -144,6 +147,16 @@ async function testDirs() {
         let file3ReadContent = await crdtuxp.fileRead(readFileHandle4, false);
         await crdtuxp.fileClose(readFileHandle4);
     
+        let fileCopyResult = await crdtuxp.fileCopy(testFilePath3, testFilePathCopy);
+        if (! fileCopyResult) {
+            crdtuxp.logError(arguments, "failed to copy file");
+            retVal = false;
+        }
+
+        let readFileHandleCopy = await crdtuxp.fileOpen(testFilePathCopy, "r");
+        let fileCopyContent = await crdtuxp.fileRead(readFileHandleCopy, false);
+        await crdtuxp.fileClose(readFileHandleCopy);
+
         if (fileContentAsString != stringReadContent) {
             crdtuxp.logError(arguments, "failed to read file as string");
             retVal = false;
@@ -159,6 +172,11 @@ async function testDirs() {
             retVal = false;
         }
     
+        if (fileContentAsString != fileCopyContent) {
+            crdtuxp.logError(arguments, "failed to read copied file as string");
+            retVal = false;
+        }
+
         let alternateStringReadContent = await crdtuxp.binaryUTF8ToStr(binaryReadContent);
         if (fileContentAsString != alternateStringReadContent) {
             crdtuxp.logError(arguments, "failed to read file as binary then string");
@@ -207,7 +225,7 @@ async function testDirs() {
             retVal = false;
         }
     
-        // Should fail because second file is still in there
+        // Should fail because other files are still in there
         await crdtuxp.dirDelete(testDirPath);
     
         testDirExists = await crdtuxp.dirExists(testDirPath);
@@ -666,7 +684,7 @@ async function testUTFRoundTrip() {
 }
 
 let tests = [
-    //testUXPContext,
+    testUXPContext,
     testBase64,
     testDirs,
     testEncrypt,
@@ -679,7 +697,7 @@ let tests = [
     testUTFRoundTrip
 ];
 
-async function run() {
+async function run(optionalIssuerGUID, optionalIssuerEmail) {
 
     crdtuxp.pushLogLevel(crdtuxp.LOG_LEVEL_NOTE);
     
@@ -691,11 +709,24 @@ async function run() {
         // You need something similar to this to enable CRDT
         // await crdtuxp.setIssuer("1186cb861234567377c49d7eade","my@email.com");
         // Checking if the context has a valid issuer to use for the tests
+        
         let context = crdtuxp.getContext();
+
         if (context.HAS_VALID_ISSUER === undefined) {
             context.HAS_VALID_ISSUER = false;
             if (context.ISSUER_GUID && context.ISSUER_EMAIL) {
                 context.HAS_VALID_ISSUER = !! (await crdtuxp.setIssuer(context.ISSUER_GUID, context.ISSUER_EMAIL));
+            }
+            else {
+                crdtuxp.logNote(arguments, "no valid issues/issuer email - optional features won't be available");                
+            }
+        }
+
+        if (! context.HAS_VALID_ISSUER && optionalIssuerGUID && optionalIssuerEmail) {
+            context.HAS_VALID_ISSUER = !! (await crdtuxp.setIssuer(optionalIssuerGUID, optionalIssuerEmail));
+            if (context.HAS_VALID_ISSUER) {
+                context.ISSUER_GUID = optionalIssuerGUID;
+                context.ISSUER_EMAIL = optionalIssuerEmail;                
             }
         }
 

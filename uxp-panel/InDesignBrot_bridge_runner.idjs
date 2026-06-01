@@ -1,0 +1,51 @@
+const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
+const BRIDGE_STATUS_STARTED = "Started";
+
+if (! global.crdtuxp) {
+    global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    crdtuxp.init();
+}
+
+function setBridgeStatus(value) {
+    const indesign = require("indesign");
+    indesign.app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
+}
+
+function main() {
+    const startMilliseconds = new Date().getTime();
+    let resultPromise = Promise.resolve(undefined);
+    const originalAlert = crdtuxp.alert;
+
+    setBridgeStatus(BRIDGE_STATUS_STARTED);
+    crdtuxp.alert = function noopBridgeAlert() {
+    };
+
+    try {
+        resultPromise = global.require("./InDesignBrot.idjs").main();
+    }
+    catch (err) {
+        crdtuxp.alert = originalAlert;
+        setBridgeStatus("Bridge launcher failed: " + err);
+        return crdtuxp.finalize();
+    }
+
+    return resultPromise.then(
+        function handleBridgeResolve() {
+            const elapsedSeconds = ((new Date().getTime() - startMilliseconds) / 1000).toFixed(3);
+            crdtuxp.alert = originalAlert;
+            return crdtuxp.finalize().then(function handleBridgeFinalize() {
+                setBridgeStatus(elapsedSeconds);
+            });
+        },
+        function handleBridgeReject(err) {
+            crdtuxp.alert = originalAlert;
+            return crdtuxp.finalize().then(function handleBridgeRejectFinalize() {
+                setBridgeStatus("Bridge run failed: " + err);
+            });
+        }
+    );
+}
+
+module.exports.main = main;
+
+return main();
