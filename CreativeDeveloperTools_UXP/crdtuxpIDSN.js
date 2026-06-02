@@ -132,12 +132,160 @@ function getBridgeContext() {
     return retVal;
 }
 
+function sanitizeSourceForAsyncModeHeuristic(scriptText) {
+// coderstate: function
+    let retVal = "";
+
+    do {
+        try {
+            let sourceText = String(scriptText || "");
+            let state = "code";
+
+            for (let index = 0; index < sourceText.length; index += 1) {
+                let ch = sourceText.charAt(index);
+                let nextCh = sourceText.charAt(index + 1);
+
+                if (state == "lineComment") {
+                    retVal += ch == "\n" ? "\n" : " ";
+                    if (ch == "\n") {
+                        state = "code";
+                    }
+                    continue;
+                }
+
+                if (state == "blockComment") {
+                    if (ch == "*" && nextCh == "/") {
+                        retVal += "  ";
+                        index += 1;
+                        state = "code";
+                        continue;
+                    }
+
+                    retVal += ch == "\n" ? "\n" : " ";
+                    continue;
+                }
+
+                if (
+                    state == "singleQuote"
+                ||
+                    state == "doubleQuote"
+                ||
+                    state == "template"
+                ) {
+                    let quoteChar = state == "singleQuote" ? "'" : state == "doubleQuote" ? '"' : "`";
+
+                    if (ch == "\\" && nextCh) {
+                        retVal += "  ";
+                        index += 1;
+                        continue;
+                    }
+
+                    if (ch == quoteChar) {
+                        retVal += " ";
+                        state = "code";
+                        continue;
+                    }
+
+                    retVal += ch == "\n" ? "\n" : " ";
+                    continue;
+                }
+
+                if (ch == "/" && nextCh == "/") {
+                    retVal += "  ";
+                    index += 1;
+                    state = "lineComment";
+                    continue;
+                }
+
+                if (ch == "/" && nextCh == "*") {
+                    retVal += "  ";
+                    index += 1;
+                    state = "blockComment";
+                    continue;
+                }
+
+                if (ch == "'") {
+                    retVal += " ";
+                    state = "singleQuote";
+                    continue;
+                }
+
+                if (ch == '"') {
+                    retVal += " ";
+                    state = "doubleQuote";
+                    continue;
+                }
+
+                if (ch == "`") {
+                    retVal += " ";
+                    state = "template";
+                    continue;
+                }
+
+                retVal += ch;
+            }
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+            retVal = "";
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+
+function getAsyncModeHeuristicMatch(scriptText) {
+// coderstate: function
+    let retVal = "";
+
+    do {
+        try {
+            let sourceText = sanitizeSourceForAsyncModeHeuristic(scriptText);
+            let asyncPatterns = [
+                /(^|[^\w$.])async\s+function\b/,
+                /(^|[^\w$.])async\s+[_$A-Za-z][_$A-Za-z0-9]*\s*=>/,
+                /(^|[^\w$.])async\s*\(/,
+                /(^|[^\w$.])async\s+(?:static\s+)?(?:get\s+|set\s+)?(?:\*\s*)?[#_$A-Za-z][#_$A-Za-z0-9]*\s*\(/
+            ];
+
+            for (let index = 0; index < asyncPatterns.length; index += 1) {
+                let match = sourceText.match(asyncPatterns[index]);
+                if (! match) {
+                    continue;
+                }
+
+                retVal = String(match[0]).replace(/^\s+/, "");
+                break;
+            }
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+            retVal = "";
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+
+/**
+ * Rough async-mode heuristic for a top-level InDesign UXPScript launcher.<br>
+ * <br>
+ * Comments and quoted strings are stripped before matching common async syntax.
+ * This is intentionally not a full JavaScript parser.
+ *
+ * @function wouldUXPScriptRunInAsyncMode
+ * @memberOf crdtuxpIDSN
+ * @param {string} scriptText - top-level launcher source text to inspect
+ * @returns {boolean} true when the launcher matches the rough async-mode heuristic
+ */
 function wouldUXPScriptRunInAsyncMode(scriptText) {
 // coderstate: function
     let retVal = false;
 
     try {
-        retVal = /\basync\b/.test(String(scriptText || ""));
+        retVal = getAsyncModeHeuristicMatch(scriptText) != "";
     }
     catch (err) {
         crdtuxp.logError(arguments, "throws " + err);
@@ -167,8 +315,9 @@ function validateSyncSafeSource(sourceText, options) {
                 break;
             }
 
-            if (wouldUXPScriptRunInAsyncMode(sourceText)) {
-                crdtuxp.logError(arguments, "Bridge source contains the token 'async'. InDesign may switch the launch into slow redraw-heavy mode.");
+            let asyncHeuristicMatch = getAsyncModeHeuristicMatch(sourceText);
+            if (asyncHeuristicMatch) {
+                crdtuxp.logError(arguments, "Bridge source matches the rough async-mode heuristic (" + asyncHeuristicMatch + "). InDesign may switch the launch into slow redraw-heavy mode. This check can be bypassed with allowAsyncToken.");
                 break;
             }
 
@@ -500,16 +649,18 @@ function cleanupTempBridgeScriptFile(filePath) {
  * The bridge launches a clean UXPScript runner file and hands it a payload file path.<br>
  * For string input, the source is first written to a temporary <code>.idjs</code> file.<br>
  * <br>
- * By default, the bridge rejects source that contains the token <code>async</code>, because
- * observed InDesign behavior suggests that the top-level launcher can switch into a slower,
- * redraw-heavy mode even when that token only appears in comments or strings.
+ * By default, the bridge rejects source that matches a rough async-syntax heuristic after
+ * comments and quoted strings are stripped, because observed InDesign behavior suggests that
+ * the top-level launcher can switch into a slower, redraw-heavy mode when it contains real
+ * async syntax such as <code>async function dummy() {}</code>. This is intentionally not a
+ * full JavaScript parser.
  *
  * @function doUXPScript
  * @memberOf crdtuxpIDSN
  *
  * @param {string} scriptText - UXPScript source to run
  * @param {object=} options - <code>{<br>
- *     allowAsyncToken: false to reject source containing the token async<br>
+ *     allowAsyncToken: false to bypass the rough async-mode source inspection<br>
  *     clearPending: accepted for backward compatibility; currently ignored<br>
  *     engineName: accepted for backward compatibility; currently ignored<br>
  *     taskName: accepted for backward compatibility; currently ignored<br>

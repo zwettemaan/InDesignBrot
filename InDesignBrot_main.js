@@ -6,7 +6,7 @@
 //
 // No rhyme nor reason - no practical value, just for fun. See LICENSE for terms.
 //
-// Start Adobe InDesign, run the script. Go get coffee.
+// Start Adobe InDesign, tweak the settings on the pasteboard, run the script. Go get coffee.
 //
 
 const indesign = require("indesign");
@@ -22,6 +22,7 @@ const kDefaultMaxSteps = 35;
 
 //
 // Default. How large a pixel grid (numPixels x numPixels). The larger, the slower.
+// Don't overdo it - it gets really slow when you go above 50 or so, depending on the maxSteps setting
 //
 const kDefaultNumPixels = 19;
 
