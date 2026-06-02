@@ -5,6 +5,12 @@
 const localFileSystem = require("uxp").storage.localFileSystem;
 
 const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
+const BRIDGE_STATUS_REQUEST = "Request";
+const BRIDGE_STATUS_STARTED = "Started";
+const BRIDGE_STATUS_POLL_INTERVAL_MS = 100;
+const BRIDGE_STATUS_REQUEST_TIMEOUT_MS = 5000;
+const BRIDGE_STATUS_COMPLETION_TIMEOUT_MS = 300000;
+const SUPPRESS_ELAPSED_TIME_DIALOG_LABEL = "InDesignBrotSuppressElapsedTimeDialog";
 const RESULT_GROUP_LABEL = "Calculated_Mandelbrot";
 const TITLE_FRAME_LABEL = "InDesignBrotComparisonTitle";
 const TITLE_FRAME_NAME = "InDesignBrotComparisonTitle";
@@ -17,7 +23,8 @@ const state = {
     busy: false,
     initPromise: null,
     runtimeFolder: null,
-    crdtuxp: null
+    crdtuxp: null,
+    crdtuxpIDSN: null
 };
 
 const directButton = document.getElementById("run-direct");
@@ -25,12 +32,17 @@ const bridgeButton = document.getElementById("run-bridge");
 const statusNode = document.getElementById("status");
 
 function getInDesignApp() {
+
     if (global.app) {
         return global.app;
     }
+
     const indesign = require("indesign");
     const currentApp = indesign.app;
-    global.app = currentApp;
+    if (currentApp && currentApp.isValid) {
+        global.app = currentApp;
+    }
+
     return currentApp;
 }
 
@@ -64,22 +76,6 @@ function setStatus(message, kind) {
     }
 }
 
-function getAppLabelFromApp(app, key) {
-    if (! app || typeof app.extractLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
-
-    return String(app.extractLabel(key) || "");
-}
-
-function setAppLabelOnApp(app, key, value) {
-    if (! app || typeof app.insertLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
-
-    app.insertLabel(key, String(value));
-}
-
 function formatError(err) {
     if (! err) {
         return "Unknown error";
@@ -94,6 +90,26 @@ function formatError(err) {
 
 function formatElapsedSeconds(milliseconds) {
     return (milliseconds / 1000).toFixed(3);
+}
+
+function setAppLabelOnApp(app, key, value) {
+    if (! app || typeof app.insertLabel != "function") {
+        throw new Error("Application labels are not available in this InDesign runtime.");
+    }
+
+    app.insertLabel(key, String(value == null ? "" : value));
+}
+
+function getAppLabelOnApp(app, key) {
+    if (! app || typeof app.extractLabel != "function") {
+        throw new Error("Application labels are not available in this InDesign runtime.");
+    }
+
+    return String(app.extractLabel(key) || "");
+}
+
+function isElapsedLabelValue(value) {
+    return /^\d+(\.\d+)?$/.test(String(value || ""));
 }
 
 function sleep(milliseconds) {
@@ -222,10 +238,11 @@ async function getRuntimeFolder() {
 
     await runtimeFolder.getEntry("InDesignBrot_main.js");
     await runtimeFolder.getEntry("InDesignBrot.idjs");
-    await runtimeFolder.getEntry("InDesignBrot_bridge_runner.idjs");
 
     const crdtFolder = await runtimeFolder.getEntry("CreativeDeveloperTools_UXP");
     await crdtFolder.getEntry("crdtuxp.js");
+    await crdtFolder.getEntry("crdtuxpIDSN.js");
+    await crdtFolder.getEntry("crdtuxpIDSN_bridge_runner.idjs");
 
     state.runtimeFolder = runtimeFolder;
     return runtimeFolder;
@@ -243,6 +260,7 @@ async function initializeRuntime() {
             globalThis.crdtuxp = state.crdtuxp;
 
             await state.crdtuxp.init();
+            state.crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
             return state;
         })().catch(function handleInitFailure(err) {
             state.initPromise = null;
@@ -253,55 +271,93 @@ async function initializeRuntime() {
     return state.initPromise;
 }
 
+async function waitForBridgeResult(app, onStarted) {
+    const requestDeadline = Date.now() + BRIDGE_STATUS_REQUEST_TIMEOUT_MS;
+    const completionDeadline = Date.now() + BRIDGE_STATUS_COMPLETION_TIMEOUT_MS;
+    let didReportStart = false;
+
+    while (true) {
+        const statusValue = getAppLabelOnApp(app, BRIDGE_STATUS_LABEL);
+
+        if (isElapsedLabelValue(statusValue)) {
+            return {
+                elapsedMilliseconds: Math.round(parseFloat(statusValue) * 1000)
+            };
+        }
+
+        if (statusValue == BRIDGE_STATUS_STARTED) {
+            if (! didReportStart) {
+                didReportStart = true;
+                if (typeof onStarted == "function") {
+                    onStarted();
+                }
+            }
+        }
+        else if (statusValue && statusValue != BRIDGE_STATUS_REQUEST) {
+            throw new Error(statusValue);
+        }
+
+        if (! didReportStart && Date.now() > requestDeadline) {
+            throw new Error("Bridge request stayed pending for more than 5 seconds.");
+        }
+
+        if (didReportStart && Date.now() > completionDeadline) {
+            throw new Error("Bridge run did not finish within 300 seconds.");
+        }
+
+        await sleep(BRIDGE_STATUS_POLL_INTERVAL_MS);
+    }
+}
+
 async function runDirectInPanel() {
     const runtime = await initializeRuntime();
     const inDesignBrot = require("./runtime/InDesignBrot_main.js");
-    const startTime = Date.now();
+    const app = await waitForInDesignApp();
+
+    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
 
     await runWithSuppressedAlert(runtime, function runDirectWithSuppressedAlert() {
         return inDesignBrot.main();
     });
+    const result = await waitForBridgeResult(app);
 
     if (typeof runtime.crdtuxp.finalize == "function") {
         await runtime.crdtuxp.finalize();
     }
 
-    updateDocumentPresentation("Panel UXP", Date.now() - startTime);
-
-    return {
-        elapsedMilliseconds: Date.now() - startTime
-    };
+    updateDocumentPresentation("Panel UXP", result.elapsedMilliseconds);
+    return result;
 }
 
 async function runViaUXPScript() {
-    await initializeRuntime();
+    const runtime = await initializeRuntime();
     const runtimeFolder = await getRuntimeFolder();
-    const launcherEntry = await runtimeFolder.getEntry("InDesignBrot_bridge_runner.idjs");
-
-    const indesign = require("indesign");
+    const launcherEntry = await runtimeFolder.getEntry("InDesignBrot.idjs");
+    const launcherText = await launcherEntry.read();
     const app = await waitForInDesignApp();
-    const pendingValue = "pending:" + Date.now();
 
-    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, pendingValue);
+    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
 
-    const rawResult = await Promise.resolve(app.doScript(
-        launcherEntry.nativePath,
-        indesign.ScriptLanguage.UXPSCRIPT
-    ));
+    setAppLabelOnApp(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
 
-    const labelResult = getAppLabelFromApp(app, BRIDGE_STATUS_LABEL);
-    const resultValue = labelResult && labelResult != pendingValue
-        ? labelResult
-        : rawResult;
-
-    const elapsedSeconds = parseFloat(String(resultValue || ""));
-    if (! Number.isFinite(elapsedSeconds)) {
-        throw new Error(resultValue ? String(resultValue) : "UXPScript returned no elapsed time.");
+    try {
+        await runWithSuppressedAlert(runtime, function runBridgeWithSuppressedAlert() {
+            return runtime.crdtuxpIDSN.doUXPScriptFile(launcherEntry.nativePath, {
+                sourceText: launcherText,
+                requireSourceInspection: true
+            });
+        });
+    }
+    finally {
+        setAppLabelOnApp(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
     }
 
-    const result = {
-        elapsedMilliseconds: Math.round(elapsedSeconds * 1000)
-    };
+    const result = await waitForBridgeResult(app, function handleBridgeStarted() {
+        setStatus(
+            "Bridged UXPScript started. The panel is waiting for InDesignBrot to replace the Started label with the elapsed time.",
+            "note"
+        );
+    });
 
     updateDocumentPresentation("UXPScript", result.elapsedMilliseconds);
     return result;

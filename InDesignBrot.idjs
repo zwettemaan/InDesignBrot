@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
 // https://github.com/zwettemaan/InDesignBrot
 
-// If this script was launched from a wrapper script in the InDesign Scripts Panel then
-// crdtuxp will already be defined
+// If this script was launched from a wrapper script then
+// crdtuxp might already be defined
 // If this script is launched directly, crdtuxp will not yet be defined
 
 const NAME_MAIN_SCRIPT = "InDesignBrot_main"; 

@@ -32,6 +32,8 @@ rm -rf "${TARGET_UXP_DIR}"
 mkdir "${TARGET_UXP_DIR}"
 
 cp "${CREATIVE_DEVELOPER_TOOLS_UXP}crdtuxp.js"      "${TARGET_UXP_DIR}crdtuxp.js"
+cp "${CREATIVE_DEVELOPER_TOOLS_UXP}crdtuxpIDSN.js"  "${TARGET_UXP_DIR}crdtuxpIDSN.js"
+cp "${CREATIVE_DEVELOPER_TOOLS_UXP}crdtuxpIDSN_bridge_runner.idjs" "${TARGET_UXP_DIR}crdtuxpIDSN_bridge_runner.idjs"
 cp "${CREATIVE_DEVELOPER_TOOLS_UXP}crdtuxp_test.js" "${TARGET_UXP_DIR}crdtuxp_test.js"
 
 echo "update_crdt complete"

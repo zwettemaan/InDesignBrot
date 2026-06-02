@@ -38,7 +38,18 @@ const kDefaultDeletePreviousResult = true;
 const kDefaultRunCRDTUXPTests = false;
 
 const kSectionNameConfig = "indesignbrot";
+const kAppLabel_BridgeStatus = "InDesignBrotBridgeStatus";
+const kAppLabel_SuppressElapsedTimeDialog = "InDesignBrotSuppressElapsedTimeDialog";
+const kBridgeStatus_Started = "Started";
 const kScriptLabel_FinishedSet = "Calculated_Mandelbrot";
+
+function setBridgeStatus(value) {
+    if (! app || typeof app.insertLabel != "function") {
+        throw new Error("Application labels are not available in this InDesign runtime.");
+    }
+
+    app.insertLabel(kAppLabel_BridgeStatus, String(value == null ? "" : value));
+}
 
 async function main() {
 
@@ -94,6 +105,7 @@ module.exports.main = main;
 function calculateMandelbrot(context) {
 
     let retVal = false;
+    let didSetStarted = false;
 
     crdtuxp.logEntry(arguments);
 
@@ -117,6 +129,9 @@ function calculateMandelbrot(context) {
                 crdtuxp.logError(arguments, "config missing");
                 break;
             }
+
+            setBridgeStatus(kBridgeStatus_Started);
+            didSetStarted = true;
 
             //
             // For applying swatches we apply a logarithmic scale; pre-calculate this value because
@@ -192,14 +207,27 @@ function calculateMandelbrot(context) {
             // ...and we're done!
             //
             const endDate = new Date();
+            const elapsedMilliseconds = endDate.getTime() - startDate.getTime();
+            const elapsedSeconds = (elapsedMilliseconds / 1000).toFixed(3);
+
+            setBridgeStatus(elapsedSeconds);
 
             if (config.showElapsedTimeDialog) {
-                crdtuxp.alert("Time elapsed:" + (endDate.getTime() - startDate.getTime()) / 1000.0);
+                crdtuxp.alert("Time elapsed:" + elapsedMilliseconds / 1000.0);
             }
             
             retVal = true;
         }
         catch (err) {
+            if (didSetStarted) {
+                try {
+                    setBridgeStatus("InDesignBrot run failed: " + err);
+                }
+                catch (statusErr) {
+                    crdtuxp.logError(arguments, "setting bridge status throws " + statusErr);
+                }
+            }
+
             crdtuxp.logError(arguments, "throws " + err);
         }
     }
@@ -486,6 +514,41 @@ function extractDocINIConfig(doc, config) {
     return retVal;
 }
 
+function applyRuntimeConfigOverrides(config) {
+
+    let retVal = false;
+
+    crdtuxp.logEntry(arguments);
+
+    do {
+
+        try {
+
+            if (! config) {
+                crdtuxp.logError(arguments, "need config");
+                break;
+            }
+
+            if (typeof app.extractLabel == "function") {
+                const suppressElapsedTimeDialog = String(app.extractLabel(kAppLabel_SuppressElapsedTimeDialog) || "").toLowerCase();
+                if (suppressElapsedTimeDialog == "yes" || suppressElapsedTimeDialog == "true" || suppressElapsedTimeDialog == "1") {
+                    config.showElapsedTimeDialog = false;
+                }
+            }
+
+            retVal = true;
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
+    }
+    while (false);
+
+    crdtuxp.logExit(arguments);
+
+    return retVal;
+}
+
 function findINIConfig(doc) {
 
     let retVal = undefined;
@@ -562,6 +625,11 @@ function getTargetDocAndConfig(config) {
                 }
 
                 doc = createDefaultDocument(config);
+            }
+
+            if (! applyRuntimeConfigOverrides(config)) {
+                crdtuxp.logError(arguments, "failed to apply runtime config overrides");
+                break;
             }
 
             retVal = doc;

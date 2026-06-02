@@ -1,0 +1,207 @@
+// Copyright (c) 2024-present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: Elastic-2.0
+// https://github.com/zwettemaan/CRDT_UXP
+
+const BRIDGE_PAYLOAD_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
+const BRIDGE_STATUS_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_STATUS__";
+const BRIDGE_STATUS_STARTED = "Started";
+const BRIDGE_APP_WAIT_TIMEOUT_MS = 2000;
+const BRIDGE_APP_WAIT_INTERVAL_MS = 25;
+const originalAlert = global.crdtuxp && global.crdtuxp.alert;
+
+if (! global.crdtuxp) {
+    global.crdtuxp = global.require("./crdtuxp.js");
+    crdtuxp.init();
+}
+
+function getInDesignApp() {
+    if (global.app) {
+        return global.app;
+    }
+
+    if (global.crdtuxp && typeof crdtuxp.getUXPContext == "function") {
+        const uxpContext = crdtuxp.getUXPContext();
+        if (uxpContext && uxpContext.app) {
+            global.app = uxpContext.app;
+            return global.app;
+        }
+    }
+
+    try {
+        const indesign = require("indesign");
+        const currentApp = indesign.app;
+
+        global.app = currentApp;
+        return currentApp;
+    }
+    catch (err) {
+    }
+
+    return undefined;
+}
+
+function waitForInDesignApp() {
+    return new Promise(function waitForInDesignAppExecutor(resolve, reject) {
+        const deadline = Date.now() + BRIDGE_APP_WAIT_TIMEOUT_MS;
+
+        function checkForApp() {
+            const currentApp = getInDesignApp();
+
+            if (currentApp) {
+                resolve(currentApp);
+                return;
+            }
+
+            if (Date.now() > deadline) {
+                reject(new Error("InDesign app is unavailable in UXPScript."));
+                return;
+            }
+
+            setTimeout(checkForApp, BRIDGE_APP_WAIT_INTERVAL_MS);
+        }
+
+        checkForApp();
+    });
+}
+
+function setBridgeStatus(app, value) {
+    if (! app || typeof app.insertLabel != "function") {
+        return;
+    }
+
+    app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
+}
+
+function normalizeEntry(entry) {
+    const normalized = {
+        mode: null
+    };
+
+    if (! entry || ! entry.mode) {
+        throw new Error("Bridge payload is missing mode.");
+    }
+
+    normalized.mode = String(entry.mode);
+
+    if (normalized.mode == "file") {
+        if (! entry.filePath) {
+            throw new Error("Bridge payload is missing filePath.");
+        }
+
+        normalized.filePath = String(entry.filePath);
+        return normalized;
+    }
+
+    if (normalized.mode == "text") {
+        normalized.scriptText = String(entry.scriptText || "");
+        return normalized;
+    }
+
+    throw new Error("Unsupported bridge mode: " + normalized.mode);
+}
+
+function getBridgePayload(app) {
+    if (! app || typeof app.extractLabel != "function") {
+        throw new Error("InDesign label API is unavailable.");
+    }
+
+    const rawPayload = app.extractLabel(BRIDGE_PAYLOAD_LABEL);
+
+    if (! rawPayload) {
+        throw new Error("Bridge payload is unavailable.");
+    }
+
+    return normalizeEntry(JSON.parse(String(rawPayload)));
+}
+
+function restoreAlert() {
+    crdtuxp.alert = originalAlert;
+}
+
+function finalizeWithValue(app, value) {
+    setBridgeStatus(app, value);
+    restoreAlert();
+
+    return crdtuxp.finalize().then(function handleFinalizeResolve() {
+        return value;
+    });
+}
+
+function finalizeWithError(app, err) {
+    const message = "UXPScript run failed: " + err;
+
+    setBridgeStatus(app, message);
+    restoreAlert();
+
+    return crdtuxp.finalize().then(function handleFinalizeReject() {
+        throw new Error(message);
+    });
+}
+
+function runWithRedrawDisabled(app, work) {
+    let originalEnableRedraw = null;
+    let redrawChanged = false;
+
+    try {
+        if (app && app.scriptPreferences && typeof app.scriptPreferences.enableRedraw != "undefined") {
+            originalEnableRedraw = app.scriptPreferences.enableRedraw;
+            app.scriptPreferences.enableRedraw = false;
+            redrawChanged = true;
+        }
+
+        return work();
+    }
+    finally {
+        if (redrawChanged) {
+            try {
+                app.scriptPreferences.enableRedraw = originalEnableRedraw;
+            }
+            catch (restoreErr) {
+            }
+        }
+    }
+}
+
+function runPayload(app, payload) {
+    const indesign = require("indesign");
+
+    return runWithRedrawDisabled(app, function runPayloadWithRedrawDisabled() {
+        if (payload.mode == "file") {
+            return app.doScript(payload.filePath, indesign.ScriptLanguage.UXPSCRIPT);
+        }
+
+        if (payload.mode == "text") {
+            return app.doScript(payload.scriptText, indesign.ScriptLanguage.UXPSCRIPT);
+        }
+
+        throw new Error("Unsupported bridge mode: " + payload.mode);
+    });
+}
+
+function main() {
+    crdtuxp.alert = function noopBridgeAlert() {
+    };
+
+    return waitForInDesignApp().then(function handleAppReady(app) {
+        const payload = getBridgePayload(app);
+
+        setBridgeStatus(app, BRIDGE_STATUS_STARTED);
+
+        return Promise.resolve().then(function runBridgeMain() {
+            return runPayload(app, payload);
+        }).then(
+            function handleBridgeResolve(value) {
+                return finalizeWithValue(app, value);
+            },
+            function handleBridgeReject(err) {
+                return finalizeWithError(app, err);
+            }
+        );
+    }, function handleAppUnavailable(err) {
+        return finalizeWithError(undefined, err);
+    });
+}
+
+module.exports.main = main;
+
+return main();
