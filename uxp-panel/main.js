@@ -214,20 +214,6 @@ function updateDocumentPresentation(methodLabel, elapsedMilliseconds) {
     resultGroup.move([resultBounds[1], targetTop]);
 }
 
-async function runWithSuppressedAlert(runtime, callback) {
-    const originalAlert = runtime.crdtuxp.alert;
-
-    runtime.crdtuxp.alert = function noopAlert() {
-    };
-
-    try {
-        return await callback();
-    }
-    finally {
-        runtime.crdtuxp.alert = originalAlert;
-    }
-}
-
 async function getRuntimeFolder() {
     if (state.runtimeFolder) {
         return state.runtimeFolder;
@@ -318,9 +304,7 @@ async function runDirectInPanel() {
     setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
 
     try {
-        await runWithSuppressedAlert(runtime, function runDirectWithSuppressedAlert() {
-            return inDesignBrot.main();
-        });
+            await inDesignBrot.main();
     }
     finally {
         setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
@@ -339,19 +323,13 @@ async function runViaUXPScript() {
     const runtime = await initializeRuntime();
     const runtimeFolder = await getRuntimeFolder();
     const launcherEntry = await runtimeFolder.getEntry("InDesignBrot.idjs");
-    const launcherText = await launcherEntry.read();
     const app = await waitForInDesignApp();
 
     setAppLabel(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
     setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
 
     try {
-        await runWithSuppressedAlert(runtime, function runBridgeWithSuppressedAlert() {
-            return runtime.crdtuxpIDSN.doUXPScriptFile(launcherEntry.nativePath, {
-                sourceText: launcherText,
-                requireSourceInspection: true
-            });
-        });
+            await runtime.crdtuxpIDSN.doUXPScriptFile(launcherEntry.nativePath);
     }
     finally {
         setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
