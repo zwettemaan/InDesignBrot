@@ -112,12 +112,16 @@ function isElapsedLabelValue(value) {
     return /^\d+(\.\d+)?$/.test(String(value || ""));
 }
 
+// setTimeout is callback-based, so this wrapper is the minimal bridge that lets
+// the rest of the panel code use await for short polling delays.
 function sleep(milliseconds) {
     return new Promise(function sleepPromise(resolve) {
         setTimeout(resolve, milliseconds);
     });
 }
 
+// requestAnimationFrame is also callback-based. Waiting for two frames gives the
+// status text a chance to paint before a long-running action starts.
 function waitForStatusPaint() {
     return new Promise(function waitForStatusPaintPromise(resolve) {
         if (typeof requestAnimationFrame == "function") {
@@ -234,24 +238,29 @@ async function getRuntimeFolder() {
     return runtimeFolder;
 }
 
+async function initializeRuntimeImpl() {
+    try {
+        await getRuntimeFolder();
+
+        state.crdtuxp = require("./runtime/CreativeDeveloperTools_UXP/crdtuxp.js");
+        if (typeof global !== "undefined") {
+            global.crdtuxp = state.crdtuxp;
+        }
+        globalThis.crdtuxp = state.crdtuxp;
+
+        await state.crdtuxp.init();
+        state.crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
+        return state;
+    }
+    catch (err) {
+        state.initPromise = null;
+        throw err;
+    }
+}
+
 async function initializeRuntime() {
     if (! state.initPromise) {
-        state.initPromise = (async function initializeRuntimeImpl() {
-            await getRuntimeFolder();
-
-            state.crdtuxp = require("./runtime/CreativeDeveloperTools_UXP/crdtuxp.js");
-            if (typeof global !== "undefined") {
-                global.crdtuxp = state.crdtuxp;
-            }
-            globalThis.crdtuxp = state.crdtuxp;
-
-            await state.crdtuxp.init();
-            state.crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
-            return state;
-        })().catch(function handleInitFailure(err) {
-            state.initPromise = null;
-            throw err;
-        });
+        state.initPromise = initializeRuntimeImpl();
     }
 
     return state.initPromise;
