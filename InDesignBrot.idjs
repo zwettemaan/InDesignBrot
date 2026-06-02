@@ -2,6 +2,9 @@
 // crdtuxp will already be defined
 // If this script is launched directly, crdtuxp will not yet be defined
 
+// Uncomment the following line, and re-try the script - it will be slow
+// async function xyz() { }
+
 const NAME_MAIN_SCRIPT = "InDesignBrot_main"; 
 const IS_STANDALONE_SCRIPT = ! global.crdtuxp;
 const LOGLEVEL = 3;
