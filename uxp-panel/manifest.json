@@ -11,17 +11,6 @@
   ],
   "manifestVersion": 5,
   "requiredPermissions": {
-    "network": {
-      "domains": [
-        "localhost.tgrg.net"
-      ]
-    },
-    "launchProcess": {
-      "schemes": [
-        "https"
-      ],
-      "extensions": []
-    }
   },
   "entrypoints": [
     {
