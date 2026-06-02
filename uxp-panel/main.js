@@ -218,6 +218,18 @@ function updateDocumentPresentation(methodLabel, elapsedMilliseconds) {
     resultGroup.move([resultBounds[1], targetTop]);
 }
 
+function erasePreviousRenderingIfAny() {
+    const doc = getActiveDocument();
+    if (! doc) {
+        return;
+    }
+
+    const resultGroup = findResultGroup(doc);
+    if (resultGroup && resultGroup.isValid) {
+        resultGroup.remove();
+    }
+}
+
 async function getRuntimeFolder() {
     if (state.runtimeFolder) {
         return state.runtimeFolder;
@@ -366,6 +378,8 @@ async function runAction(startMessage, action, buildSuccessMessage) {
     await waitForStatusPaint();
 
     try {
+        erasePreviousRenderingIfAny();
+        await sleep(500);
         const result = await action();
         setStatus(buildSuccessMessage(result), "note");
     }
