@@ -2,13 +2,39 @@
 // SPDX-License-Identifier: Elastic-2.0
 // https://github.com/zwettemaan/CRDT_UXP
 
-if (! global.crdtuxp) {
-    global.crdtuxp = global.require("./crdtuxp.js");
-    crdtuxp.init();
-}
-
 if (! module.exports) {
     module.exports = {};
+}
+
+let crdtuxp = getCRDTUXP();
+
+
+function getCRDTUXP() {
+// coderstate: function
+    let retVal = undefined;
+
+    do {
+        try {
+            retVal = global.crdtuxp;
+            if (retVal) {
+                break;
+            }
+
+            if (typeof require != "function") {
+                break;
+            }
+
+            retVal = require("./crdtuxp.js");
+            if (retVal) {
+                global.crdtuxp = retVal;
+            }
+        }
+        catch (err) {
+        }
+    }
+    while (false);
+
+    return retVal;
 }
 
 async function testUXPContext() {

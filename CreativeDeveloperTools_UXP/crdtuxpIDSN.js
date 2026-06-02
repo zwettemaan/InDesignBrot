@@ -17,12 +17,11 @@ if (! module.exports) {
 }
 let crdtuxpIDSN = module.exports;
 
-const DEFAULT_UXPSCRIPT_BRIDGE_ENGINE = "CRDT_UXP_UXPScriptBridge";
-const DEFAULT_UXPSCRIPT_BRIDGE_TASK_NAME = "CRDT_UXP_UXPScriptBridgeTask";
+let crdtuxp = getCRDTUXP();
+
+const PLUGIN_PATH_PREFIX = "plugin:";
 const BRIDGE_RUNNER_FILE_NAME = "crdtuxpIDSN_bridge_runner.idjs";
 const BRIDGE_PAYLOAD_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
-const UXP_VARIANT_INDESIGN_UXP = "UXP_VARIANT_INDESIGN_UXP";
-const UXP_VARIANT_INDESIGN_UXPSCRIPT = "UXP_VARIANT_INDESIGN_UXPSCRIPT";
 
 function getCRDTUXP() {
 // coderstate: function
@@ -52,18 +51,6 @@ function getCRDTUXP() {
     return retVal;
 }
 
-function logBridgeError(reportingFunctionArguments, message) {
-// coderstate: procedure
-    let crdtuxp = getCRDTUXP();
-
-    if (crdtuxp && typeof crdtuxp.logError == "function") {
-        crdtuxp.logError(reportingFunctionArguments, message);
-    }
-    else if (typeof console != "undefined" && console && typeof console.error == "function") {
-        console.error(message);
-    }
-}
-
 function isAbsoluteNativePath(filePath) {
 // coderstate: function
     return /^(\/|[A-Za-z]:[\\/])/.test(String(filePath || ""));
@@ -75,59 +62,32 @@ function normalizeNativePath(filePath) {
 
     do {
         try {
+
             if (filePath === undefined || filePath === null || filePath === "") {
                 break;
             }
 
             retVal = String(filePath);
 
-            if (retVal.indexOf("plugin:") == 0) {
-                let nativePath = retVal.substring("plugin:".length);
-
-                if (! isAbsoluteNativePath(nativePath)) {
-                    throw new Error("Unsupported plugin path: " + retVal);
-                }
-
-                retVal = nativePath;
+            if (retVal.indexOf(PLUGIN_PATH_PREFIX) != 0) {
+                break;
             }
+
+            let nativePath = retVal.substring(PLUGIN_PATH_PREFIX.length);
+
+            if (! isAbsoluteNativePath(nativePath)) {
+                crdtuxp.logError(arguments, "Unsupported plugin path: " + retVal);
+                break;
+            }
+
+            retVal = nativePath;
         }
         catch (err) {
-            logBridgeError(arguments, "normalizeNativePath throws " + err);
+            crdtuxp.logError(arguments, "throws " + err);
             retVal = undefined;
         }
     }
     while (false);
-
-    return retVal;
-}
-
-function getBridgeEngineName(options) {
-// coderstate: function
-    let retVal = DEFAULT_UXPSCRIPT_BRIDGE_ENGINE;
-
-    try {
-        if (options && options.engineName) {
-            retVal = String(options.engineName);
-        }
-    }
-    catch (err) {
-        logBridgeError(arguments, "getBridgeEngineName throws " + err);
-    }
-
-    return retVal;
-}
-function getBridgeTaskName(options) {
-// coderstate: function
-    let retVal = DEFAULT_UXPSCRIPT_BRIDGE_TASK_NAME;
-
-    try {
-        if (options && options.taskName) {
-            retVal = String(options.taskName);
-        }
-    }
-    catch (err) {
-        logBridgeError(arguments, "getBridgeTaskName throws " + err);
-    }
 
     return retVal;
 }
@@ -138,26 +98,24 @@ function getBridgeContext() {
 
     do {
         try {
-            let crdtuxp = getCRDTUXP();
-            if (! crdtuxp || typeof crdtuxp.getUXPContext != "function") {
-                throw new Error("crdtuxp.js is unavailable.");
-            }
-
             let uxpContext = crdtuxp.getUXPContext();
             if (! uxpContext) {
-                throw new Error("Could not determine UXP context.");
+                crdtuxp.logError(arguments, "Could not determine UXP context.");
+                break;
             }
 
             if (
-                uxpContext.uxpVariant != UXP_VARIANT_INDESIGN_UXP
+                uxpContext.uxpVariant != crdtuxp.UXP_VARIANT_INDESIGN_UXP
             &&
-                uxpContext.uxpVariant != UXP_VARIANT_INDESIGN_UXPSCRIPT
+                uxpContext.uxpVariant != crdtuxp.UXP_VARIANT_INDESIGN_UXPSCRIPT
             ) {
-                throw new Error("UXPScript bridge is only available in desktop InDesign.");
+                crdtuxp.logError(arguments, "UXPScript bridge is only available in desktop InDesign.");
+                break;
             }
 
             if (! uxpContext.indesign || ! uxpContext.app || typeof uxpContext.app.doScript != "function") {
-                throw new Error("InDesign doScript() is unavailable.");
+                crdtuxp.logError(arguments, "InDesign doScript() is unavailable.");
+                break;
             }
 
             retVal = {
@@ -166,7 +124,7 @@ function getBridgeContext() {
             };
         }
         catch (err) {
-            throw err;
+            crdtuxp.logError(arguments, "throws " + err);
         }
     }
     while (false);
@@ -182,32 +140,48 @@ function wouldUXPScriptRunInAsyncMode(scriptText) {
         retVal = /\basync\b/.test(String(scriptText || ""));
     }
     catch (err) {
-        logBridgeError(arguments, "wouldUXPScriptRunInAsyncMode throws " + err);
+        crdtuxp.logError(arguments, "throws " + err);
     }
 
     return retVal;
 }
 
 module.exports.wouldUXPScriptRunInAsyncMode = wouldUXPScriptRunInAsyncMode;
-module.exports.DEFAULT_UXPSCRIPT_BRIDGE_ENGINE = DEFAULT_UXPSCRIPT_BRIDGE_ENGINE;
-module.exports.DEFAULT_UXPSCRIPT_BRIDGE_TASK_NAME = DEFAULT_UXPSCRIPT_BRIDGE_TASK_NAME;
 
 function validateSyncSafeSource(sourceText, options) {
-// coderstate: procedure
-    if (options && options.allowAsyncToken) {
-        return;
-    }
+// coderstate: function
+    let retVal = false;
 
-    if (sourceText === undefined || sourceText === null) {
-        if (options && options.requireSourceInspection) {
-            throw new Error("Bridge source text is required when requireSourceInspection is true.");
+    do {
+        try {
+
+            if (sourceText === undefined || sourceText === null) {
+                if (options && options.requireSourceInspection) {
+                    crdtuxp.logError(arguments, "Bridge source text is required when requireSourceInspection is true.");
+                    break;
+                }
+            }
+
+            if (options && options.allowAsyncToken) {
+                retVal = true;
+                break;
+            }
+
+            if (wouldUXPScriptRunInAsyncMode(sourceText)) {
+                crdtuxp.logError(arguments, "Bridge source contains the token 'async'. InDesign may switch the launch into slow redraw-heavy mode.");
+                break;
+            }
+
+            retVal = true;
         }
-        return;
-    }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
 
-    if (wouldUXPScriptRunInAsyncMode(sourceText)) {
-        throw new Error("Bridge source contains the token 'async'. InDesign may switch the launch into slow redraw-heavy mode.");
     }
+    while (false);
+
+    return retVal;
 }
 
 function resolveUXPScriptFilePath(filePath, options) {
@@ -228,7 +202,6 @@ function resolveUXPScriptFilePath(filePath, options) {
             retVal = String(filePath);
 
             let bridgeContext = getBridgeContext();
-            let crdtuxp = bridgeContext.crdtuxp;
             let uxpContext = bridgeContext.uxpContext;
             let basePath = options && options.basePath;
 
@@ -253,7 +226,7 @@ function resolveUXPScriptFilePath(filePath, options) {
             }
         }
         catch (err) {
-            logBridgeError(arguments, "resolveUXPScriptFilePath throws " + err);
+            crdtuxp.logError(arguments, "throws " + err);
             retVal = undefined;
         }
     }
@@ -293,7 +266,7 @@ function getUXPScriptLanguage(uxpContext) {
             }
         }
         catch (err) {
-            logBridgeError(arguments, "getUXPScriptLanguage throws " + err);
+            crdtuxp.logError(arguments, "throws " + err);
         }
     }
     while (false);
@@ -307,7 +280,6 @@ function resolveBridgeRunnerPath(bridgeContext) {
 
     do {
         try {
-            let crdtuxp = bridgeContext && bridgeContext.crdtuxp;
             let uxpContext = bridgeContext && bridgeContext.uxpContext;
             let crdtuxpFolderPath = undefined;
 
@@ -323,7 +295,8 @@ function resolveBridgeRunnerPath(bridgeContext) {
 
             if (! crdtuxpFolderPath && typeof __filename == "string" && __filename) {
                 if (! crdtuxp || ! crdtuxp.path || typeof crdtuxp.path.dirName != "function") {
-                    throw new Error("crdtuxp.path.dirName() is unavailable.");
+                    crdtuxp.logError(arguments, "crdtuxp.path.dirName() is unavailable.");
+                    break;
                 }
 
                 crdtuxpFolderPath = crdtuxp.path.dirName(__filename, {
@@ -336,7 +309,8 @@ function resolveBridgeRunnerPath(bridgeContext) {
 
                 if (modulePath) {
                     if (! crdtuxp || ! crdtuxp.path || typeof crdtuxp.path.dirName != "function") {
-                        throw new Error("crdtuxp.path.dirName() is unavailable.");
+                        crdtuxp.logError(arguments, "crdtuxp.path.dirName() is unavailable.");
+                        break;
                     }
 
                     crdtuxpFolderPath = crdtuxp.path.dirName(modulePath, {
@@ -346,7 +320,8 @@ function resolveBridgeRunnerPath(bridgeContext) {
             }
 
             if (! crdtuxpFolderPath) {
-                throw new Error("Could not determine the CRDT_UXP folder path.");
+                crdtuxp.logError(arguments, "Could not determine the CRDT_UXP folder path.");
+                break;
             }
 
             if (uxpContext && uxpContext.path && typeof uxpContext.path.resolve == "function") {
@@ -359,7 +334,7 @@ function resolveBridgeRunnerPath(bridgeContext) {
             retVal = normalizeNativePath(retVal);
         }
         catch (err) {
-            logBridgeError(arguments, "resolveBridgeRunnerPath throws " + err);
+            crdtuxp.logError(arguments, "throws " + err);
             retVal = undefined;
         }
     }
@@ -368,18 +343,33 @@ function resolveBridgeRunnerPath(bridgeContext) {
     return retVal;
 }
 
-function setBridgePayload(bridgeContext, payload) {
+function setBridgePayload(bridgeContext, filePath) {
 // coderstate: procedure
-    let app = bridgeContext && bridgeContext.uxpContext && bridgeContext.uxpContext.app;
 
-    if (! app || typeof app.insertLabel != "function") {
-        throw new Error("InDesign label API is unavailable.");
+    do {
+        try {
+            let app = bridgeContext && bridgeContext.uxpContext && bridgeContext.uxpContext.app;
+
+            if (! app || typeof app.insertLabel != "function") {
+                crdtuxp.logError(arguments, "InDesign label API is unavailable.");
+                break;
+            }
+
+            if (! filePath) {
+                crdtuxp.logError(arguments, "Bridge payload filePath is unavailable.");
+                break;
+            }
+
+            app.insertLabel(BRIDGE_PAYLOAD_LABEL, String(filePath));
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
     }
-
-    app.insertLabel(BRIDGE_PAYLOAD_LABEL, JSON.stringify(payload || {}));
+    while (false);
 }
 
-function executeBridgePayload(payload) {
+function executeBridgePayload(filePath) {
 // coderstate: promisor
     let retVal = Promise.resolve(undefined);
 
@@ -391,18 +381,21 @@ function executeBridgePayload(payload) {
             let runnerPath = resolveBridgeRunnerPath(bridgeContext);
 
             if (! uxpscriptLanguage) {
-                throw new Error("InDesign UXPSCRIPT language is unavailable.");
+                crdtuxp.logError(arguments, "InDesign UXPSCRIPT language is unavailable.");
+                break;
             }
 
             if (! runnerPath) {
-                throw new Error("Could not resolve the bridge runner path.");
+                crdtuxp.logError(arguments, "Could not resolve the bridge runner path.");
+                break;
             }
 
             if (! isAbsoluteNativePath(runnerPath)) {
-                throw new Error("Bridge runner path is not absolute: " + runnerPath);
+                crdtuxp.logError(arguments, "Bridge runner path is not absolute: " + runnerPath);
+                break;
             }
 
-            setBridgePayload(bridgeContext, payload);
+            setBridgePayload(bridgeContext, filePath);
             retVal = Promise.resolve(uxpContext.app.doScript(runnerPath, uxpscriptLanguage));
         }
         catch (err) {
@@ -420,33 +413,46 @@ function createTempBridgeScriptFile(scriptText) {
 
     do {
         try {
-            let crdtuxp = getCRDTUXP();
-            if (! crdtuxp || typeof crdtuxp.getDir != "function") {
-                throw new Error("crdtuxp.getDir() is unavailable.");
-            }
+            retVal = Promise.resolve(crdtuxp.getDir(crdtuxp.TMP_DIR)).then(
+                function handleTmpDirResolve(tmpDirPath) {
+                    // coderstate: promisor
 
-            retVal = Promise.resolve(crdtuxp.getDir(crdtuxp.TMP_DIR)).then(function handleTmpDirResolve(tmpDirPath) {
-                let tempFilePath = undefined;
+                    let tempFilePath = undefined;
+                    do {
+                        if (! tmpDirPath) {
+                            crdtuxp.logError(arguments, "Could not resolve the temporary directory.");
+                            break;
+                        }
 
-                if (! tmpDirPath) {
-                    throw new Error("Could not resolve the temporary directory.");
-                }
+                        tempFilePath = String(tmpDirPath)
+                            + "crdtuxpIDSN_bridge_"
+                            + String(Date.now())
+                            + "_"
+                            + String(Math.floor(Math.random() * 1000000000))
+                            + ".idjs";
 
-                tempFilePath = String(tmpDirPath)
-                    + "crdtuxpIDSN_bridge_"
-                    + String(Date.now())
-                    + "_"
-                    + String(Math.floor(Math.random() * 1000000000))
-                    + ".idjs";
+                        return Promise.resolve(crdtuxp.fileAppendString(tempFilePath, String(scriptText))).then(
+                            function handleWriteResolve(writeSucceeded) {
+                                // coderstate: function
 
-                return Promise.resolve(crdtuxp.fileAppendString(tempFilePath, String(scriptText))).then(function handleWriteResolve(writeSucceeded) {
-                    if (! writeSucceeded) {
-                        throw new Error("Could not write the temporary bridge payload file.");
+                                do {
+                                    
+                                    if (! writeSucceeded) {
+                                        crdtuxp.logError(arguments, "Could not write the temporary bridge payload file.");
+                                    }
+                                    
+                                }
+                                while (false);
+
+                                return tempFilePath;
+                            }
+                        );
+
                     }
+                    while (false);
 
-                    return tempFilePath;
-                });
-            });
+                }
+        );
         }
         catch (err) {
             retVal = Promise.reject(err);
@@ -459,27 +465,30 @@ function createTempBridgeScriptFile(scriptText) {
 
 function cleanupTempBridgeScriptFile(filePath) {
 // coderstate: procedure
-    try {
-        let crdtuxp = getCRDTUXP();
 
-        if (! filePath || ! crdtuxp || typeof crdtuxp.fileDelete != "function") {
-            return;
-        }
-
-        Promise.resolve(crdtuxp.fileDelete(String(filePath))).then(
-            function handleDeleteResolve(deleteSucceeded) {
-                if (! deleteSucceeded) {
-                    logBridgeError(arguments, "Could not delete temporary bridge payload file " + filePath);
-                }
-            },
-            function handleDeleteReject(err) {
-                logBridgeError(arguments, "Deleting temporary bridge payload file throws " + err);
+    do {
+        try {
+            
+            if (! filePath || ! crdtuxp || typeof crdtuxp.fileDelete != "function") {
+                break;
             }
-        );
+
+            Promise.resolve(crdtuxp.fileDelete(String(filePath))).then(
+                function handleDeleteResolve(deleteSucceeded) {
+                    if (! deleteSucceeded) {
+                        crdtuxp.logError(arguments, "Could not delete temporary bridge payload file " + filePath);
+                    }
+                },
+                function handleDeleteReject(err) {
+                    crdtuxp.logError(arguments, "Deleting temporary bridge payload file throws " + err);
+                }
+            );
+        }
+        catch (err) {
+            crdtuxp.logError(arguments, "throws " + err);
+        }
     }
-    catch (err) {
-        logBridgeError(arguments, "cleanupTempBridgeScriptFile throws " + err);
-    }
+    while (false);
 }
 
 /**
@@ -520,22 +529,20 @@ function doUXPScript(scriptText, options) {
 
             validateSyncSafeSource(scriptText, options);
 
-            retVal = createTempBridgeScriptFile(String(scriptText)).then(function handleTempBridgeScriptResolve(tempFilePath) {
-                return executeBridgePayload({
-                    filePath: tempFilePath,
-                    clearPending: ! options || options.clearPending !== false,
-                    taskName: getBridgeTaskName(options)
-                }).then(
-                    function handleBridgeResolve(value) {
-                        cleanupTempBridgeScriptFile(tempFilePath);
-                        return value;
-                    },
-                    function handleBridgeReject(err) {
-                        cleanupTempBridgeScriptFile(tempFilePath);
-                        throw err;
-                    }
-                );
-            });
+            retVal = createTempBridgeScriptFile(String(scriptText)).then(
+                function handleTempBridgeScriptResolve(tempFilePath) {
+                    return executeBridgePayload(tempFilePath).then(
+                        function handleBridgeResolve(value) {
+                            cleanupTempBridgeScriptFile(tempFilePath);
+                            return value;
+                        },
+                        function handleBridgeReject(err) {
+                            cleanupTempBridgeScriptFile(tempFilePath);
+                            crdtuxp.logError(arguments, "Bridge execution throws " + err);
+                        }
+                    );
+                }
+            );
         }
         catch (err) {
             retVal = Promise.reject(err);
@@ -586,11 +593,7 @@ function doUXPScriptFile(filePath, options) {
 
             validateSyncSafeSource(options && options.sourceText, options);
 
-            retVal = executeBridgePayload({
-                filePath: resolvedPath,
-                clearPending: ! options || options.clearPending !== false,
-                taskName: getBridgeTaskName(options)
-            });
+            retVal = executeBridgePayload(resolvedPath);
         }
         catch (err) {
             retVal = Promise.reject(err);
@@ -617,8 +620,6 @@ function collectionToArray(coll) {
 // coderstate: function
     let retVal = undefined;
 
-    let crdtuxp = getCRDTUXP();
-
     do {
 
         try {
@@ -636,9 +637,7 @@ function collectionToArray(coll) {
 
         }
         catch (err) {
-            if (crdtuxp && typeof crdtuxp.logError == "function") {
-                crdtuxp.logError(arguments, "throws " + err);
-            }
+            crdtuxp.logError(arguments, "throws " + err);
         }
     }
     while (false);

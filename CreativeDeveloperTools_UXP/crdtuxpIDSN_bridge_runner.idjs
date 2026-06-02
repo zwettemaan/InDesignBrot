@@ -15,197 +15,274 @@ if (! global.crdtuxp) {
 }
 
 function getRequireFunction() {
-    if (global && typeof global.require == "function") {
-        return global.require;
-    }
+// coderstate: function
+    let retVal = undefined;
 
-    if (typeof require == "function") {
-        return require;
-    }
+    do {
+        if (global && typeof global.require == "function") {
+            retVal = global.require;
+            break;
+        }
 
-    return undefined;
+        if (typeof require == "function") {
+            retVal = require;
+            break;
+        }
+    }
+    while (false);
+
+    return retVal;
 }
 
 function getInDesignApp() {
-    if (global.app) {
-        return global.app;
-    }
+// coderstate: function
 
-    if (typeof app != "undefined" && app) {
-        global.app = app;
-        return global.app;
-    }
+    let retVal = undefined;
 
-    if (global.crdtuxp && typeof crdtuxp.getUXPContext == "function") {
-        const uxpContext = crdtuxp.getUXPContext();
-        if (uxpContext && uxpContext.app) {
-            global.app = uxpContext.app;
-            return global.app;
+    do {
+        try {
+            if (global.app) {
+                retVal = global.app;
+                break;
+            }
+
+            if (typeof app != "undefined" && app) {
+                global.app = app;        
+                retVal = global.app;
+                break;
+            }
+
+            if (global.crdtuxp && typeof crdtuxp.getUXPContext == "function") {
+                const uxpContext = crdtuxp.getUXPContext();
+                if (uxpContext && uxpContext.app) {
+                    global.app = uxpContext.app;
+                    retVal = global.app;
+                    break;
+                }
+            }
+
+            const moduleRequire = getRequireFunction();
+            if (! moduleRequire) {
+                return undefined;
+            }
+
+            const indesign = moduleRequire("indesign");
+            const currentApp = indesign.app;
+
+            if (! currentApp) {
+                return undefined;
+            }
+
+            global.app = currentApp;
+            return currentApp;
+        }
+        catch (err) {
+            console.log("getInDesignApp throws " + err);
         }
     }
+    while (false);
 
-    try {
-        const moduleRequire = getRequireFunction();
-        if (! moduleRequire) {
-            return undefined;
-        }
-
-        const indesign = moduleRequire("indesign");
-        const currentApp = indesign.app;
-
-        if (! currentApp) {
-            return undefined;
-        }
-
-        global.app = currentApp;
-        return currentApp;
-    }
-    catch (err) {
-    }
-
-    return undefined;
+    return retVal;
 }
 
 function waitForInDesignApp() {
-    return new Promise(function waitForInDesignAppExecutor(resolve, reject) {
-        const deadline = Date.now() + BRIDGE_APP_WAIT_TIMEOUT_MS;
+// coderstate: promisor
 
-        function checkForApp() {
-            const currentApp = getInDesignApp();
+    return new Promise(
+        function waitForInDesignAppExecutor(resolve, reject) {
+            const deadline = Date.now() + BRIDGE_APP_WAIT_TIMEOUT_MS;
 
-            if (currentApp) {
-                resolve(currentApp);
-                return;
+            function checkForApp() {
+                const currentApp = getInDesignApp();
+
+                if (currentApp) {
+                    resolve(currentApp);
+                    return;
+                }
+
+                if (Date.now() > deadline) {
+                    reject(new Error("InDesign app is unavailable in UXPScript."));
+                    return;
+                }
+
+                setTimeout(checkForApp, BRIDGE_APP_WAIT_INTERVAL_MS);
             }
 
-            if (Date.now() > deadline) {
-                reject(new Error("InDesign app is unavailable in UXPScript."));
-                return;
-            }
-
-            setTimeout(checkForApp, BRIDGE_APP_WAIT_INTERVAL_MS);
+            checkForApp();
         }
-
-        checkForApp();
-    });
+    );
 }
 
 function setBridgeStatus(app, value) {
-    if (! app || typeof app.insertLabel != "function") {
-        return;
+// coderstate: procedure
+
+    do {
+        try {
+            if (! app || typeof app.insertLabel != "function") {
+                console.log("app.insertLabel() not accessible");
+                break;
+            }
+
+            app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
+        }
+        catch (err) {
+            console.log("setBridgeStatus throws " + err);
+        }
     }
-
-    app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
-}
-
-function normalizeEntry(entry) {
-    const normalized = {};
-
-    if (! entry || ! entry.filePath) {
-        throw new Error("Bridge payload is missing filePath.");
-    }
-
-    normalized.filePath = String(entry.filePath);
-    return normalized;
+    while (false);
 }
 
 function getBridgePayload(app) {
-    if (! app || typeof app.extractLabel != "function") {
-        throw new Error("InDesign label API is unavailable.");
+// coderstate: function
+    let retVal = undefined;
+
+    do {
+        try {
+            if (! app || typeof app.extractLabel != "function") {
+                console.log("InDesign label API is unavailable.");
+                break;
+            }
+
+            const rawPayload = app.extractLabel(BRIDGE_PAYLOAD_LABEL);
+
+            if (! rawPayload) {
+                console.log("Bridge payload is unavailable.");
+            }
+
+            retVal = String(rawPayload);
+
+        }
+        catch (err) {
+            console.log("getBridgePayload throws " + err);
+        }
     }
+    while (false);
 
-    const rawPayload = app.extractLabel(BRIDGE_PAYLOAD_LABEL);
-
-    if (! rawPayload) {
-        throw new Error("Bridge payload is unavailable.");
-    }
-
-    return normalizeEntry(JSON.parse(String(rawPayload)));
+    return retVal;
 }
 
 function restoreAlert() {
+// coderstate: procedure
+
     crdtuxp.alert = originalAlert;
 }
 
 function finalizeWithValue(app, value) {
+// coderstate: procedure
+
     setBridgeStatus(app, value);
     restoreAlert();
 
-    return crdtuxp.finalize().then(function handleFinalizeResolve() {
-        return value;
-    });
+    return crdtuxp.finalize().then(
+        function handleFinalizeResolve() {
+            return value;
+        }
+    );
 }
 
 function finalizeWithError(app, err) {
+// coderstate: procedure
     const message = "UXPScript run failed: " + err;
 
     setBridgeStatus(app, message);
     restoreAlert();
 
-    return crdtuxp.finalize().then(function handleFinalizeReject() {
-        throw new Error(message);
-    });
+    return crdtuxp.finalize().then(
+        function handleFinalizeReject() {
+            throw new Error(message);
+        }
+    );
 }
 
 function runWithRedrawDisabled(app, work) {
-    let originalEnableRedraw = null;
-    let redrawChanged = false;
+// coderstate: procedure
+    let retVal = undefined;
 
-    try {
-        if (app && app.scriptPreferences && typeof app.scriptPreferences.enableRedraw != "undefined") {
-            originalEnableRedraw = app.scriptPreferences.enableRedraw;
-            app.scriptPreferences.enableRedraw = false;
-            redrawChanged = true;
-        }
+    let originalEnableRedraw = false;
 
-        return work();
+    do {
+        try {
+
+            if (app && app.scriptPreferences && typeof app.scriptPreferences.enableRedraw != "undefined") {
+                originalEnableRedraw = app.scriptPreferences.enableRedraw;
+                app.scriptPreferences.enableRedraw = false;
+            }
+
+            retVal = work();
+        }
+        catch (err) {
+            console.log("runWithRedrawDisabled: throws " + err);
+        }
+            
     }
-    finally {
-        if (redrawChanged) {
-            try {
-                app.scriptPreferences.enableRedraw = originalEnableRedraw;
-            }
-            catch (restoreErr) {
-            }
+    while (false);
+
+    if (originalEnableRedraw) {
+        try {
+            app.scriptPreferences.enableRedraw = originalEnableRedraw;
+        }
+        catch (restoreErr) {
+            console.log("runWithRedrawDisabled: failed to restore enableRedraw");
         }
     }
+
+    return retVal;
 }
 
-function runPayload(app, payload) {
-    const moduleRequire = getRequireFunction();
-    if (! moduleRequire) {
-        throw new Error("UXPScript require() is unavailable.");
+function runPayload(app, filePath) {
+// coderstate: function
+    let retVal = undefined;
+
+    do {
+        try {
+
+            const moduleRequire = getRequireFunction();
+            if (! moduleRequire) {
+                console.log("runPayload: UXPScript require() is unavailable.");
+                break;
+            }
+
+            const indesign = moduleRequire("indesign");
+
+            retVal = runWithRedrawDisabled(
+                app, 
+                function runPayloadWithRedrawDisabled() {
+                    return app.doScript(filePath, indesign.ScriptLanguage.UXPSCRIPT);
+                }
+            );
+        }
+        catch (err) {
+            console.log("runPayload: throws " + err);
+        }
     }
+    while (false);
 
-    const indesign = moduleRequire("indesign");
-
-    return runWithRedrawDisabled(app, function runPayloadWithRedrawDisabled() {
-        return app.doScript(payload.filePath, indesign.ScriptLanguage.UXPSCRIPT);
-    });
+    return retVal;
 }
 
 function main() {
-    crdtuxp.alert = function noopBridgeAlert() {
-    };
 
-    return waitForInDesignApp().then(function handleAppReady(app) {
-        const payload = getBridgePayload(app);
+    return waitForInDesignApp().then(
+        function handleAppReady(app) {
+            const filePath = getBridgePayload(app);
 
-        setBridgeStatus(app, BRIDGE_STATUS_STARTED);
+            setBridgeStatus(app, BRIDGE_STATUS_STARTED);
 
-        return Promise.resolve().then(function runBridgeMain() {
-            return runPayload(app, payload);
-        }).then(
-            function handleBridgeResolve(value) {
-                return finalizeWithValue(app, value);
-            },
-            function handleBridgeReject(err) {
-                return finalizeWithError(app, err);
-            }
-        );
-    }, function handleAppUnavailable(err) {
-        return finalizeWithError(undefined, err);
-    });
+            return Promise.resolve().then(function runBridgeMain() {
+                return runPayload(app, filePath);
+            }).then(
+                function handleBridgeResolve(value) {
+                    return finalizeWithValue(app, value);
+                },
+                function handleBridgeReject(err) {
+                    return finalizeWithError(app, err);
+                }
+            );
+        }, 
+        function handleAppUnavailable(err) {
+            return finalizeWithError(undefined, err);
+        }
+    );
 }
 
 module.exports.main = main;

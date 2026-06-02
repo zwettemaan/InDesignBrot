@@ -8,7 +8,7 @@ const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
 const BRIDGE_STATUS_REQUEST = "Request";
 const BRIDGE_STATUS_STARTED = "Started";
 const BRIDGE_STATUS_POLL_INTERVAL_MS = 100;
-const BRIDGE_STATUS_REQUEST_TIMEOUT_MS = 5000;
+const BRIDGE_STATUS_REQUEST_TIMEOUT_MS = 30000;
 const BRIDGE_STATUS_COMPLETION_TIMEOUT_MS = 300000;
 const SUPPRESS_ELAPSED_TIME_DIALOG_LABEL = "InDesignBrotSuppressElapsedTimeDialog";
 const RESULT_GROUP_LABEL = "Calculated_Mandelbrot";
@@ -92,7 +92,7 @@ function formatElapsedSeconds(milliseconds) {
     return (milliseconds / 1000).toFixed(3);
 }
 
-function setAppLabelOnApp(app, key, value) {
+function setAppLabel(app, key, value) {
     if (! app || typeof app.insertLabel != "function") {
         throw new Error("Application labels are not available in this InDesign runtime.");
     }
@@ -100,7 +100,7 @@ function setAppLabelOnApp(app, key, value) {
     app.insertLabel(key, String(value == null ? "" : value));
 }
 
-function getAppLabelOnApp(app, key) {
+function getAppLabel(app, key) {
     if (! app || typeof app.extractLabel != "function") {
         throw new Error("Application labels are not available in this InDesign runtime.");
     }
@@ -277,7 +277,7 @@ async function waitForBridgeResult(app, onStarted) {
     let didReportStart = false;
 
     while (true) {
-        const statusValue = getAppLabelOnApp(app, BRIDGE_STATUS_LABEL);
+        const statusValue = getAppLabel(app, BRIDGE_STATUS_LABEL);
 
         if (isElapsedLabelValue(statusValue)) {
             return {
@@ -314,13 +314,19 @@ async function runDirectInPanel() {
     const inDesignBrot = require("./runtime/InDesignBrot_main.js");
     const app = await waitForInDesignApp();
 
-    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
+    setAppLabel(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
+    setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
 
-    await runWithSuppressedAlert(runtime, function runDirectWithSuppressedAlert() {
-        return inDesignBrot.main();
-    });
+    try {
+        await runWithSuppressedAlert(runtime, function runDirectWithSuppressedAlert() {
+            return inDesignBrot.main();
+        });
+    }
+    finally {
+        setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
+    }
+
     const result = await waitForBridgeResult(app);
-
     if (typeof runtime.crdtuxp.finalize == "function") {
         await runtime.crdtuxp.finalize();
     }
@@ -336,9 +342,8 @@ async function runViaUXPScript() {
     const launcherText = await launcherEntry.read();
     const app = await waitForInDesignApp();
 
-    setAppLabelOnApp(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
-
-    setAppLabelOnApp(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
+    setAppLabel(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
+    setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
 
     try {
         await runWithSuppressedAlert(runtime, function runBridgeWithSuppressedAlert() {
@@ -349,7 +354,7 @@ async function runViaUXPScript() {
         });
     }
     finally {
-        setAppLabelOnApp(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
+        setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
     }
 
     const result = await waitForBridgeResult(app, function handleBridgeStarted() {
