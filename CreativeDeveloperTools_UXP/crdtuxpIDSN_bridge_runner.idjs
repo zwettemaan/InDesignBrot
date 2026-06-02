@@ -14,8 +14,25 @@ if (! global.crdtuxp) {
     crdtuxp.init();
 }
 
+function getRequireFunction() {
+    if (global && typeof global.require == "function") {
+        return global.require;
+    }
+
+    if (typeof require == "function") {
+        return require;
+    }
+
+    return undefined;
+}
+
 function getInDesignApp() {
     if (global.app) {
+        return global.app;
+    }
+
+    if (typeof app != "undefined" && app) {
+        global.app = app;
         return global.app;
     }
 
@@ -28,8 +45,17 @@ function getInDesignApp() {
     }
 
     try {
-        const indesign = require("indesign");
+        const moduleRequire = getRequireFunction();
+        if (! moduleRequire) {
+            return undefined;
+        }
+
+        const indesign = moduleRequire("indesign");
         const currentApp = indesign.app;
+
+        if (! currentApp) {
+            return undefined;
+        }
 
         global.app = currentApp;
         return currentApp;
@@ -73,31 +99,14 @@ function setBridgeStatus(app, value) {
 }
 
 function normalizeEntry(entry) {
-    const normalized = {
-        mode: null
-    };
+    const normalized = {};
 
-    if (! entry || ! entry.mode) {
-        throw new Error("Bridge payload is missing mode.");
+    if (! entry || ! entry.filePath) {
+        throw new Error("Bridge payload is missing filePath.");
     }
 
-    normalized.mode = String(entry.mode);
-
-    if (normalized.mode == "file") {
-        if (! entry.filePath) {
-            throw new Error("Bridge payload is missing filePath.");
-        }
-
-        normalized.filePath = String(entry.filePath);
-        return normalized;
-    }
-
-    if (normalized.mode == "text") {
-        normalized.scriptText = String(entry.scriptText || "");
-        return normalized;
-    }
-
-    throw new Error("Unsupported bridge mode: " + normalized.mode);
+    normalized.filePath = String(entry.filePath);
+    return normalized;
 }
 
 function getBridgePayload(app) {
@@ -163,18 +172,15 @@ function runWithRedrawDisabled(app, work) {
 }
 
 function runPayload(app, payload) {
-    const indesign = require("indesign");
+    const moduleRequire = getRequireFunction();
+    if (! moduleRequire) {
+        throw new Error("UXPScript require() is unavailable.");
+    }
+
+    const indesign = moduleRequire("indesign");
 
     return runWithRedrawDisabled(app, function runPayloadWithRedrawDisabled() {
-        if (payload.mode == "file") {
-            return app.doScript(payload.filePath, indesign.ScriptLanguage.UXPSCRIPT);
-        }
-
-        if (payload.mode == "text") {
-            return app.doScript(payload.scriptText, indesign.ScriptLanguage.UXPSCRIPT);
-        }
-
-        throw new Error("Unsupported bridge mode: " + payload.mode);
+        return app.doScript(payload.filePath, indesign.ScriptLanguage.UXPSCRIPT);
     });
 }
 

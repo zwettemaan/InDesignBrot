@@ -522,7 +522,6 @@ function doUXPScript(scriptText, options) {
 
             retVal = createTempBridgeScriptFile(String(scriptText)).then(function handleTempBridgeScriptResolve(tempFilePath) {
                 return executeBridgePayload({
-                    mode: "file",
                     filePath: tempFilePath,
                     clearPending: ! options || options.clearPending !== false,
                     taskName: getBridgeTaskName(options)
@@ -551,6 +550,9 @@ module.exports.doUXPScript = doUXPScript;
 
 /**
  * Run a UXPScript file through the InDesign bridge.<br>
+ * <br>
+ * The supplied file path is passed through directly; the bridge does not copy it to a
+ * temporary file.<br>
  * <br>
  * If you want fail-loud inspection for the top-level launcher text, pass that source in
  * <code>options.sourceText</code> and set <code>options.requireSourceInspection = true</code>.
@@ -585,7 +587,6 @@ function doUXPScriptFile(filePath, options) {
             validateSyncSafeSource(options && options.sourceText, options);
 
             retVal = executeBridgePayload({
-                mode: "file",
                 filePath: resolvedPath,
                 clearPending: ! options || options.clearPending !== false,
                 taskName: getBridgeTaskName(options)
