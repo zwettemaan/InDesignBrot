@@ -11,6 +11,10 @@
   ],
   "manifestVersion": 5,
   "requiredPermissions": {
+    "launchProcess": {
+      "schemes": ["https"],
+      "extensions": []
+    }
   },
   "entrypoints": [
     {
