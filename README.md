@@ -63,6 +63,31 @@ minutes to execute in ExtendScript.
 There are a few sample .indd file provided in the download, which shows the 
 result with higher pixel values, to save you from calculating it yourself.
 
+# Speed oddities
+
+Running an UXPScript is fast or slow depending on an internal 'prescan' by the Adobe UXPScript runtime. 
+
+Note that there is a line 
+```
+// async function dummy() {}
+```
+
+at the start of the InDesignBrot.idjs script. Uncomment the line and run the script. Re-comment the line and run 
+the script again. Notice the difference in speed? This is just a do-nothing line, but the runtime scans for any
+async functions in the 'main' source file. It does not take any notice of 'async' use in any of the submodules.
+
+# How to run in a panel
+
+Navigate into the uxp-panel subfolder
+
+Run the preprocess.command or preprocess.bat
+
+Start the Adobe UXP Developer Tools and load the manifest.json in uxp-panel subfolder. Don't confuse it with an unrelated manifest.json in the root of the repo.
+
+Run the panel and compare the speed between the two buttons. The time reported excludes some before and after overheads - it is the time spent executing the pure Mandelbrot iteration. Increase the number of pixels on the pasteboard - e.g. make it 41 or so for a more marked difference.
+
+There is also a compiled .ccx file you can install by double-clicking.
+
 # Disclaimer
 
 This software is provided as is without warranty of any kind, either 
