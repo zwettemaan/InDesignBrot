@@ -24,7 +24,7 @@ const kDefaultMaxSteps = 35;
 // Default. How large a pixel grid (numPixels x numPixels). The larger, the slower.
 // Don't overdo it - it gets really slow when you go above 50 or so, depending on the maxSteps setting
 //
-const kDefaultNumPixels = 19;
+const kDefaultNumPixels = 31;
 
 //
 // Default: show dialog with elapsed time

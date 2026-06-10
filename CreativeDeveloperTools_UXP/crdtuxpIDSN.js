@@ -370,7 +370,10 @@ function resolveUXPScriptFilePath(filePath, options) {
             &&
                 typeof uxpContext.path.resolve == "function"
             ) {
-                retVal = uxpContext.path.resolve("file://" + String(basePath), retVal).pathname;
+                retVal = decodeURI(uxpContext.path.resolve("file://" + String(basePath), retVal).pathname);
+                if (crdtuxp.IS_WINDOWS && retVal.substr(0,1) == "/") {
+                    retVal = retVal.substr(1);
+                }
                 retVal = normalizeNativePath(retVal);
             }
         }
@@ -474,7 +477,10 @@ function resolveBridgeRunnerPath(bridgeContext) {
             }
 
             if (uxpContext && uxpContext.path && typeof uxpContext.path.resolve == "function") {
-                retVal = uxpContext.path.resolve("file://" + crdtuxpFolderPath, BRIDGE_RUNNER_FILE_NAME).pathname;
+                retVal = decodeURI(uxpContext.path.resolve("file://" + crdtuxpFolderPath, BRIDGE_RUNNER_FILE_NAME).pathname);
+                if (crdtuxp.IS_WINDOWS && retVal.substr(0,1) == "/") {
+                    retVal = retVal.substr(1);
+                }
                 retVal = normalizeNativePath(retVal);
                 break;
             }
