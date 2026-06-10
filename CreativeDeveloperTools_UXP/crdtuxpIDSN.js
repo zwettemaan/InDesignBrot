@@ -370,7 +370,7 @@ function resolveUXPScriptFilePath(filePath, options) {
             &&
                 typeof uxpContext.path.resolve == "function"
             ) {
-                retVal = uxpContext.path.resolve(String(basePath), retVal);
+                retVal = uxpContext.path.resolve("file://" + String(basePath), retVal).pathname;
                 retVal = normalizeNativePath(retVal);
             }
         }
@@ -474,7 +474,7 @@ function resolveBridgeRunnerPath(bridgeContext) {
             }
 
             if (uxpContext && uxpContext.path && typeof uxpContext.path.resolve == "function") {
-                retVal = uxpContext.path.resolve(crdtuxpFolderPath, BRIDGE_RUNNER_FILE_NAME);
+                retVal = uxpContext.path.resolve("file://" + crdtuxpFolderPath, BRIDGE_RUNNER_FILE_NAME).pathname;
                 retVal = normalizeNativePath(retVal);
                 break;
             }
