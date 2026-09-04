@@ -4,13 +4,15 @@
 
 const localFileSystem = require("uxp").storage.localFileSystem;
 
-const BRIDGE_STATUS_LABEL = "InDesignBrotBridgeStatus";
-const BRIDGE_STATUS_REQUEST = "Request";
-const BRIDGE_STATUS_STARTED = "Started";
-const BRIDGE_STATUS_POLL_INTERVAL_MS = 100;
-const BRIDGE_STATUS_REQUEST_TIMEOUT_MS = 30000;
-const BRIDGE_STATUS_COMPLETION_TIMEOUT_MS = 300000;
-const SUPPRESS_ELAPSED_TIME_DIALOG_LABEL = "InDesignBrotSuppressElapsedTimeDialog";
+const SCRIPT_LABEL_BRIDGE_STATE = "InDesignBrotBridgeStatus";
+const BRIDGE_STATE_REQUEST = "Request";
+const BRIDGE_STATE_STARTED = "Started";
+
+const BRIDGE_STATE_POLL_INTERVAL_MS = 100;
+const BRIDGE_REQUEST_TIMEOUT_MS = 30000;
+const BRIDGE_COMPLETION_TIMEOUT_MS = 300000;
+
+const SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG = "InDesignBrotSuppressElapsedTimeDialog";
 const RESULT_GROUP_LABEL = "Calculated_Mandelbrot";
 const TITLE_FRAME_LABEL = "InDesignBrotComparisonTitle";
 const TITLE_FRAME_NAME = "InDesignBrotComparisonTitle";
@@ -31,42 +33,42 @@ const directButton = document.getElementById("run-direct");
 const bridgeButton = document.getElementById("run-bridge");
 const statusNode = document.getElementById("status");
 
+// getInDesignApp/waitForInDesignApp live in crdtuxpIDSN_bridge_common.js, shared
+// with crdtuxpIDSN_bridge_runner.idjs (which runs in its own UXPScript engine
+// instance and can't share module state with this panel, hence the separate
+// require() rather than a shared import).
+let bridgeCommonModule = null;
+function getBridgeCommon() {
+// coderstate: function
+
+    if (! bridgeCommonModule) {
+        bridgeCommonModule = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js");
+    }
+    return bridgeCommonModule;
+}
+
 function getInDesignApp() {
+// coderstate: function
 
-    if (global.app) {
-        return global.app;
-    }
-
-    const indesign = require("indesign");
-    const currentApp = indesign.app;
-    if (currentApp && currentApp.isValid) {
-        global.app = currentApp;
-    }
-
-    return currentApp;
+    return getBridgeCommon().getInDesignApp();
 }
 
 async function waitForInDesignApp() {
-    const deadline = Date.now() + 2000;
+// coderstate: promisor
 
-    while (Date.now() <= deadline) {
-        const currentApp = getInDesignApp();
-        if (currentApp) {
-            return currentApp;
-        }
-
-        await sleep(25);
-    }
-
-    throw new Error("InDesign app is unavailable in this panel runtime.");
+    return getBridgeCommon().waitForInDesignApp();
 }
 
 function setButtonsDisabled(disabled) {
+// coderstate: procedure
+
     directButton.disabled = disabled;
     bridgeButton.disabled = disabled;
 }
 
 function setStatus(message, kind) {
+// coderstate: procedure
+
     statusNode.textContent = message;
     if (kind) {
         statusNode.dataset.kind = kind;
@@ -77,6 +79,8 @@ function setStatus(message, kind) {
 }
 
 function formatError(err) {
+// coderstate: function
+
     if (! err) {
         return "Unknown error";
     }
@@ -89,32 +93,38 @@ function formatError(err) {
 }
 
 function formatElapsedSeconds(milliseconds) {
+// coderstate: function
+
     return (milliseconds / 1000).toFixed(3);
 }
 
+// app is always a valid, already-waited-for app by the time these are
+// called, so no guard needed — a missing insertLabel/extractLabel would mean
+// something is fundamentally wrong, and the resulting TypeError is enough to
+// surface that up to runAction's catch.
 function setAppLabel(app, key, value) {
-    if (! app || typeof app.insertLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
+// coderstate: procedure
 
     app.insertLabel(key, String(value == null ? "" : value));
 }
 
 function getAppLabel(app, key) {
-    if (! app || typeof app.extractLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
+// coderstate: function
 
     return String(app.extractLabel(key) || "");
 }
 
 function isElapsedLabelValue(value) {
+// coderstate: function
+
     return /^\d+(\.\d+)?$/.test(String(value || ""));
 }
 
 // setTimeout is callback-based, so this wrapper is the minimal bridge that lets
 // the rest of the panel code use await for short polling delays.
 function sleep(milliseconds) {
+// coderstate: promisor
+
     return new Promise(function sleepPromise(resolve) {
         setTimeout(resolve, milliseconds);
     });
@@ -123,6 +133,8 @@ function sleep(milliseconds) {
 // requestAnimationFrame is also callback-based. Waiting for two frames gives the
 // status text a chance to paint before a long-running action starts.
 function waitForStatusPaint() {
+// coderstate: promisor
+
     return new Promise(function waitForStatusPaintPromise(resolve) {
         if (typeof requestAnimationFrame == "function") {
             requestAnimationFrame(function afterFirstFrame() {
@@ -140,6 +152,8 @@ function getCollectionItems(collection) {
 }
 
 function getActiveDocument() {
+// coderstate: function
+
     try {
         const doc = getInDesignApp().activeDocument;
         if (doc && doc.isValid && doc.constructor.name == "Document") {
@@ -153,6 +167,8 @@ function getActiveDocument() {
 }
 
 function ensureComparisonTitleFrame(doc) {
+// coderstate: function
+
     const frames = getCollectionItems(doc.textFrames);
     for (let index = 0; index < frames.length; index += 1) {
         const frame = frames[index];
@@ -172,6 +188,8 @@ function ensureComparisonTitleFrame(doc) {
 }
 
 function findResultGroup(doc) {
+// coderstate: function
+
     const groups = getCollectionItems(doc.groups);
     for (let index = groups.length - 1; index >= 0; index -= 1) {
         const group = groups[index];
@@ -184,6 +202,8 @@ function findResultGroup(doc) {
 }
 
 function updateDocumentPresentation(methodLabel, elapsedMilliseconds) {
+// coderstate: procedure
+
     const doc = getActiveDocument();
     if (! doc) {
         return;
@@ -219,6 +239,8 @@ function updateDocumentPresentation(methodLabel, elapsedMilliseconds) {
 }
 
 function erasePreviousRenderingIfAny() {
+// coderstate: procedure
+
     const doc = getActiveDocument();
     if (! doc) {
         return;
@@ -231,6 +253,8 @@ function erasePreviousRenderingIfAny() {
 }
 
 async function getRuntimeFolder() {
+// coderstate: promisor
+
     if (state.runtimeFolder) {
         return state.runtimeFolder;
     }
@@ -245,12 +269,16 @@ async function getRuntimeFolder() {
     await crdtFolder.getEntry("crdtuxp.js");
     await crdtFolder.getEntry("crdtuxpIDSN.js");
     await crdtFolder.getEntry("crdtuxpIDSN_bridge_runner.idjs");
+    await crdtFolder.getEntry("crdtuxpIDSN_bridge_common.js");
 
     state.runtimeFolder = runtimeFolder;
+    
     return runtimeFolder;
 }
 
 async function initializeRuntimeImpl() {
+// coderstate: promisor
+
     try {
         await getRuntimeFolder();
 
@@ -271,6 +299,8 @@ async function initializeRuntimeImpl() {
 }
 
 async function initializeRuntime() {
+// coderstate: promisor
+
     if (! state.initPromise) {
         state.initPromise = initializeRuntimeImpl();
     }
@@ -279,12 +309,14 @@ async function initializeRuntime() {
 }
 
 async function waitForBridgeResult(app, onStarted) {
-    const requestDeadline = Date.now() + BRIDGE_STATUS_REQUEST_TIMEOUT_MS;
-    const completionDeadline = Date.now() + BRIDGE_STATUS_COMPLETION_TIMEOUT_MS;
+// coderstate: promisor
+
+    const requestDeadline = Date.now() + BRIDGE_REQUEST_TIMEOUT_MS;
+    const completionDeadline = Date.now() + BRIDGE_COMPLETION_TIMEOUT_MS;
     let didReportStart = false;
 
     while (true) {
-        const statusValue = getAppLabel(app, BRIDGE_STATUS_LABEL);
+        const statusValue = getAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE);
 
         if (isElapsedLabelValue(statusValue)) {
             return {
@@ -292,7 +324,7 @@ async function waitForBridgeResult(app, onStarted) {
             };
         }
 
-        if (statusValue == BRIDGE_STATUS_STARTED) {
+        if (statusValue == BRIDGE_STATE_STARTED) {
             if (! didReportStart) {
                 didReportStart = true;
                 if (typeof onStarted == "function") {
@@ -300,7 +332,7 @@ async function waitForBridgeResult(app, onStarted) {
                 }
             }
         }
-        else if (statusValue && statusValue != BRIDGE_STATUS_REQUEST) {
+        else if (statusValue && statusValue != BRIDGE_STATE_REQUEST) {
             throw new Error(statusValue);
         }
 
@@ -312,23 +344,25 @@ async function waitForBridgeResult(app, onStarted) {
             throw new Error("Bridge run did not finish within 300 seconds.");
         }
 
-        await sleep(BRIDGE_STATUS_POLL_INTERVAL_MS);
+        await sleep(BRIDGE_STATE_POLL_INTERVAL_MS);
     }
 }
 
 async function runDirectInPanel() {
+// coderstate: promisor
+
     const runtime = await initializeRuntime();
     const inDesignBrot = require("./runtime/InDesignBrot_main.js");
     const app = await waitForInDesignApp();
 
-    setAppLabel(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
-    setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
+    setAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE, BRIDGE_STATE_REQUEST);
+    setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
     try {
             await inDesignBrot.main();
     }
     finally {
-        setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
+        setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
     }
 
     const result = await waitForBridgeResult(app);
@@ -341,19 +375,28 @@ async function runDirectInPanel() {
 }
 
 async function runViaUXPScript() {
+// coderstate: promisor
+
     const runtime = await initializeRuntime();
     const runtimeFolder = await getRuntimeFolder();
     const launcherEntry = await runtimeFolder.getEntry("InDesignBrot.idjs");
+    const launcherSourceText = await launcherEntry.read();
     const app = await waitForInDesignApp();
 
-    setAppLabel(app, BRIDGE_STATUS_LABEL, BRIDGE_STATUS_REQUEST);
-    setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "yes");
+    setAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE, BRIDGE_STATE_REQUEST);
+    setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
     try {
-            await runtime.crdtuxpIDSN.doUXPScriptFile(launcherEntry.nativePath);
+        await runtime.crdtuxpIDSN.doUXPScriptFile(
+            launcherEntry.nativePath,
+            {
+                sourceText: launcherSourceText,
+                requireSourceInspection: true
+            }
+        );
     }
     finally {
-        setAppLabel(app, SUPPRESS_ELAPSED_TIME_DIALOG_LABEL, "");
+        setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
     }
 
     const result = await waitForBridgeResult(app, function handleBridgeStarted() {
@@ -368,6 +411,8 @@ async function runViaUXPScript() {
 }
 
 async function runAction(startMessage, action, buildSuccessMessage) {
+// coderstate: promisor
+
     if (state.busy) {
         return;
     }
@@ -393,37 +438,58 @@ async function runAction(startMessage, action, buildSuccessMessage) {
     }
 }
 
-directButton.addEventListener("click", function handleDirectClick() {
-    runAction(
-        "Running InDesignBrot in panel UXP...",
-        runDirectInPanel,
-        function buildDirectSuccessMessage(result) {
-            return "Panel UXP run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
-        }
-    );
-});
+directButton.addEventListener(
+    "click", 
+    function handleDirectClick() {
+    // coderstate: procedure
 
-bridgeButton.addEventListener("click", function handleBridgeClick() {
-    runAction(
-        "Running InDesignBrot via UXPScript...",
-        runViaUXPScript,
-        function buildBridgeSuccessMessage(result) {
-            return "UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
-        }
-    );
-});
+        runAction(
+            "Running InDesignBrot in panel UXP...",
+            runDirectInPanel,
+            function buildDirectSuccessMessage(result) {
+            // coderstate: function
+                return "Panel UXP run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
+            }
+        );
+    }
+);
 
-document.querySelectorAll("a.ext-link").forEach(function attachExtLink(a) {
-    a.addEventListener("click", function handleExtLinkClick(e) {
-        e.preventDefault();
-        const url = a.dataset.url;
-        if (url) {
-            try {
-                require("uxp").shell.openExternal(url);
+bridgeButton.addEventListener(
+    "click", 
+    function handleBridgeClick() {
+    // coderstate: procedure
+
+        runAction(
+            "Running InDesignBrot via UXPScript...",
+            runViaUXPScript,
+            function buildBridgeSuccessMessage(result) {
+                // coderstate: function
+                return "UXPScript run completed in " + formatElapsedSeconds(result.elapsedMilliseconds) + " s.";
             }
-            catch (err) {
-                setStatus("Visit: " + url, "note");
+        );
+    }
+);
+
+document.querySelectorAll("a.ext-link").forEach(
+    function attachExtLink(a) {
+    // coderstate: procedure
+
+        a.addEventListener(
+            "click", 
+            function handleExtLinkClick(e) {
+                // coderstate: procedure
+
+                e.preventDefault();
+                const url = a.dataset.url;
+                if (url) {
+                    try {
+                        require("uxp").shell.openExternal(url);
+                    }
+                    catch (err) {
+                        setStatus("Visit: " + url, "note");
+                    }
+                }
             }
-        }
-    });
-});
+        );
+    }
+);

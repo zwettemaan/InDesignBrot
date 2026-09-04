@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: Elastic-2.0
 // https://github.com/zwettemaan/CRDT_UXP
 
-const BRIDGE_PAYLOAD_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
-const BRIDGE_STATUS_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_STATUS__";
-const BRIDGE_STATUS_STARTED = "Started";
-const BRIDGE_APP_WAIT_TIMEOUT_MS = 2000;
-const BRIDGE_APP_WAIT_INTERVAL_MS = 25;
+const SCRIPT_LABEL_BRIDGE_PAYLOAD = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
+const SCRIPT_LABEL_BRIDGE_STATE   = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_STATE__";
+const BRIDGE_STATE_STARTED = "Started";
 const originalAlert = global.crdtuxp && global.crdtuxp.alert;
 
 if (! global.crdtuxp) {
@@ -14,151 +12,24 @@ if (! global.crdtuxp) {
     crdtuxp.init();
 }
 
-function getRequireFunction() {
-// coderstate: function
-    let retVal = undefined;
+const { getRequireFunction, getInDesignApp, waitForInDesignApp } = global.require("./crdtuxpIDSN_bridge_common.js");
 
-    do {
-        if (global && typeof global.require == "function") {
-            retVal = global.require;
-            break;
-        }
-
-        if (typeof require == "function") {
-            retVal = require;
-            break;
-        }
-    }
-    while (false);
-
-    return retVal;
-}
-
-function getInDesignApp() {
-// coderstate: function
-
-    let retVal = undefined;
-
-    do {
-        try {
-            if (global.app) {
-                retVal = global.app;
-                break;
-            }
-
-            if (typeof app != "undefined" && app) {
-                global.app = app;        
-                retVal = global.app;
-                break;
-            }
-
-            if (global.crdtuxp && typeof crdtuxp.getUXPContext == "function") {
-                const uxpContext = crdtuxp.getUXPContext();
-                if (uxpContext && uxpContext.app) {
-                    global.app = uxpContext.app;
-                    retVal = global.app;
-                    break;
-                }
-            }
-
-            const moduleRequire = getRequireFunction();
-            if (! moduleRequire) {
-                return undefined;
-            }
-
-            const indesign = moduleRequire("indesign");
-            const currentApp = indesign.app;
-
-            if (! currentApp) {
-                return undefined;
-            }
-
-            global.app = currentApp;
-            return currentApp;
-        }
-        catch (err) {
-            console.log("getInDesignApp throws " + err);
-        }
-    }
-    while (false);
-
-    return retVal;
-}
-
-function waitForInDesignApp() {
-// coderstate: promisor
-
-    return new Promise(
-        function waitForInDesignAppExecutor(resolve, reject) {
-            const deadline = Date.now() + BRIDGE_APP_WAIT_TIMEOUT_MS;
-
-            function checkForApp() {
-                const currentApp = getInDesignApp();
-
-                if (currentApp) {
-                    resolve(currentApp);
-                    return;
-                }
-
-                if (Date.now() > deadline) {
-                    reject(new Error("InDesign app is unavailable in UXPScript."));
-                    return;
-                }
-
-                setTimeout(checkForApp, BRIDGE_APP_WAIT_INTERVAL_MS);
-            }
-
-            checkForApp();
-        }
-    );
-}
+// app can be undefined here (finalizeWithError's handleAppUnavailable path
+// calls this with no app to write to), so both guard against that instead
+// of throwing.
 
 function setBridgeStatus(app, value) {
 // coderstate: procedure
 
-    do {
-        try {
-            if (! app || typeof app.insertLabel != "function") {
-                console.log("app.insertLabel() not accessible");
-                break;
-            }
-
-            app.insertLabel(BRIDGE_STATUS_LABEL, String(value));
-        }
-        catch (err) {
-            console.log("setBridgeStatus throws " + err);
-        }
+    if (app) {
+        app.insertLabel(SCRIPT_LABEL_BRIDGE_STATE, String(value));
     }
-    while (false);
 }
 
 function getBridgePayload(app) {
 // coderstate: function
-    let retVal = undefined;
 
-    do {
-        try {
-            if (! app || typeof app.extractLabel != "function") {
-                console.log("InDesign label API is unavailable.");
-                break;
-            }
-
-            const rawPayload = app.extractLabel(BRIDGE_PAYLOAD_LABEL);
-
-            if (! rawPayload) {
-                console.log("Bridge payload is unavailable.");
-            }
-
-            retVal = String(rawPayload);
-
-        }
-        catch (err) {
-            console.log("getBridgePayload throws " + err);
-        }
-    }
-    while (false);
-
-    return retVal;
+    return app ? String(app.extractLabel(SCRIPT_LABEL_BRIDGE_PAYLOAD) || "") : undefined;
 }
 
 function restoreAlert() {
@@ -266,7 +137,7 @@ function main() {
         function handleAppReady(app) {
             const filePath = getBridgePayload(app);
 
-            setBridgeStatus(app, BRIDGE_STATUS_STARTED);
+            setBridgeStatus(app, BRIDGE_STATE_STARTED);
 
             return Promise.resolve().then(function runBridgeMain() {
                 return runPayload(app, filePath);

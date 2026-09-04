@@ -38,18 +38,20 @@ const kDefaultDeletePreviousResult = true;
 
 const kDefaultRunCRDTUXPTests = false;
 
-const kSectionNameConfig = "indesignbrot";
-const kAppLabel_BridgeStatus = "InDesignBrotBridgeStatus";
-const kAppLabel_SuppressElapsedTimeDialog = "InDesignBrotSuppressElapsedTimeDialog";
-const kBridgeStatus_Started = "Started";
-const kScriptLabel_FinishedSet = "Calculated_Mandelbrot";
+const INI_SECTION_CONFIG                        = "indesignbrot";
+
+const SCRIPT_LABEL_BRIDGE_STATE                 = "InDesignBrotBridgeStatus";
+const SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG = "InDesignBrotSuppressElapsedTimeDialog";
+const SCRIPT_LABEL_FINISHED_SET                 = "Calculated_Mandelbrot";
+
+const BRIDGE_STATE_STARTED                     = "Started";
 
 function setBridgeStatus(value) {
     if (! app || typeof app.insertLabel != "function") {
         throw new Error("Application labels are not available in this InDesign runtime.");
     }
 
-    app.insertLabel(kAppLabel_BridgeStatus, String(value == null ? "" : value));
+    app.insertLabel(SCRIPT_LABEL_BRIDGE_STATE, String(value == null ? "" : value));
 }
 
 async function main() {
@@ -131,7 +133,7 @@ function calculateMandelbrot(context) {
                 break;
             }
 
-            setBridgeStatus(kBridgeStatus_Started);
+            setBridgeStatus(BRIDGE_STATE_STARTED);
             didSetStarted = true;
 
             //
@@ -286,7 +288,7 @@ function configureDocument(context) {
                 const groups = collectionToArray(doc.groups);
                 for (let idx = 0; idx < groups.length; idx++) {
                     const group = groups[idx];
-                    if (group.label == kScriptLabel_FinishedSet) {
+                    if (group.label == SCRIPT_LABEL_FINISHED_SET) {
                         deleteGroupIDs.push(group.id);
                     }
                 }
@@ -371,7 +373,7 @@ function createDefaultDocument(config) {
             doc = app.documents.add();
 
             let configIniText = "";
-            configIniText += "[" + kSectionNameConfig + "]\n";
+            configIniText += "[" + INI_SECTION_CONFIG + "]\n";
             configIniText += "\n";
             configIniText += "max steps =" + config.maxSteps + "\n";
             configIniText += "num pixels =" + config.numPixels + "\n";
@@ -380,6 +382,7 @@ function createDefaultDocument(config) {
             //configIniText += "run CRDT_UXP tests = " + (config.runcrdtuxptests ? "yes" : "no") + "\n";
 
             const configFrame = doc.textFrames.add();
+            configFrame.fillColor = "Paper";
 
             const firstPage = doc.pages.item(0);
             const firstPageWidth = firstPage.bounds[3] - firstPage.bounds[1];
@@ -470,7 +473,7 @@ function extractDocINIConfig(doc, config) {
                 break;
             }
 
-            let docConfig = docINIConfig[kSectionNameConfig];
+            let docConfig = docINIConfig[INI_SECTION_CONFIG];
             if (! docConfig) {
                 break;
             }
@@ -531,7 +534,7 @@ function applyRuntimeConfigOverrides(config) {
             }
 
             if (typeof app.extractLabel == "function") {
-                const suppressElapsedTimeDialog = String(app.extractLabel(kAppLabel_SuppressElapsedTimeDialog) || "").toLowerCase();
+                const suppressElapsedTimeDialog = String(app.extractLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG) || "").toLowerCase();
                 if (suppressElapsedTimeDialog == "yes" || suppressElapsedTimeDialog == "true" || suppressElapsedTimeDialog == "1") {
                     config.showElapsedTimeDialog = false;
                 }
@@ -569,9 +572,9 @@ function findINIConfig(doc) {
             for (let idx = 0; idx < stories.length; idx++) {
                 const story = stories[idx];
                 const contents = story.contents;
-                if (contents.toLowerCase().indexOf("[" + kSectionNameConfig + "]") >= 0) {
+                if (contents.toLowerCase().indexOf("[" + INI_SECTION_CONFIG + "]") >= 0) {
                     const config = crdtuxp.readINI(contents);
-                    if (config && config[kSectionNameConfig]) {
+                    if (config && config[INI_SECTION_CONFIG]) {
                         retVal = config;
                     }
                 }
@@ -816,8 +819,8 @@ function createSquareOfNxN(firstPage, n, x, y, pixelRectWidth) {
     }
 
     const mandelBrot = firstPage.groups.add(allRects);
-    mandelBrot.label = kScriptLabel_FinishedSet;
-    mandelBrot.name = kScriptLabel_FinishedSet;
+    mandelBrot.label = SCRIPT_LABEL_FINISHED_SET;
+    mandelBrot.name = SCRIPT_LABEL_FINISHED_SET;
 
     return rects_by_XxY;
 }

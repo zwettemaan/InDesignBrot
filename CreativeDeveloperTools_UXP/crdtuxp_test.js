@@ -38,7 +38,7 @@ function getCRDTUXP() {
 }
 
 async function testUXPContext() {
-
+// coderstate: promisor
     let retVal = true;
 
     do {
@@ -82,6 +82,7 @@ async function testUXPContext() {
 }
 
 async function testBase64() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -108,6 +109,7 @@ async function testBase64() {
 }
 
 async function testDirs() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -282,6 +284,7 @@ async function testDirs() {
 }
 
 async function testEncrypt() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -328,6 +331,7 @@ async function testEncrypt() {
 }
 
 async function testEnvironment() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -414,6 +418,7 @@ async function testEnvironment() {
 }
 
 async function testIntPow() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -447,6 +452,7 @@ async function testIntPow() {
 }
 
 async function testLeftRightPad() {
+// coderstate: promisor
 
     let retVal = true;
     
@@ -502,6 +508,7 @@ async function testLeftRightPad() {
 }
 
 async function testQuoteDequote() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -595,6 +602,7 @@ async function testQuoteDequote() {
 }
 
 async function testPersistData() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -656,6 +664,7 @@ async function testPersistData() {
 }
 
 async function testToHex() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -691,6 +700,7 @@ async function testToHex() {
 }
 
 async function testUTFRoundTrip() {
+// coderstate: promisor
 
     let retVal = true;
 
@@ -728,6 +738,7 @@ let tests = [
 ];
 
 async function run(optionalIssuerGUID, optionalIssuerEmail) {
+// coderstate: promisor
 
     crdtuxp.pushLogLevel(crdtuxp.LOG_LEVEL_NOTE);
     

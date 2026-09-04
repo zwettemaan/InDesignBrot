@@ -21,7 +21,7 @@ let crdtuxp = getCRDTUXP();
 
 const PLUGIN_PATH_PREFIX = "plugin:";
 const BRIDGE_RUNNER_FILE_NAME = "crdtuxpIDSN_bridge_runner.idjs";
-const BRIDGE_PAYLOAD_LABEL = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
+const SCRIPT_LABEL_BRIDGE_PAYLOAD = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
 
 function getCRDTUXP() {
 // coderstate: function
@@ -515,7 +515,7 @@ function setBridgePayload(bridgeContext, filePath) {
                 break;
             }
 
-            app.insertLabel(BRIDGE_PAYLOAD_LABEL, String(filePath));
+            app.insertLabel(SCRIPT_LABEL_BRIDGE_PAYLOAD, String(filePath));
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);
@@ -684,7 +684,10 @@ function doUXPScript(scriptText, options) {
                 break;
             }
 
-            validateSyncSafeSource(scriptText, options);
+            if (! validateSyncSafeSource(scriptText, options)) {
+                retVal = Promise.reject(new Error("Bridge source failed the sync-safe source check; see the log for the matched async token, or pass options.allowAsyncToken to bypass."));
+                break;
+            }
 
             retVal = createTempBridgeScriptFile(String(scriptText)).then(
                 function handleTempBridgeScriptResolve(tempFilePath) {
@@ -748,7 +751,10 @@ function doUXPScriptFile(filePath, options) {
                 break;
             }
 
-            validateSyncSafeSource(options && options.sourceText, options);
+            if (! validateSyncSafeSource(options && options.sourceText, options)) {
+                retVal = Promise.reject(new Error("Bridge source failed the sync-safe source check; see the log for the matched async token, or pass options.allowAsyncToken to bypass."));
+                break;
+            }
 
             retVal = executeBridgePayload(resolvedPath);
         }
