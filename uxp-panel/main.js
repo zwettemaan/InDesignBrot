@@ -269,10 +269,10 @@ async function runDirectInPanel() {
 
     updateDocumentPresentation("Panel UXP", elapsedMilliseconds);
 
-    var result = {};
-    result.elapsedMilliseconds = elapsedMilliseconds;
-
-    return result;
+    return {
+        ok: true,
+        elapsedMilliseconds: elapsedMilliseconds
+    };
 }
 
 async function runViaUXPScript() {
@@ -308,7 +308,10 @@ async function runViaUXPScript() {
         }
     );
 
-    updateDocumentPresentation("UXPScript", result.elapsedMilliseconds);
+    if (result.ok) {
+        updateDocumentPresentation("UXPScript", result.elapsedMilliseconds);
+    }
+
     return result;
 }
 
@@ -330,7 +333,12 @@ async function runAction(startMessage, action, buildSuccessMessage) {
         erasePreviousRenderingIfAny();
         await crdtuxpIDSN.asyncSleep(500);
         const result = await action();
-        setStatus(buildSuccessMessage(result), "note");
+        if (result && result.ok === false) {
+            setStatus(formatError(result.error), "error");
+        }
+        else {
+            setStatus(buildSuccessMessage(result), "note");
+        }
     }
     catch (err) {
         crdtuxp.logError(arguments, "throws " + err);

@@ -1105,12 +1105,14 @@ async function waitForBridgeResult(onStartedCallback, options) {
     const completionDeadline = Date.now() + bridgeCompletionTimeoutMilliseconds;
 
     let didReportStart = false;
+    let errorMessage = undefined;
 
     while (true) {
         const bridgeState = getBridgeState();
 
         if (isElapsedLabelValue(bridgeState)) {
             return {
+                ok: true,
                 elapsedMilliseconds: Math.round(parseFloat(bridgeState) * 1000)
             };
         }
@@ -1124,24 +1126,30 @@ async function waitForBridgeResult(onStartedCallback, options) {
             }
         }
         else if (bridgeState && bridgeState != crdtuxpIDSN.BRIDGE_STATE_REQUEST) {
+            errorMessage = bridgeState;
             crdtuxp.logError(arguments, "error; bridgeState " + bridgeState);
             break;
         }
 
         if (! didReportStart && Date.now() > requestDeadline) {
-            crdtuxp.logError(arguments, "Bridge request stayed pending for more than 5 seconds.");
+            errorMessage = "Bridge request stayed pending for more than 5 seconds.";
+            crdtuxp.logError(arguments, errorMessage);
             break;
         }
 
         if (didReportStart && Date.now() > completionDeadline) {
-            crdtuxp.logError(arguments, "Bridge run did not finish within alloted time");
+            errorMessage = "Bridge run did not finish within alloted time.";
+            crdtuxp.logError(arguments, errorMessage);
             break;
         }
 
         await asyncSleep(bridgeStatePollIntervalMilliseconds);
     }
 
-    return;
+    return {
+        ok: false,
+        error: errorMessage || "Unknown bridge failure."
+    };
 }
 crdtuxpIDSN.waitForBridgeResult = waitForBridgeResult;
 
