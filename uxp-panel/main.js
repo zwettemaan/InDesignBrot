@@ -257,19 +257,22 @@ async function runDirectInPanel() {
     crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_REQUEST);
     crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
+    const startDate = new Date();
+    let elapsedMilliseconds = -1;
     try {
         await inDesignBrot.main();
-        crdtuxpIDSN.setBridgeState();
+        const endDate = new Date();
+        elapsedMilliseconds = endDate.getTime() - startDate.getTime();
     }
     finally {
         crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
     }
 
-    const result = await crdtuxpIDSN.waitForBridgeResult();
-    await crdtuxp.finalize();
+    updateDocumentPresentation("Panel UXP", elapsedMilliseconds);
 
-    updateDocumentPresentation("Panel UXP", result.elapsedMilliseconds);
-
+    var result = {};
+    result.elapsedMilliseconds = elapsedMilliseconds;
+    
     return result;
 }
 

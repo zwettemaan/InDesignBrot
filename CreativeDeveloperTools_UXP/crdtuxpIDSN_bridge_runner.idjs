@@ -10,22 +10,18 @@ if (! global.crdtuxp) {
 
 function main() {
     
-    var didSetStarted = false;
-
     return crdtuxpIDSN.getStableInDesignApp().then(
-        function handleAppReady(app) {
+        function handleAppReady() {
             const filePath = crdtuxpIDSN.getBridgePayload();
 
             crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_STARTED);
-            didSetStarted = true;
             const startDate = new Date();
             try {
                 crdtuxpIDSN.runPayload(filePath);
                 const endDate = new Date();
                 const elapsedMilliseconds = endDate.getTime() - startDate.getTime();
                 const elapsedSeconds = (elapsedMilliseconds / 1000).toFixed(3);
-                crdtuxpIDSN.setBridgeState(elapsedSeconds);
-                return crdtuxpIDSN.finalizeWithBridgeValue(value);
+                return crdtuxpIDSN.finalizeWithBridgeValue(elapsedSeconds);
             }
             catch (err) {
                 return crdtuxpIDSN.finalizeWithBridgeError(err);
