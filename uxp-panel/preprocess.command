@@ -33,24 +33,12 @@ RUNTIME_DIR="$SCRIPT_DIR/runtime"
     exit 1
 }
 
-[[ -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js" ]] || {
-    print -u2 "Missing $PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js"
-    exit 1
-}
-
 mkdir -p "$RUNTIME_DIR/CreativeDeveloperTools_UXP"
 
-rm -f "$RUNTIME_DIR/InDesignBrot_doscript_probe.idjs"
-rm -f "$RUNTIME_DIR/InDesignBrot_doscript_probe_helper.js"
-rm -f "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN.js"
-rm -f "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_runner.idjs"
-rm -f "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js"
-
-cp -f "$PROJECT_DIR/InDesignBrot_main.js" "$RUNTIME_DIR/InDesignBrot_main.js"
-cp -f "$PROJECT_DIR/InDesignBrot.idjs" "$RUNTIME_DIR/InDesignBrot.idjs"
-cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxp.js" "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxp.js"
-cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN.js" "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN.js"
+cp -f "$PROJECT_DIR/InDesignBrot_main.js"                                      "$RUNTIME_DIR/InDesignBrot_main.js"
+cp -f "$PROJECT_DIR/InDesignBrot.idjs"                                         "$RUNTIME_DIR/InDesignBrot.idjs"
+cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxp.js"                     "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxp.js"
+cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN.js"                 "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN.js"
 cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_runner.idjs" "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_runner.idjs"
-cp -f "$PROJECT_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js" "$RUNTIME_DIR/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js"
 
 print "Staged InDesignBrot runtime into $RUNTIME_DIR"

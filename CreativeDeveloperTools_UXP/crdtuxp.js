@@ -70,6 +70,9 @@ const RESOLVED_PROMISE_UNDEFINED                = Promise.resolve(undefined);
 const RESOLVED_PROMISE_FALSE                    = Promise.resolve(false);
 const RESOLVED_PROMISE_TRUE                     = Promise.resolve(true);
 
+let STACK_ALERT_FTN                             = [];
+let FTN_ALERT_CURRENT                           = undefined; // undefined means: use default alert functions
+
 function getPlatformGlobals() {
     return global;
 }
@@ -420,7 +423,12 @@ function alert(message) {
 
         try {
 
-            var uxpContext = getUXPContext();
+            if (FTN_ALERT_CURRENT) {
+                retVal = Promise.resolve(FTN_ALERT_CURRENT(message));
+                break;
+            }
+
+            let uxpContext = getUXPContext();
             if (uxpContext.uxpVariant == UXP_VARIANT_INDESIGN_SERVER_UXPSCRIPT) {
                 // We've lost access to the alert() function in InDesign Server, which writes
                 // to stdout.
@@ -3159,7 +3167,7 @@ function fileRead(fileHandle, options) {
                         break;
                     }
 
-                    var str = binaryUTF8ToStr(byteArrayStr);
+                    let str = binaryUTF8ToStr(byteArrayStr);
                     if (! str) {
                         crdtuxp.logError(arguments, "no str");
                         break;
@@ -4427,7 +4435,7 @@ function hashStringFNV1a(s) {
         return hash >>> 0; // Ensure 32-bit unsigned
     };
 
-    var hash = fnv1a(s.toString()).toString(16); // Hexadecimal hash
+    let hash = fnv1a(s.toString()).toString(16); // Hexadecimal hash
 
     return hash;
 }
@@ -5384,6 +5392,27 @@ function pluginInstaller() {
 module.exports.pluginInstaller = pluginInstaller;
 
 /**
+ * Restore a saved alert function. If the stack is empty, restore with the default
+ *
+ * @function popAlert
+ * @memberof crdtuxp
+ * @return FTN_ALERT_CURRENT
+ */
+
+function popAlert() {
+// coderstate: procedure
+
+    let oldAlert = undefined;
+    if (STACK_ALERT_FTN.length > 0) {
+        oldAlert = STACK_ALERT_FTN.pop();
+    }
+    FTN_ALERT_CURRENT = oldAlert;
+
+    return FTN_ALERT_CURRENT;
+}
+module.exports.popAlert = popAlert;
+
+/**
  * Restore the log level to what it was when pushLogLevel was called
  *
  * @function popLogLevel
@@ -5474,6 +5503,29 @@ function promisifyWithContext(ftn, context) {
    }
 }
 module.exports.promisifyWithContext = promisifyWithContext;
+
+/**
+ * Save the existing alert function and replace it with another one or a dummy one
+ *
+ * @function pushAlert
+ * @memberof crdtuxp
+ * @return previousAlert
+ *
+ * @param {function} newAlert - new alert function. Can be undefined in which case a dummy function is used
+ */
+
+function pushAlert(newAlert) {
+// coderstate: function
+
+    let retVal = FTN_ALERT_CURRENT;
+
+    STACK_ALERT_FTN.push(crdtuxp.alert);
+
+    FTN_ALERT_CURRENT = "function" == typeof newAlert ? newAlert : (function(){});
+
+    return retVal;
+}
+module.exports.pushAlert = pushAlert;
 
 /**
  * Save the previous log level and set a new log level
@@ -6491,7 +6543,11 @@ function waitForFile(
     do {
         try {
 
-            var uxpContext = getUXPContext();
+            let uxpContext = getUXPContext();
+            if (! uxpContext) {
+                crdtuxp.logError(arguments, "need uxpContext");
+                break;
+            }
 
             if (! uxpContext.hasDirectFileAccess) {
                 crdtuxp.logError(arguments, "need direct file access");

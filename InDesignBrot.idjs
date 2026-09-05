@@ -11,19 +11,23 @@
 // crdtuxp might already be defined
 // If this script is launched directly, crdtuxp will not yet be defined
 
-const NAME_MAIN_SCRIPT = "InDesignBrot_main"; 
+const NAME_MAIN_SCRIPT     = "InDesignBrot_main"; 
 const IS_STANDALONE_SCRIPT = ! global.crdtuxp;
-const LOGLEVEL = 3;
+const LOGLEVEL             = 3;
+
 // LOGFILE_NAME: a file name or undefined
-const LOGFILE_NAME = "InDesignBrot.log";
+const LOGFILE_NAME         = "InDesignBrot.log";
 
 if (IS_STANDALONE_SCRIPT) {
-    global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    global.crdtuxp                  = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    global.crdtuxpIDSN              = global.require("./CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
     crdtuxp.init();
 }
 
 function main() {
 // promisor    
+    let retValPromise = Promise.resolve(undefined);
+
     let context = crdtuxp.getContext();
 
     crdtuxp.configLogger({
@@ -35,7 +39,6 @@ function main() {
     // We need to refer to the main script relative to RUNPATH_ROOT which
     // varies depending on how this script was launched
 
-    let retValPromise = Promise.resolve(undefined);
     try {
         retValPromise = global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
     }

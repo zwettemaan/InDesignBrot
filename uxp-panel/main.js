@@ -4,60 +4,24 @@
 
 const localFileSystem = require("uxp").storage.localFileSystem;
 
-const SCRIPT_LABEL_BRIDGE_STATE = "InDesignBrotBridgeStatus";
-const BRIDGE_STATE_REQUEST = "Request";
-const BRIDGE_STATE_STARTED = "Started";
-
-const BRIDGE_STATE_POLL_INTERVAL_MS = 100;
-const BRIDGE_REQUEST_TIMEOUT_MS = 30000;
-const BRIDGE_COMPLETION_TIMEOUT_MS = 300000;
-
 const SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG = "InDesignBrotSuppressElapsedTimeDialog";
-const RESULT_GROUP_LABEL = "Calculated_Mandelbrot";
-const TITLE_FRAME_LABEL = "InDesignBrotComparisonTitle";
-const TITLE_FRAME_NAME = "InDesignBrotComparisonTitle";
-const TITLE_TOP_INSET = 6;
-const TITLE_SIDE_INSET = 12;
-const TITLE_HEIGHT = 18;
-const RESULT_TOP_OFFSET = 28;
+const RESULT_GROUP_LABEL                        = "Calculated_Mandelbrot";
+const TITLE_FRAME_LABEL                         = "InDesignBrotComparisonTitle";
+const TITLE_FRAME_NAME                          = "InDesignBrotComparisonTitle";
+const TITLE_TOP_INSET                           =  6;
+const TITLE_SIDE_INSET                          = 12;
+const TITLE_HEIGHT                              = 18;
+const RESULT_TOP_OFFSET                         = 28;
 
 const state = {
     busy: false,
     initPromise: null,
-    runtimeFolder: null,
-    crdtuxp: null,
-    crdtuxpIDSN: null
+    runtimeFolder: null
 };
 
 const directButton = document.getElementById("run-direct");
 const bridgeButton = document.getElementById("run-bridge");
-const statusNode = document.getElementById("status");
-
-// getInDesignApp/waitForInDesignApp live in crdtuxpIDSN_bridge_common.js, shared
-// with crdtuxpIDSN_bridge_runner.idjs (which runs in its own UXPScript engine
-// instance and can't share module state with this panel, hence the separate
-// require() rather than a shared import).
-let bridgeCommonModule = null;
-function getBridgeCommon() {
-// coderstate: function
-
-    if (! bridgeCommonModule) {
-        bridgeCommonModule = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN_bridge_common.js");
-    }
-    return bridgeCommonModule;
-}
-
-function getInDesignApp() {
-// coderstate: function
-
-    return getBridgeCommon().getInDesignApp();
-}
-
-async function waitForInDesignApp() {
-// coderstate: promisor
-
-    return getBridgeCommon().waitForInDesignApp();
-}
+const statusNode   = document.getElementById("status");
 
 function setButtonsDisabled(disabled) {
 // coderstate: procedure
@@ -98,38 +62,6 @@ function formatElapsedSeconds(milliseconds) {
     return (milliseconds / 1000).toFixed(3);
 }
 
-// app is always a valid, already-waited-for app by the time these are
-// called, so no guard needed — a missing insertLabel/extractLabel would mean
-// something is fundamentally wrong, and the resulting TypeError is enough to
-// surface that up to runAction's catch.
-function setAppLabel(app, key, value) {
-// coderstate: procedure
-
-    app.insertLabel(key, String(value == null ? "" : value));
-}
-
-function getAppLabel(app, key) {
-// coderstate: function
-
-    return String(app.extractLabel(key) || "");
-}
-
-function isElapsedLabelValue(value) {
-// coderstate: function
-
-    return /^\d+(\.\d+)?$/.test(String(value || ""));
-}
-
-// setTimeout is callback-based, so this wrapper is the minimal bridge that lets
-// the rest of the panel code use await for short polling delays.
-function sleep(milliseconds) {
-// coderstate: promisor
-
-    return new Promise(function sleepPromise(resolve) {
-        setTimeout(resolve, milliseconds);
-    });
-}
-
 // requestAnimationFrame is also callback-based. Waiting for two frames gives the
 // status text a chance to paint before a long-running action starts.
 function waitForStatusPaint() {
@@ -147,29 +79,37 @@ function waitForStatusPaint() {
     });
 }
 
-function getCollectionItems(collection) {
-    return collection.everyItem().getElements().slice(0);
-}
-
 function getActiveDocument() {
 // coderstate: function
 
-    try {
-        const doc = getInDesignApp().activeDocument;
-        if (doc && doc.isValid && doc.constructor.name == "Document") {
-            return doc;
+    let retVal = undefined;
+
+    do {
+        try {
+            const app = crdtuxpIDSN.getInDesignApp();
+            if (! app) {
+                break;
+            }
+
+            const doc = app.activeDocument;
+            if (! doc || ! doc.isValid || doc.constructor.name != "Document") {
+                break;
+            }
+
+            retVal = doc;
+        }
+        catch (err) {
         }
     }
-    catch (err) {
-    }
+    while (false);
 
-    return undefined;
+    return retVal;
 }
 
 function ensureComparisonTitleFrame(doc) {
 // coderstate: function
 
-    const frames = getCollectionItems(doc.textFrames);
+    const frames = crdtuxpIDSN.collectionToArray(doc.textFrames);
     for (let index = 0; index < frames.length; index += 1) {
         const frame = frames[index];
         if (! frame || ! frame.isValid) {
@@ -190,7 +130,7 @@ function ensureComparisonTitleFrame(doc) {
 function findResultGroup(doc) {
 // coderstate: function
 
-    const groups = getCollectionItems(doc.groups);
+    const groups = crdtuxpIDSN.collectionToArray(doc.groups);
     for (let index = groups.length - 1; index >= 0; index -= 1) {
         const group = groups[index];
         if (group && group.isValid && group.label == RESULT_GROUP_LABEL) {
@@ -259,20 +199,18 @@ async function getRuntimeFolder() {
         return state.runtimeFolder;
     }
 
-    const pluginFolder = await localFileSystem.getPluginFolder();
+    const pluginFolder  = await localFileSystem.getPluginFolder();
     const runtimeFolder = await pluginFolder.getEntry("runtime");
+    const crdtFolder    = await runtimeFolder.getEntry("CreativeDeveloperTools_UXP");
+
+    await crdtFolder.getEntry("crdtuxp.js");
+    await crdtFolder.getEntry("crdtuxpIDSN.js");
 
     await runtimeFolder.getEntry("InDesignBrot_main.js");
     await runtimeFolder.getEntry("InDesignBrot.idjs");
 
-    const crdtFolder = await runtimeFolder.getEntry("CreativeDeveloperTools_UXP");
-    await crdtFolder.getEntry("crdtuxp.js");
-    await crdtFolder.getEntry("crdtuxpIDSN.js");
-    await crdtFolder.getEntry("crdtuxpIDSN_bridge_runner.idjs");
-    await crdtFolder.getEntry("crdtuxpIDSN_bridge_common.js");
-
     state.runtimeFolder = runtimeFolder;
-    
+
     return runtimeFolder;
 }
 
@@ -282,14 +220,16 @@ async function initializeRuntimeImpl() {
     try {
         await getRuntimeFolder();
 
-        state.crdtuxp = require("./runtime/CreativeDeveloperTools_UXP/crdtuxp.js");
-        if (typeof global !== "undefined") {
-            global.crdtuxp = state.crdtuxp;
-        }
-        globalThis.crdtuxp = state.crdtuxp;
+        let crdtuxp = require("./runtime/CreativeDeveloperTools_UXP/crdtuxp.js");
+        let crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
 
-        await state.crdtuxp.init();
-        state.crdtuxpIDSN = require("./runtime/CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
+        await crdtuxp.init();
+
+        if (typeof global !== "undefined") {
+            global.crdtuxp = crdtuxp;
+            global.crdtuxpIDSN = crdtuxpIDSN;
+        }
+
         return state;
     }
     catch (err) {
@@ -308,86 +248,44 @@ async function initializeRuntime() {
     return state.initPromise;
 }
 
-async function waitForBridgeResult(app, onStarted) {
-// coderstate: promisor
-
-    const requestDeadline = Date.now() + BRIDGE_REQUEST_TIMEOUT_MS;
-    const completionDeadline = Date.now() + BRIDGE_COMPLETION_TIMEOUT_MS;
-    let didReportStart = false;
-
-    while (true) {
-        const statusValue = getAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE);
-
-        if (isElapsedLabelValue(statusValue)) {
-            return {
-                elapsedMilliseconds: Math.round(parseFloat(statusValue) * 1000)
-            };
-        }
-
-        if (statusValue == BRIDGE_STATE_STARTED) {
-            if (! didReportStart) {
-                didReportStart = true;
-                if (typeof onStarted == "function") {
-                    onStarted();
-                }
-            }
-        }
-        else if (statusValue && statusValue != BRIDGE_STATE_REQUEST) {
-            throw new Error(statusValue);
-        }
-
-        if (! didReportStart && Date.now() > requestDeadline) {
-            throw new Error("Bridge request stayed pending for more than 5 seconds.");
-        }
-
-        if (didReportStart && Date.now() > completionDeadline) {
-            throw new Error("Bridge run did not finish within 300 seconds.");
-        }
-
-        await sleep(BRIDGE_STATE_POLL_INTERVAL_MS);
-    }
-}
-
 async function runDirectInPanel() {
 // coderstate: promisor
 
-    const runtime = await initializeRuntime();
+    await initializeRuntime();
     const inDesignBrot = require("./runtime/InDesignBrot_main.js");
-    const app = await waitForInDesignApp();
 
-    setAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE, BRIDGE_STATE_REQUEST);
-    setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
+    crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_REQUEST);
+    crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
     try {
-            await inDesignBrot.main();
+        await inDesignBrot.main();
+        crdtuxpIDSN.setBridgeState();
     }
     finally {
-        setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
+        crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
     }
 
-    const result = await waitForBridgeResult(app);
-    if (typeof runtime.crdtuxp.finalize == "function") {
-        await runtime.crdtuxp.finalize();
-    }
+    const result = await crdtuxpIDSN.waitForBridgeResult();
+    await crdtuxp.finalize();
 
     updateDocumentPresentation("Panel UXP", result.elapsedMilliseconds);
+
     return result;
 }
 
 async function runViaUXPScript() {
 // coderstate: promisor
 
-    const runtime = await initializeRuntime();
+    await initializeRuntime();
     const runtimeFolder = await getRuntimeFolder();
     const launcherEntry = await runtimeFolder.getEntry("InDesignBrot.idjs");
     const launcherSourceText = await launcherEntry.read();
-    const app = await waitForInDesignApp();
 
-    setAppLabel(app, SCRIPT_LABEL_BRIDGE_STATE, BRIDGE_STATE_REQUEST);
-    setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
+    crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_REQUEST);
+    crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
     try {
-        await runtime.crdtuxpIDSN.doUXPScriptFile(
+        await crdtuxpIDSN.doUXPScriptFile(
             launcherEntry.nativePath,
             {
                 sourceText: launcherSourceText,
@@ -396,15 +294,17 @@ async function runViaUXPScript() {
         );
     }
     finally {
-        setAppLabel(app, SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
+        crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
     }
 
-    const result = await waitForBridgeResult(app, function handleBridgeStarted() {
-        setStatus(
-            "Bridged UXPScript started. The panel is waiting for InDesignBrot to replace the Started label with the elapsed time.",
-            "note"
-        );
-    });
+    const result = await crdtuxpIDSN.waitForBridgeResult(
+        function handleBridgeStarted() {
+            setStatus(
+                "Bridged UXPScript started. The panel is waiting for InDesignBrot to replace the Started label with the elapsed time.",
+                "note"
+            );
+        }
+    );
 
     updateDocumentPresentation("UXPScript", result.elapsedMilliseconds);
     return result;
@@ -412,6 +312,8 @@ async function runViaUXPScript() {
 
 async function runAction(startMessage, action, buildSuccessMessage) {
 // coderstate: promisor
+
+    await initializeRuntime();
 
     if (state.busy) {
         return;
@@ -424,12 +326,12 @@ async function runAction(startMessage, action, buildSuccessMessage) {
 
     try {
         erasePreviousRenderingIfAny();
-        await sleep(500);
+        await crdtuxpIDSN.asyncSleep(500);
         const result = await action();
         setStatus(buildSuccessMessage(result), "note");
     }
     catch (err) {
-        console.error(err);
+        crdtuxp.logError(arguments, "throws " + err);
         setStatus(formatError(err), "error");
     }
     finally {

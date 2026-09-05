@@ -7,6 +7,11 @@
 // No rhyme nor reason - no practical value, just for fun. See LICENSE for terms.
 //
 // Start Adobe InDesign, tweak the settings on the pasteboard, run the script. Go get coffee.
+// 
+// This code can be executed in different environments: 
+// - from the Scripts Panel, wrapped in InDesignBrot.idjs
+// - from a UXP plug-in, called from uxp-panel/main.js
+// - from a UXP plug-in via the UXPScript bridge, called from uxp-panel/crdtuxpIDSN_bridge_runner.idjs
 //
 
 const indesign = require("indesign");
@@ -39,20 +44,8 @@ const kDefaultDeletePreviousResult = true;
 const kDefaultRunCRDTUXPTests = false;
 
 const INI_SECTION_CONFIG                        = "indesignbrot";
-
-const SCRIPT_LABEL_BRIDGE_STATE                 = "InDesignBrotBridgeStatus";
 const SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG = "InDesignBrotSuppressElapsedTimeDialog";
 const SCRIPT_LABEL_FINISHED_SET                 = "Calculated_Mandelbrot";
-
-const BRIDGE_STATE_STARTED                     = "Started";
-
-function setBridgeStatus(value) {
-    if (! app || typeof app.insertLabel != "function") {
-        throw new Error("Application labels are not available in this InDesign runtime.");
-    }
-
-    app.insertLabel(SCRIPT_LABEL_BRIDGE_STATE, String(value == null ? "" : value));
-}
 
 async function main() {
 
@@ -108,7 +101,6 @@ module.exports.main = main;
 function calculateMandelbrot(context) {
 
     let retVal = false;
-    let didSetStarted = false;
 
     crdtuxp.logEntry(arguments);
 
@@ -132,9 +124,6 @@ function calculateMandelbrot(context) {
                 crdtuxp.logError(arguments, "config missing");
                 break;
             }
-
-            setBridgeStatus(BRIDGE_STATE_STARTED);
-            didSetStarted = true;
 
             //
             // For applying swatches we apply a logarithmic scale; pre-calculate this value because
@@ -213,10 +202,8 @@ function calculateMandelbrot(context) {
             const elapsedMilliseconds = endDate.getTime() - startDate.getTime();
             const elapsedSeconds = (elapsedMilliseconds / 1000).toFixed(3);
 
-            setBridgeStatus(elapsedSeconds);
-
             if (config.showElapsedTimeDialog) {
-                crdtuxp.alert("Time elapsed:" + elapsedMilliseconds / 1000.0);
+                crdtuxp.alert("Time elapsed:" + elapsedSeconds);
             }
             
             retVal = true;
@@ -224,7 +211,7 @@ function calculateMandelbrot(context) {
         catch (err) {
             if (didSetStarted) {
                 try {
-                    setBridgeStatus("InDesignBrot run failed: " + err);
+                    crdtuxpIDSN.setBridgeState("InDesignBrot run failed: " + err);
                 }
                 catch (statusErr) {
                     crdtuxp.logError(arguments, "setting bridge status throws " + statusErr);

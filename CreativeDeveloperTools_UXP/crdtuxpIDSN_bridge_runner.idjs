@@ -2,156 +2,37 @@
 // SPDX-License-Identifier: Elastic-2.0
 // https://github.com/zwettemaan/CRDT_UXP
 
-const SCRIPT_LABEL_BRIDGE_PAYLOAD = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_PAYLOAD__";
-const SCRIPT_LABEL_BRIDGE_STATE   = "__CRDT_UXP_INDESIGN_UXPSCRIPT_BRIDGE_STATE__";
-const BRIDGE_STATE_STARTED = "Started";
-const originalAlert = global.crdtuxp && global.crdtuxp.alert;
-
 if (! global.crdtuxp) {
-    global.crdtuxp = global.require("./crdtuxp.js");
+    global.crdtuxp                  = global.require("./crdtuxp.js");
+    global.crdtuxpIDSN              = global.require("./crdtuxpIDSN.js");
     crdtuxp.init();
 }
 
-const { getRequireFunction, getInDesignApp, waitForInDesignApp } = global.require("./crdtuxpIDSN_bridge_common.js");
-
-// app can be undefined here (finalizeWithError's handleAppUnavailable path
-// calls this with no app to write to), so both guard against that instead
-// of throwing.
-
-function setBridgeStatus(app, value) {
-// coderstate: procedure
-
-    if (app) {
-        app.insertLabel(SCRIPT_LABEL_BRIDGE_STATE, String(value));
-    }
-}
-
-function getBridgePayload(app) {
-// coderstate: function
-
-    return app ? String(app.extractLabel(SCRIPT_LABEL_BRIDGE_PAYLOAD) || "") : undefined;
-}
-
-function restoreAlert() {
-// coderstate: procedure
-
-    crdtuxp.alert = originalAlert;
-}
-
-function finalizeWithValue(app, value) {
-// coderstate: procedure
-
-    setBridgeStatus(app, value);
-    restoreAlert();
-
-    return crdtuxp.finalize().then(
-        function handleFinalizeResolve() {
-            return value;
-        }
-    );
-}
-
-function finalizeWithError(app, err) {
-// coderstate: procedure
-    const message = "UXPScript run failed: " + err;
-
-    setBridgeStatus(app, message);
-    restoreAlert();
-
-    return crdtuxp.finalize().then(
-        function handleFinalizeReject() {
-            throw new Error(message);
-        }
-    );
-}
-
-function runWithRedrawDisabled(app, work) {
-// coderstate: procedure
-    let retVal = undefined;
-
-    let originalEnableRedraw = false;
-
-    do {
-        try {
-
-            if (app && app.scriptPreferences && typeof app.scriptPreferences.enableRedraw != "undefined") {
-                originalEnableRedraw = app.scriptPreferences.enableRedraw;
-                app.scriptPreferences.enableRedraw = false;
-            }
-
-            retVal = work();
-        }
-        catch (err) {
-            console.log("runWithRedrawDisabled: throws " + err);
-        }
-            
-    }
-    while (false);
-
-    if (originalEnableRedraw) {
-        try {
-            app.scriptPreferences.enableRedraw = originalEnableRedraw;
-        }
-        catch (restoreErr) {
-            console.log("runWithRedrawDisabled: failed to restore enableRedraw");
-        }
-    }
-
-    return retVal;
-}
-
-function runPayload(app, filePath) {
-// coderstate: function
-    let retVal = undefined;
-
-    do {
-        try {
-
-            const moduleRequire = getRequireFunction();
-            if (! moduleRequire) {
-                console.log("runPayload: UXPScript require() is unavailable.");
-                break;
-            }
-
-            const indesign = moduleRequire("indesign");
-
-            retVal = runWithRedrawDisabled(
-                app, 
-                function runPayloadWithRedrawDisabled() {
-                    return app.doScript(filePath, indesign.ScriptLanguage.UXPSCRIPT);
-                }
-            );
-        }
-        catch (err) {
-            console.log("runPayload: throws " + err);
-        }
-    }
-    while (false);
-
-    return retVal;
-}
-
 function main() {
+    
+    var didSetStarted = false;
 
-    return waitForInDesignApp().then(
+    return crdtuxpIDSN.getStableInDesignApp().then(
         function handleAppReady(app) {
-            const filePath = getBridgePayload(app);
+            const filePath = crdtuxpIDSN.getBridgePayload();
 
-            setBridgeStatus(app, BRIDGE_STATE_STARTED);
-
-            return Promise.resolve().then(function runBridgeMain() {
-                return runPayload(app, filePath);
-            }).then(
-                function handleBridgeResolve(value) {
-                    return finalizeWithValue(app, value);
-                },
-                function handleBridgeReject(err) {
-                    return finalizeWithError(app, err);
-                }
-            );
+            crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_STARTED);
+            didSetStarted = true;
+            const startDate = new Date();
+            try {
+                crdtuxpIDSN.runPayload(filePath);
+                const endDate = new Date();
+                const elapsedMilliseconds = endDate.getTime() - startDate.getTime();
+                const elapsedSeconds = (elapsedMilliseconds / 1000).toFixed(3);
+                crdtuxpIDSN.setBridgeState(elapsedSeconds);
+                return crdtuxpIDSN.finalizeWithBridgeValue(value);
+            }
+            catch (err) {
+                return crdtuxpIDSN.finalizeWithBridgeError(err);
+            }
         }, 
         function handleAppUnavailable(err) {
-            return finalizeWithError(undefined, err);
+            return crdtuxpIDSN.finalizeWithBridgeError(err);
         }
     );
 }
