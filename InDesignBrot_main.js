@@ -209,13 +209,11 @@ function calculateMandelbrot(context) {
             retVal = true;
         }
         catch (err) {
-            if (didSetStarted) {
-                try {
-                    crdtuxpIDSN.setBridgeState("InDesignBrot run failed: " + err);
-                }
-                catch (statusErr) {
-                    crdtuxp.logError(arguments, "setting bridge status throws " + statusErr);
-                }
+            try {
+                crdtuxpIDSN.setBridgeState("InDesignBrot run failed: " + err);
+            }
+            catch (statusErr) {
+                crdtuxp.logError(arguments, "setting bridge status throws " + statusErr);
             }
 
             crdtuxp.logError(arguments, "throws " + err);

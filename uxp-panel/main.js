@@ -254,7 +254,6 @@ async function runDirectInPanel() {
     await initializeRuntime();
     const inDesignBrot = require("./runtime/InDesignBrot_main.js");
 
-    crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_REQUEST);
     crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "yes");
 
     const startDate = new Date();
@@ -272,7 +271,7 @@ async function runDirectInPanel() {
 
     var result = {};
     result.elapsedMilliseconds = elapsedMilliseconds;
-    
+
     return result;
 }
 

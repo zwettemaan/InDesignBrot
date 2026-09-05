@@ -365,7 +365,7 @@ function getAppLabel(key) {
         try {
 
             let app = getInDesignApp();
-            if (! app || typeof app.insertLabel != "function") {
+            if (! app || typeof app.extractLabel != "function") {
                 crdtuxp.logError(arguments, "app not available");
                 break;
             }
@@ -770,7 +770,6 @@ function resolveUXPScriptFilePath(filePath, options) {
 
             retVal = normalizeNativePath(filePath);
             if (isAbsoluteNativePath(retVal)) {
-                crdtuxp.logError(arguments, "failed to normalize filePath");
                 break;
             }
 
@@ -935,6 +934,12 @@ function runPayload(filePath) {
             }
 
             const indesign = moduleRequire("indesign");
+
+            let app = getInDesignApp();
+            if (! app) {
+                crdtuxp.logError(arguments, "app not available");
+                break;
+            }
 
             retVal = runWithRedrawDisabled(
                 function runPayloadWithRedrawDisabled() {
@@ -1120,6 +1125,7 @@ async function waitForBridgeResult(onStartedCallback, options) {
         }
         else if (bridgeState && bridgeState != crdtuxpIDSN.BRIDGE_STATE_REQUEST) {
             crdtuxp.logError(arguments, "error; bridgeState " + bridgeState);
+            break;
         }
 
         if (! didReportStart && Date.now() > requestDeadline) {
@@ -1134,6 +1140,8 @@ async function waitForBridgeResult(onStartedCallback, options) {
 
         await asyncSleep(bridgeStatePollIntervalMilliseconds);
     }
+
+    return;
 }
 crdtuxpIDSN.waitForBridgeResult = waitForBridgeResult;
 
