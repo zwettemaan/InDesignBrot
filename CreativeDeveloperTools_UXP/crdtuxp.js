@@ -1060,6 +1060,39 @@ function decrypt(s_or_ByteArr, aesKey, aesIV) {
 module.exports.decrypt = decrypt;
 
 /**
+ * Terminate crdtuxp and remove ProxyPromise injection<br>
+ * <br>
+ * In UXPScript this is the call that drains any still-pending tracked promises before the
+ * top-level script returns. For bridged or standalone InDesign launchers, end the launcher with
+ * <code>return crdtuxp.finalize();</code> if you need fire-and-forget CRDT promises such as logging
+ * to finish before the host tears the script down.
+ *
+ * @function deinit
+ * @memberof crdtuxp
+ * @returns {Promise<any>} resolves when tracked promises have settled
+ */
+
+function deinit() {
+// coderstate: promisor
+
+    function cleanup() {
+        if (crdtuxp.isProxyPromiseInjected && crdtuxp.SystemPromise) {
+            global.Promise = crdtuxp.SystemPromise;
+            crdtuxp.isProxyPromiseInjected = false;
+            crdtuxp.SystemPromise = undefined;
+        }
+    }
+
+    var retVal = Promise.finalizePromises().then(
+        cleanup,
+        cleanup
+    );
+
+    return retVal;
+}
+module.exports.deinit = deinit;
+    
+/**
  * Delayed execution of a function
  *
  * @function delayFunction
@@ -4588,11 +4621,12 @@ function injectProxyPromiseClass() {
     try {
         // Save the original Promise class
         const SystemPromise = global.Promise;
+        crdtuxp.SystemPromise = SystemPromise;
+        crdtuxp.isProxyPromiseInjected = true;
 
         let PROMISES_PENDING = {};
         let LAST_PROMISE_UNIQUE_ID = 0;
 
-        crdtuxp.isProxyPromiseInjected = true;
 
         // Define the new Promise class
         class Promise {

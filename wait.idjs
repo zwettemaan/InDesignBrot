@@ -1,0 +1,102 @@
+// Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+// https://github.com/zwettemaan/InDesignBrot
+
+global.crdtuxp                  = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+global.crdtuxpIDSN              = global.require("./CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
+
+let FLAG_PROXY_PROMISE = "ProxyPromise";
+
+// setTimeout: never executed
+// setImmediate: executed after current task
+
+let TEST_ASYNC                        = "asyncSetText";
+let TEST_PROXY_PROMISE_ASYNC          = FLAG_PROXY_PROMISE + "," + TEST_ASYNC;
+let TEST_SYNC                         = "syncSetText";
+let TEST_PROXY_PROMISE_SYNC           = FLAG_PROXY_PROMISE + "," + TEST_SYNC;
+let TEST_SYNC_SET_TIMEOUT             = "syncSetTextTimeout";
+let TEST_SYNC_SET_IMMEDIATE           = "syncSetTextImmediate";
+
+let kTestToRun = TEST_SYNC_SET_TIMEOUT;
+
+async function asyncSetText(testName, textFrame) {
+    textFrame.contents = testName + ": asyncSetText() ran";
+}
+
+function syncSetText(testName, textFrame) {
+    textFrame.contents = testName + ": syncSetText() ran";
+}
+
+async function main() {
+// promisor    
+
+    let indesign = require("indesign");
+    let app = indesign.app;
+
+    let doc = undefined;
+    try {
+        doc = app.activeDocument;
+    }
+    catch (err) {        
+    }
+
+    if (! doc) {
+        doc = app.documents.add();
+    }
+
+    doc.viewPreferences.horizontalMeasurementPreferences = indesign.MeasurementUnits.POINTS;
+    doc.viewPreferences.verticalMeasurementPreferences = indesign.MeasurementUnits.POINTS;
+
+    var textFrame = undefined;
+    if (doc.textFrames.length) {
+        textFrame = doc.textFrames.item(0);
+    }
+
+    if (! textFrame) {
+        textFrame = doc.textFrames.add();
+        textFrame.geometricBounds = [ 0, 0, 144, 288];
+    }
+
+    textFrame.contents = kTestToRun + ": script started";
+
+    if (kTestToRun.indexOf(FLAG_PROXY_PROMISE) >= 0) {
+        crdtuxp.init();
+    }
+
+    if (
+        kTestToRun == TEST_ASYNC
+    ||
+        kTestToRun == TEST_PROXY_PROMISE_ASYNC
+    ) {
+        await asyncSetText(kTestToRun, textFrame);
+    }
+    else if (
+        kTestToRun == TEST_SYNC
+    ||
+        kTestToRun == TEST_PROXY_PROMISE_SYNC
+    ) {
+        await syncSetTextSetText(kTestToRun, textFrame);
+    }
+    else if (
+        kTestToRun == TEST_SYNC_SET_TIMEOUT
+    ) {
+        setTimeout(0, async function() {
+           await asyncSetText(kTestToRun, textFrame);
+        });
+    }
+    else if (
+        kTestToRun == TEST_SYNC_SET_IMMEDIATE
+    ) {
+        setImmediate(async function() {
+            await asyncSetText(kTestToRun, textFrame);
+        });
+    }
+
+    if (kTestToRun.indexOf(FLAG_PROXY_PROMISE) >= 0) {
+        crdtuxp.deinit();
+    }
+
+}
+module.exports.main = main;
+
+return main();

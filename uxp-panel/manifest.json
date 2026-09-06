@@ -1,7 +1,7 @@
 {
   "id": "ae4cbc17",
   "name": "InDesignBrot UXP Panel",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "index.html",
   "host": [
     {

@@ -49,10 +49,12 @@ const SCRIPT_LABEL_FINISHED_SET                 = "Calculated_Mandelbrot";
 
 async function main() {
 
+    let retVal = { ok: false, error: "InDesignBrot run failed." };
+
     crdtuxp.logEntry(arguments);
 
     do {
-        
+
         try {
 
             const context = crdtuxp.getContext();
@@ -60,7 +62,8 @@ async function main() {
             const config = {};
             const doc = getTargetDocAndConfig(config);
             if (! doc) {
-                crdtuxp.logError(arguments, "failed to get target doc");
+                retVal.error = "failed to get target doc";
+                crdtuxp.logError(arguments, retVal.error);
                 break;
             }
 
@@ -71,30 +74,37 @@ async function main() {
                 const crdtuxp_test = require("./CreativeDeveloperTools_UXP/crdtuxp_test");
                 await crdtuxp_test.run();
             }
-        
+
             if (! configureInDesign(context)) {
-                crdtuxp.logError(arguments, "failed to configure InDesign");
+                retVal.error = "failed to configure InDesign";
+                crdtuxp.logError(arguments, retVal.error);
                 break;
             }
 
             if (! configureDocument(context)) {
-                crdtuxp.logError(arguments, "failed to configure document");
+                retVal.error = "failed to configure document";
+                crdtuxp.logError(arguments, retVal.error);
                 break;
             }
 
             if (! calculateMandelbrot(context)) {
-                crdtuxp.logError(arguments, "failed to calculate Mandelbrot");
+                retVal.error = "failed to calculate Mandelbrot";
+                crdtuxp.logError(arguments, retVal.error);
                 break;
             }
+
+            retVal = { ok: true };
         }
         catch (err) {
+            retVal = { ok: false, error: String(err) };
             crdtuxp.logError(arguments, "throws " + err);
-        }        
+        }
     }
     while (false);
 
     crdtuxp.logExit(arguments);
 
+    return retVal;
 }
 module.exports.main = main;
 

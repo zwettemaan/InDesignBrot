@@ -258,13 +258,21 @@ async function runDirectInPanel() {
 
     const startDate = new Date();
     let elapsedMilliseconds = -1;
+    let mainResult;
     try {
-        await inDesignBrot.main();
+        mainResult = await inDesignBrot.main();
         const endDate = new Date();
         elapsedMilliseconds = endDate.getTime() - startDate.getTime();
     }
     finally {
         crdtuxpIDSN.setAppLabel(SCRIPT_LABEL_SUPPRESS_ELAPSED_TIME_DIALOG, "");
+    }
+
+    if (! mainResult || ! mainResult.ok) {
+        return {
+            ok: false,
+            error: (mainResult && mainResult.error) || "InDesignBrot run failed."
+        };
     }
 
     updateDocumentPresentation("Panel UXP", elapsedMilliseconds);
