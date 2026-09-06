@@ -47,6 +47,7 @@ function main() {
     }
 
     if (IS_STANDALONE_SCRIPT) {
+        console.log("draining Promises");
         retValPromise = retValPromise.then(crdtuxp.finalize);
     }
 
