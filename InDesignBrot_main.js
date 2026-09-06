@@ -52,6 +52,7 @@ async function main() {
     let retVal = { ok: false, error: "InDesignBrot run failed." };
 
     crdtuxp.logEntry(arguments);
+    var savedRedraw = undefined;
 
     do {
 
@@ -75,7 +76,8 @@ async function main() {
                 await crdtuxp_test.run();
             }
 
-            if (! configureInDesign(context)) {
+            savedRedraw = configureInDesign(context);
+            if (savedRedraw === undefined) {
                 retVal.error = "failed to configure InDesign";
                 crdtuxp.logError(arguments, retVal.error);
                 break;
@@ -101,6 +103,10 @@ async function main() {
         }
     }
     while (false);
+
+    if (savedRedraw !== undefined) {
+        app.scriptPreferences.enableRedraw = savedRedraw;
+    }
 
     crdtuxp.logExit(arguments);
 
@@ -333,16 +339,18 @@ function configureDocument(context) {
 }
 
 function configureInDesign(context) {
+// coderstate: function
 
-    let retVal = false;
+    let retVal = undefined;
 
     crdtuxp.logEntry(arguments);
 
     do {
         
         try {
+            var previousRedraw = !!app.scriptPreferences.enableRedraw;
             app.scriptPreferences.enableRedraw = false;
-            retVal = true;
+            retVal = previousRedraw;
         }
         catch (err) {
             crdtuxp.logError(arguments, "throws " + err);
