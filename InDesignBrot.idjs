@@ -5,7 +5,6 @@
 // Current InDesign builds still switch to the slower Scripts Panel launch mode when the
 // top-level launcher contains real async syntax such as the declaration below.
 // Comments that merely mention async no longer reproduce this on their own.
-// async function dummy() {}
 
 // If this script was launched from a wrapper script then
 // crdtuxp might already be defined

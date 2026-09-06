@@ -1,0 +1,29 @@
+global.crdtuxp                  = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+global.crdtuxpIDSN              = global.require("./CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
+crdtuxp.init();
+
+const NAME_MAIN_SCRIPT     = "ImageCatalog"; 
+
+function main() {
+// promisor    
+    let retValPromise = Promise.resolve(undefined);
+
+    let context = crdtuxp.getContext();
+
+    try {
+        retValPromise = global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
+    }
+    catch (err) {
+        console.log("requiring " + NAME_MAIN_SCRIPT + " throws " + err);
+    }
+
+    console.log("draining Promises");
+    retValPromise = retValPromise.then(crdtuxp.finalize);
+
+    return retValPromise;
+}
+module.exports.main = main;
+
+return main();
+
+
