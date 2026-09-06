@@ -8,7 +8,7 @@
 // callback would fire into a torn-down engine and hard-crash InDesign.
 
 var USE_DRAIN   = true;
-var USE_TIMEOUT = true;
+var USE_TIMEOUT = false;
 
 global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
 
@@ -23,7 +23,7 @@ function log(msg) {
 function fireAndForget() {
 
     function resolver(resolve) {
-        log("deferred work RAN");
+        log("deferred work RAN " + new Date().toString());
         resolve();
     }
 
@@ -35,7 +35,7 @@ function fireAndForget() {
             setTimeout(function () {
                 resolver(resolve);
             },
-            0);
+            5000);
         });
     }
     else {
@@ -62,7 +62,7 @@ async function main() {
     g_frame.geometricBounds = [ 0, 0, 300, 460 ];
     g_frame.contents = "";
 
-    log("start" + new Date().toString());
+    log("start " + new Date().toString());
 
     if (USE_DRAIN) {
         await crdtuxp.init();
