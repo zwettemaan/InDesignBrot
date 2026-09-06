@@ -1,0 +1,38 @@
+// Copyright (c) 2024-present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: Elastic-2.0
+// https://github.com/zwettemaan/CRDT_UXP
+
+if (! global.crdtuxp) {
+    global.crdtuxp                  = global.require("./crdtuxp.js");
+    global.crdtuxpIDSN              = global.require("./crdtuxpIDSN.js");
+    crdtuxp.init();
+}
+
+function main() {
+    
+    return crdtuxpIDSN.getStableInDesignApp().then(
+        function handleAppReady() {
+            const filePath = crdtuxpIDSN.getBridgePayload();
+
+            crdtuxpIDSN.setBridgeState(crdtuxpIDSN.BRIDGE_STATE_STARTED);
+            const startDate = new Date();
+            try {
+                crdtuxpIDSN.runPayload(filePath);
+                const endDate = new Date();
+                const elapsedMilliseconds = endDate.getTime() - startDate.getTime();
+                const elapsedSeconds = (elapsedMilliseconds / 1000).toFixed(3);
+                return crdtuxpIDSN.finalizeWithBridgeValue(elapsedSeconds);
+            }
+            catch (err) {
+                return crdtuxpIDSN.finalizeWithBridgeError(err);
+            }
+        }, 
+        function handleAppUnavailable(err) {
+            return crdtuxpIDSN.finalizeWithBridgeError(err);
+        }
+    );
+}
+
+module.exports.main = main;
+
+return main();

@@ -1,0 +1,84 @@
+// Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+// https://github.com/zwettemaan/InDesignBrot
+//
+// Demo: fireAndForget() is never awaited, so its callback runs AFTER main()'s
+// body has finished (mainReturned=true in the log). crdtuxp.deinit() holds the
+// script engine alive until that pending work drains - without it the same
+// callback would fire into a torn-down engine and hard-crash InDesign.
+
+var USE_DRAIN   = true;
+var USE_TIMEOUT = false;
+
+global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+
+var g_frame;
+var g_mainReturned = false;
+var doc = undefined;
+
+function log(msg) {
+    g_frame.contents += msg + "   (mainReturned=" + g_mainReturned + ")\n";
+}
+
+function fireAndForget() {
+
+    function resolver(resolve) {
+        log("deferred work RAN " + new Date().toString());
+        resolve();
+    }
+
+    // Make setImmediate and setTimeout drainable by wrapping them 
+    // into Promises
+    
+    if (USE_TIMEOUT) {
+        return new Promise(function (resolve) {
+            setTimeout(function () {
+                resolver(resolve);
+            },
+            5000);
+        });
+    }
+    else {
+        return new Promise(function (resolve) {
+            setImmediate(function () {
+                resolver(resolve);
+            });
+        });
+    }
+
+}
+
+async function main() {
+// coderstate: promisor
+
+    var indesign = require("indesign");
+    var app = indesign.app;
+
+    doc = app.documents.length ? app.documents.item(0) : app.documents.add();
+    doc.viewPreferences.horizontalMeasurementPreferences = indesign.MeasurementUnits.POINTS;
+    doc.viewPreferences.verticalMeasurementPreferences   = indesign.MeasurementUnits.POINTS;
+
+    g_frame = doc.textFrames.length ? doc.textFrames.item(0) : doc.textFrames.add();
+    g_frame.geometricBounds = [ 0, 0, 300, 460 ];
+    g_frame.contents = "";
+
+    log("start " + new Date().toString());
+
+    if (USE_DRAIN) {
+        await crdtuxp.init();
+        log("crdtuxp.init() drain installed");
+    }
+
+    fireAndForget();   // not awaited
+    log("sync body done");
+
+    if (USE_DRAIN) {
+        await crdtuxp.deinit();   // keeps the engine alive until fireAndForget drains
+        log("crdtuxp.deinit() drain resolved");
+    }
+
+    g_mainReturned = true;
+}
+module.exports.main = main;
+
+return main();

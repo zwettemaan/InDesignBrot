@@ -1,0 +1,60 @@
+// Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+// https://github.com/zwettemaan/InDesignBrot
+
+// Current InDesign builds still switch to the slower Scripts Panel launch mode when the
+// top-level launcher contains real async syntax such as the declaration below.
+// Comments that merely mention async no longer reproduce this on their own.
+// async function dummy() {}
+
+// If this script was launched from a wrapper script then
+// crdtuxp might already be defined
+// If this script is launched directly, crdtuxp will not yet be defined
+
+const NAME_MAIN_SCRIPT     = "InDesignBrot_main"; 
+const IS_STANDALONE_SCRIPT = ! global.crdtuxp;
+const LOGLEVEL             = 3;
+
+// LOGFILE_NAME: a file name or undefined
+const LOGFILE_NAME         = "InDesignBrot.log";
+
+if (IS_STANDALONE_SCRIPT) {
+    global.crdtuxp                  = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    global.crdtuxpIDSN              = global.require("./CreativeDeveloperTools_UXP/crdtuxpIDSN.js");
+    crdtuxp.init();
+}
+
+function main() {
+// promisor    
+    let retValPromise = Promise.resolve(undefined);
+
+    let context = crdtuxp.getContext();
+
+    crdtuxp.configLogger({
+        logLevel: LOGLEVEL,
+        logToUXPConsole: true,
+        logToFilePath: LOGFILE_NAME ? context.PATH_DESKTOP + LOGFILE_NAME : undefined
+    });
+
+    // We need to refer to the main script relative to RUNPATH_ROOT which
+    // varies depending on how this script was launched
+
+    try {
+        retValPromise = global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
+    }
+    catch (err) {
+        console.log("requiring " + NAME_MAIN_SCRIPT + " throws " + err);
+    }
+
+    if (IS_STANDALONE_SCRIPT) {
+        console.log("draining Promises");
+        retValPromise = retValPromise.then(crdtuxp.finalize);
+    }
+
+    return retValPromise;
+}
+module.exports.main = main;
+
+if (IS_STANDALONE_SCRIPT) {
+    return main();
+}

@@ -2,13 +2,9 @@
 
 ![screenshot_2023-05-04_at_8 41 22_am_360](https://user-images.githubusercontent.com/3396477/236360673-ed908a8e-4892-4a6e-a184-d77d6b739d45.png)
 
-To install, download the latest version of InDesignBrot here:
+![Installation links and instructions](https://coppieters.nz/?p=1008)
 
-https://github.com/zwettemaan/InDesignBrot/tree/main/build
-
-Click the file name, then click the _Raw_ button.
-
-Follow the instructions in the read me file.
+Switch to InDesign and bring up the Scripts panel.
 
 Precalculated sample .indd files (need InDesign 2023 to open them):
 
@@ -20,21 +16,92 @@ Precalculated sample .indd files (need InDesign 2023 to open them):
 
 # InDesignBrot
 
-This is the source structure for the InDesignBrot script. It was generated
-using UXPScriptSparker:
+This is the source structure for the InDesignBrot script.
 
-https://github.com/zwettemaan/UXPScriptSparker
+# License
 
-Run the `Mac/build.command` or `Windows/build.bat` scripts to build a
-redistributable .zip file in the `build` folder.
+Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
 
-Read the `ReadMe for InDesignBrot.md` for more info.
+This software is source-available. See [LICENSE](LICENSE) for the full terms.
 
+# What it is
+
+_InDesignBrot_ has no practical purpose - it's more of a 'fun' thing.
+
+It visualizes the MandelBrot set in InDesign using small 
+frames arranged in a huge grid.
+
+The `num pixels` setting determines the size of the grid (default: 19x19).
+
+The `max steps` setting determines the accuracy of the calculation. For higher
+grid sizes you want to increase max steps as well.
+
+The runtime of the script is roughly proportional to the square of `num pixels`.
+
+The runtime of the script is roughly proportional to `max steps`.
+
+# How to install InDesignBrot
+
+Start InDesign 2023 or higher
+
+Bring up the Scripts Panel (_Window - Utilities - Scripts_)
+
+Double-click the _InDesignBrot_idjs_ script on the InDesign Scripts panel.
+
+# How to tweak
+
+You can tweak the parameters for InDesignBrot by editing the info on the
+pasteboard of the sample document.
+
+Don't go overboard - start with small increases first (e.g. add 5 or 10
+to the current value of `num pixels`).
+
+Take note that the execution time increases dramatically with increasing
+values of `num pixels`. E.g. a setting of `num pixels = 100` takes many 
+minutes to execute in ExtendScript.
+
+There are a few sample .indd file provided in the download, which shows the 
+result with higher pixel values, to save you from calculating it yourself.
+
+# Speed oddities
+
+Running an UXPScript is fast or slow depending on an internal 'prescan' by the Adobe UXPScript runtime. 
+
+Note that there is a line 
+```
+// async function dummy() {}
+```
+
+at the start of the InDesignBrot.idjs script. Uncomment the line and run the script. Re-comment the line and run 
+the script again. Notice the difference in speed? This is just a do-nothing line, but the runtime scans for any
+async functions in the 'main' source file. It does not take any notice of 'async' use in any of the submodules.
+
+# How to run in a panel
+
+Navigate into the uxp-panel subfolder
+
+Run the preprocess.command or preprocess.bat
+
+Start the Adobe UXP Developer Tools and load the manifest.json in uxp-panel subfolder. Don't confuse it with an unrelated manifest.json in the root of the repo.
+
+Run the panel and compare the speed between the two buttons. The time reported excludes some before and after overheads - it is the time spent executing the pure Mandelbrot iteration. Increase the number of pixels on the pasteboard - e.g. make it 41 or so for a more marked difference.
+
+There is also a compiled .ccx file you can install by double-clicking.
+
+# Disclaimer
+
+This software is provided as is without warranty of any kind, either 
+expressed or implied, including, but not limited to the implied warranties
+of software programs and fitness for a particular purpose. The entire 
+risk as to the quality and performance of the program is with you. 
+If you use the program, please do so with the understanding that you assume 
+all risks of using it. 
+ 
 # License
 
 This license covers the 'InDesignBrot' script.
 
-Copyright (c) 2015-2023 by Rorohiko Ltd. All rights reserved.
+Copyright (c) 2015-2024 by Rorohiko Ltd. All rights reserved.
 
 You may make as many copies of this software and documentation as you wish; 
 give exact copies of the original version to anyone; and distribute the

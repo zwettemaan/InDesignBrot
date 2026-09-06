@@ -1,0 +1,3 @@
+var waitModule = global.require("./wrappedWait.js");
+
+return waitModule.waitTest();

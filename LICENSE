@@ -1,0 +1,44 @@
+InDesignBrot Source-Available License
+
+Copyright (c) 2015–present Rorohiko Ltd. All rights reserved.
+
+SPDX-License-Identifier: LicenseRef-RorohikoSourceAvailable
+
+---
+
+The source code of this software is made available for inspection, learning,
+and personal experimentation.
+
+## Permissions
+
+You may:
+- View and study the source code.
+- Copy and distribute the software in unmodified form at no charge, provided
+  this copyright notice and all accompanying documentation are included
+  without modification.
+- Modify the source code for your own private, non-commercial use.
+
+## Restrictions
+
+You may not:
+- Sell, charge for, or request donations for any copy of this software,
+  modified or unmodified.
+- Distribute modified versions of this software publicly under the name
+  "InDesignBrot" or any confusingly similar name.
+- Bundle this software, modified or unmodified, with any other product
+  (commercial or otherwise) for distribution without prior written permission
+  from Rorohiko Ltd.
+- Remove or alter this copyright notice or any other licensing notices.
+
+## No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ROROHIKO LTD. BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+For licensing enquiries: kris@rorohiko.com
